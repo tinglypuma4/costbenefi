@@ -19,6 +19,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{46
 		StockExelServices.cs = StockExelServices.cs
 		StockPDFService.cs = StockPDFService.cs
 		TicketPrinter.cs = TicketPrinter.cs
+		VentasExcelService.cs = VentasExcelService.cs
+		VentasPDFService.cs = VentasPDFService.cs
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9-E21E-492B-83DD-6A5046CA4BA3}"
@@ -49,6 +51,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reportes", "Reportes", "{2A
 	ProjectSection(SolutionItems) = preProject
 		ReporteMovimientos.cs = ReporteMovimientos.cs
 		ReporteStock.cs = ReporteStock.cs
+		ReporteVentas.cs = ReporteVentas.cs
+		TiposReportes.cs = TiposReportes.cs
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Almacen_agrear_editar", "Almacen_agrear_editar", "{6202C26B-1D9A-450E-8F80-6F3F5193CDDA}"
@@ -83,6 +87,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reporte_auditoria", "Report
 		ReporteSelectorWindow.xaml.cs = ReporteSelectorWindow.xaml.cs
 		ReporteStockWindow.xaml = ReporteStockWindow.xaml
 		ReporteStockWindow.xaml.cs = ReporteStockWindow.xaml.cs
+		ReporteVentasWindow.xaml = ReporteVentasWindow.xaml
+		ReporteVentasWindow.xaml.cs = ReporteVentasWindow.xaml.cs
 		TipoMaterialSelectorWindow.xaml = TipoMaterialSelectorWindow.xaml
 		TipoMaterialSelectorWindow.xaml.cs = TipoMaterialSelectorWindow.xaml.cs
 	EndProjectSection

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using costbenefi.Models;
 
 namespace costbenefi.Models
 {
@@ -9,14 +10,7 @@ namespace costbenefi.Models
     /// <summary>
     /// Enumeración para los diferentes tipos de formato de reporte
     /// </summary>
-    public enum TipoFormatoReporte
-    {
-        Estandar,
-        Ejecutivo,
-        Detallado,
-        SoloStockBajo
-    }
-
+   
     /// <summary>
     /// Modelo principal para la generación de reportes de stock
     /// Contiene toda la información necesaria para generar un PDF profesional
@@ -386,28 +380,7 @@ namespace costbenefi.Models
     /// <summary>
     /// Información sobre los filtros aplicados al reporte
     /// </summary>
-    public class FiltrosAplicados
-    {
-        public List<string> CategoriasSeleccionadas { get; set; } = new List<string>();
-        public List<string> ProveedoresSeleccionados { get; set; } = new List<string>();
-        public bool SoloStockBajo { get; set; }
-        public decimal? ValorMinimo { get; set; }
-        public decimal? ValorMaximo { get; set; }
-        public decimal? StockMinimo { get; set; }
-        public decimal? StockMaximo { get; set; }
 
-        /// <summary>
-        /// Indica si hay algún filtro aplicado
-        /// </summary>
-        public bool TieneFiltrosAplicados =>
-            CategoriasSeleccionadas.Any() ||
-            ProveedoresSeleccionados.Any() ||
-            SoloStockBajo ||
-            ValorMinimo.HasValue ||
-            ValorMaximo.HasValue ||
-            StockMinimo.HasValue ||
-            StockMaximo.HasValue;
-    }
 
     /// <summary>
     /// Resumen de una categoría de productos

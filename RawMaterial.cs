@@ -365,7 +365,7 @@ namespace costbenefi.Models
             }
             ActivoParaVenta = true;
             StockMinimoVenta = UnidadMedida.Contains("kg") || UnidadMedida.Contains("gr") ? 0.1m : 1;
-            FechaActualizacion = DateTime.Now;
+            FechaActualizacion = DateTime.Now; 
         }
     }
 }

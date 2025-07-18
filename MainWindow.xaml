@@ -823,17 +823,133 @@
             <!-- Pestaña 2: Reportes -->
             <TabItem Header="📊 Reportes" Style="{StaticResource TabItemStyle}">
                 <Grid Background="White">
-                    <Border Margin="50" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="📊" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,20"/>
-                            <TextBlock Text="Módulo de Reportes" FontSize="24" FontWeight="Bold" 
-                                      HorizontalAlignment="Center" Foreground="#374151" Margin="0,0,0,10"/>
-                            <TextBlock Text="Genere reportes detallados de inventario, movimientos y análisis financiero" 
-                                      FontSize="14" HorizontalAlignment="Center" Foreground="#6B7280" Margin="0,0,0,30"/>
-                            <Button Content="🚀 Abrir Reportes" Width="200" Height="40" 
-                                   Background="#10B981" Foreground="White" FontSize="14" FontWeight="Bold"
-                                   BorderThickness="0" Click="BtnAbrirReportes_Click"/>
-                        </StackPanel>
+                    <Border Margin="30" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Header -->
+                            <Border Grid.Row="0" Background="#059669" CornerRadius="10,10,0,0" Padding="20">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="📊" FontSize="40" HorizontalAlignment="Center" Foreground="White" Margin="0,0,0,10"/>
+                                    <TextBlock Text="Módulo de Reportes" FontSize="24" FontWeight="Bold" 
+                                  HorizontalAlignment="Center" Foreground="White" Margin="0,0,0,5"/>
+                                    <TextBlock Text="Genere reportes detallados de inventario, ventas y análisis financiero" 
+                                  FontSize="14" HorizontalAlignment="Center" Foreground="White" Opacity="0.9"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Botones de reportes -->
+                            <Grid Grid.Row="1" Margin="40">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="20"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="40"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Reporte de Ventas -->
+                                <Border Grid.Row="0" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1"
+                            Cursor="Hand" MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave">
+                                    <Border.InputBindings>
+                                        <MouseBinding MouseAction="LeftClick" Command="{Binding AbrirReporteVentasCommand}"/>
+                                    </Border.InputBindings>
+                                    <Button Background="Transparent" BorderThickness="0" Click="BtnReporteVentas_Click"
+                                Cursor="Hand" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Icono -->
+                                            <Border Grid.Column="0" Background="#059669" CornerRadius="50" 
+                                        Width="80" Height="80" Margin="20">
+                                                <TextBlock Text="🎯" FontSize="36" HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center" Foreground="White"/>
+                                            </Border>
+
+                                            <!-- Contenido -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="20,0">
+                                                <TextBlock Text="📊 Reporte de Ventas" FontSize="20" FontWeight="Bold" 
+                                               Foreground="#059669" Margin="0,0,0,8"/>
+                                                <TextBlock Text="Análisis completo de ventas, clientes, productos vendidos y rentabilidad" 
+                                               FontSize="14" Foreground="#6B7280" TextWrapping="Wrap"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                    <Border Background="#ECFDF5" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                        <TextBlock Text="📈 Rentabilidad" FontSize="11" FontWeight="Bold" Foreground="#059669"/>
+                                                    </Border>
+                                                    <Border Background="#ECFDF5" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                        <TextBlock Text="👥 Clientes" FontSize="11" FontWeight="Bold" Foreground="#059669"/>
+                                                    </Border>
+                                                    <Border Background="#ECFDF5" CornerRadius="4" Padding="8,4">
+                                                        <TextBlock Text="📦 Productos" FontSize="11" FontWeight="Bold" Foreground="#059669"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <!-- Flecha -->
+                                            <TextBlock Grid.Column="2" Text="➤" FontSize="24" Foreground="#059669" 
+                                           VerticalAlignment="Center" Margin="20"/>
+                                        </Grid>
+                                    </Button>
+                                </Border>
+
+                                <!-- Reporte de Stock -->
+                                <Border Grid.Row="2" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1"
+                            Cursor="Hand" MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave">
+                                    <Button Background="Transparent" BorderThickness="0" Click="BtnReporteStock_Click"
+                                Cursor="Hand" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Icono -->
+                                            <Border Grid.Column="0" Background="#3B82F6" CornerRadius="50" 
+                                        Width="80" Height="80" Margin="20">
+                                                <TextBlock Text="📦" FontSize="36" HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center" Foreground="White"/>
+                                            </Border>
+
+                                            <!-- Contenido -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="20,0">
+                                                <TextBlock Text="📋 Reporte de Stock" FontSize="20" FontWeight="Bold" 
+                                               Foreground="#3B82F6" Margin="0,0,0,8"/>
+                                                <TextBlock Text="Análisis de inventario, movimientos, alertas de stock y valorización" 
+                                               FontSize="14" Foreground="#6B7280" TextWrapping="Wrap"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                    <Border Background="#EFF6FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                        <TextBlock Text="⚠️ Alertas" FontSize="11" FontWeight="Bold" Foreground="#3B82F6"/>
+                                                    </Border>
+                                                    <Border Background="#EFF6FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                        <TextBlock Text="📊 Valorización" FontSize="11" FontWeight="Bold" Foreground="#3B82F6"/>
+                                                    </Border>
+                                                    <Border Background="#EFF6FF" CornerRadius="4" Padding="8,4">
+                                                        <TextBlock Text="🔄 Movimientos" FontSize="11" FontWeight="Bold" Foreground="#3B82F6"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <!-- Flecha -->
+                                            <TextBlock Grid.Column="2" Text="➤" FontSize="24" Foreground="#3B82F6" 
+                                           VerticalAlignment="Center" Margin="20"/>
+                                        </Grid>
+                                    </Button>
+                                </Border>
+
+                                <!-- Info adicional -->
+                                <TextBlock Grid.Row="4" Text="💡 Tip: Los reportes se pueden exportar a PDF y Excel con análisis detallados" 
+                               FontSize="12" Foreground="#6B7280" HorizontalAlignment="Center" 
+                               FontStyle="Italic" Margin="0,20,0,0"/>
+                            </Grid>
+                        </Grid>
                     </Border>
                 </Grid>
             </TabItem>

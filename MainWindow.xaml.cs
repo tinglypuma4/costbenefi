@@ -1148,20 +1148,67 @@ namespace costbenefi
             }
         }
 
-        private void BtnAbrirReportes_Click(object sender, RoutedEventArgs e)
+        private void BtnReporteVentas_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                var reportSelectorWindow = new ReporteSelectorWindow(_context);
-                reportSelectorWindow.ShowDialog();
+                var reporteVentasWindow = new ReporteVentasWindow(_context)
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+                reporteVentasWindow.Show();
+
+                TxtStatus.Text = "🎯 Reporte de Ventas abierto";
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al abrir reportes: {ex.Message}", "Error",
+                MessageBox.Show($"Error al abrir reporte de ventas: {ex.Message}", "Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatus.Text = "❌ Error al abrir reporte de ventas";
             }
         }
 
+        // Evento para reporte de stock
+        private void BtnReporteStock_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var reporteStockWindow = new ReporteStockWindow(_context)
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+                reporteStockWindow.Show();
+
+                TxtStatus.Text = "📦 Reporte de Stock abierto";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir reporte de stock: {ex.Message}", "Error",
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatus.Text = "❌ Error al abrir reporte de stock";
+            }
+        }
+
+        // Efectos visuales para los borders
+        private void Border_MouseEnter(object sender, MouseEventArgs e)
+        {
+            if (sender is Border border)
+            {
+                border.BorderBrush = new SolidColorBrush(Color.FromRgb(59, 130, 246));
+                border.BorderThickness = new Thickness(2);
+            }
+        }
+
+        private void Border_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (sender is Border border)
+            {
+                border.BorderBrush = new SolidColorBrush(Color.FromRgb(229, 231, 235));
+                border.BorderThickness = new Thickness(1);
+            }
+        }
         private void BtnConfigurarProcesos_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("🔧 Módulo de Procesos\n\n" +
