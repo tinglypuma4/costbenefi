@@ -1,0 +1,143 @@
+﻿<Window x:Class="costbenefi.MiInformacionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Información del Desarrollador" Height="650" Width="550"
+        WindowStartupLocation="CenterOwner" 
+        ResizeMode="NoResize"
+        Background="#F8F9FA">
+
+    <Window.Resources>
+        <Style x:Key="InfoCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
+            <Setter Property="Padding" Value="20"/>
+        </Style>
+
+        <Style x:Key="CardTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#2E3B4E"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+    </Window.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="25">
+        <StackPanel>
+            <!-- Header Principal -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,25">
+                <TextBlock Text="👨‍💻" FontSize="42" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Sistema Costo-Beneficio" FontSize="24" FontWeight="Bold" Foreground="#2A5298"/>
+                    <TextBlock Text="Gestión Integral de Inventarios" FontSize="14" Foreground="#6B7280"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Información del Desarrollador -->
+            <Border Style="{StaticResource InfoCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="👨‍💻 Desarrollador" Style="{StaticResource CardTitleStyle}"/>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="📝 Nombre:" FontWeight="SemiBold" Width="80" Foreground="#374151"/>
+                            <TextBlock Text="Esaú Villagrán" Foreground="#10B981" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="📧 Email:" FontWeight="SemiBold" Width="80" Foreground="#374151"/>
+                            <TextBlock Text="esau.villagran47@gmail.com" Foreground="#3B82F6"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="📱 Contacto:" FontWeight="SemiBold" Width="80" Foreground="#374151"/>
+                            <TextBlock Text="+52 442 622 9401" Foreground="#8B5CF6"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🌐 País:" FontWeight="SemiBold" Width="80" Foreground="#374151"/>
+                            <TextBlock Text="México" Foreground="#EF4444"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Información del Sistema -->
+            <Border Style="{StaticResource InfoCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="⚙️ Información del Sistema" Style="{StaticResource CardTitleStyle}"/>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="🏷️ Versión:" FontWeight="SemiBold" Width="120" Foreground="#374151"/>
+                            <TextBlock Text="1.0.0" Foreground="#10B981" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="📅 Desarrollo:" FontWeight="SemiBold" Width="120" Foreground="#374151"/>
+                            <TextBlock Text="Enero 2025" Foreground="#3B82F6"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="⚙️ Tecnología:" FontWeight="SemiBold" Width="120" Foreground="#374151"/>
+                            <TextBlock Text="WPF .NET 6.0" Foreground="#8B5CF6"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="🗄️ Base de Datos:" FontWeight="SemiBold" Width="120" Foreground="#374151"/>
+                            <TextBlock Text="SQLite + Entity Framework Core" Foreground="#F59E0B"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🎨 UI Framework:" FontWeight="SemiBold" Width="120" Foreground="#374151"/>
+                            <TextBlock Text="Windows Presentation Foundation" Foreground="#EF4444"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Descripción del Proyecto -->
+            <Border Style="{StaticResource InfoCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="📋 Acerca del Proyecto" Style="{StaticResource CardTitleStyle}"/>
+                    <TextBlock FontSize="13" Foreground="#6B7280" TextWrapping="Wrap" LineHeight="20">
+                        <Run Text="Este sistema de gestión de inventario y análisis costo-beneficio fue desarrollado para optimizar la administración de materias primas, generar reportes detallados y facilitar la toma de decisiones empresariales basadas en datos."/>
+                        <LineBreak/><LineBreak/>
+                        <Run Text="🎯 Objetivos Principales:" FontWeight="SemiBold"/>
+                        <LineBreak/>
+                        <Run Text="• Control total del inventario de materias primas"/>
+                        <LineBreak/>
+                        <Run Text="• Gestión automatizada de códigos de barras"/>
+                        <LineBreak/>
+                        <Run Text="• Análisis financiero con cálculos de IVA"/>
+                        <LineBreak/>
+                        <Run Text="• Generación de reportes ejecutivos"/>
+                        <LineBreak/>
+                        <Run Text="• Trazabilidad completa de movimientos"/>
+                        <LineBreak/>
+                        <Run Text="• Interfaz moderna y fácil de usar"/>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Derechos de Autor -->
+            <Border Style="{StaticResource InfoCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="⚖️ Derechos de Autor" Style="{StaticResource CardTitleStyle}"/>
+                    <TextBlock FontSize="13" Foreground="#6B7280" TextWrapping="Wrap" LineHeight="20">
+                        <Run Text="© 2025 Esaú Villagrán. Todos los derechos reservados." FontWeight="Bold" Foreground="#EF4444"/>
+                        <LineBreak/><LineBreak/>
+                        <Run Text="Este software es propiedad intelectual exclusiva del desarrollador Esaú Villagrán. Queda estrictamente prohibida su reproducción, distribución, modificación o uso comercial sin la autorización expresa y por escrito del autor."/>
+                        <LineBreak/><LineBreak/>
+                        <Run Text="📧 Para consultas sobre licencias:" FontWeight="SemiBold"/>
+                        <LineBreak/>
+                        <Run Text="esau.villagran47@gmail.com"/>
+                        <LineBreak/>
+                        <Run Text="📱 +52 442 622 9401"/>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Botón Cerrar -->
+            <Button Name="BtnCerrar" Content="✅ Cerrar" Width="120" Height="40" 
+                   Background="#10B981" Foreground="White" 
+                   FontSize="14" FontWeight="Bold" BorderThickness="0"
+                   Margin="0,10,0,0" HorizontalAlignment="Center"
+                   Click="BtnCerrar_Click"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>

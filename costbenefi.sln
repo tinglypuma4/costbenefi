@@ -1,0 +1,124 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32630.192
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "costbenefi", "costbenefi.csproj", "{19356ACD-B931-40AB-AEEA-BBAAD64F7758}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Data", "Data", "{B10AEDB1-219F-4B3E-88E6-2D9FB5C4BD33}"
+	ProjectSection(SolutionItems) = preProject
+		AppDbContext.cs = AppDbContext.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{4669A151-9FDC-4236-88BB-FBBFCCDB57D7}"
+	ProjectSection(SolutionItems) = preProject
+		BasculaService.cs = BasculaService.cs
+		CorteRobustoService.cs = CorteRobustoService.cs
+		POSIntegrationService.cs = POSIntegrationService.cs
+		ScannerPOSService.cs = ScannerPOSService.cs
+		StockExelServices.cs = StockExelServices.cs
+		StockPDFService.cs = StockPDFService.cs
+		TicketPrinter.cs = TicketPrinter.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9-E21E-492B-83DD-6A5046CA4BA3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{CB0EA23B-7609-429B-AE5F-878D7E0ED6A5}"
+	ProjectSection(SolutionItems) = preProject
+		Converters.cs = Converters.cs
+		CorteCaja.cs = CorteCaja.cs
+		CorteStock.cs = CorteStock.cs
+		DetalleCorteStock.cs = DetalleCorteStock.cs
+		DetalleVenta.cs = DetalleVenta.cs
+		MaterialCalculator.cs = MaterialCalculator.cs
+		Movimiento.cs = Movimiento.cs
+		ProductoSeleccionable.cs = ProductoSeleccionable.cs
+		RawMaterial.cs = RawMaterial.cs
+		Venta.cs = Venta.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Converters", "Converters", "{FB82A8DF-6051-40BC-9502-FB455A94671E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Helpers", "Helpers", "{243C8E17-7868-44CF-8126-584298C99D22}"
+	ProjectSection(SolutionItems) = preProject
+		MaterialCalculationHelper.cs = MaterialCalculationHelper.cs
+		UnitsHelper.cs = UnitsHelper.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reportes", "Reportes", "{2AE6F244-01B2-450B-9D25-F26A473C3F77}"
+	ProjectSection(SolutionItems) = preProject
+		ReporteMovimientos.cs = ReporteMovimientos.cs
+		ReporteStock.cs = ReporteStock.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Almacen_agrear_editar", "Almacen_agrear_editar", "{6202C26B-1D9A-450E-8F80-6F3F5193CDDA}"
+	ProjectSection(SolutionItems) = preProject
+		AddMaterialGranelWindow.xaml = AddMaterialGranelWindow.xaml
+		AddMaterialGranelWindow.xaml.cs = AddMaterialGranelWindow.xaml.cs
+		AddMaterialPiezasWindow.xaml = AddMaterialPiezasWindow.xaml
+		AddMaterialPiezasWindow.xaml.cs = AddMaterialPiezasWindow.xaml.cs
+		BarcodeScannerWindow.xaml = BarcodeScannerWindow.xaml
+		BarcodeScannerWindow.xaml.cs = BarcodeScannerWindow.xaml.cs
+		EditMaterialWindow.xaml = EditMaterialWindow.xaml
+		EditMaterialWindow.xaml.cs = EditMaterialWindow.xaml.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Auxiliares", "Auxiliares", "{3752C113-5FEA-4D3C-8FE4-3AACA9B549AC}"
+	ProjectSection(SolutionItems) = preProject
+		ButtonAnimation.cs = ButtonAnimation.cs
+		ClasesAuxiliares.cs = ClasesAuxiliares.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "informacion", "informacion", "{BB6D79AC-DF4D-4327-AAC8-8575AAE57C01}"
+	ProjectSection(SolutionItems) = preProject
+		MiInformacionWindow.xaml = MiInformacionWindow.xaml
+		MiInformacionWindow.xaml.cs = MiInformacionWindow.xaml.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reporte_auditoria", "Reporte_auditoria", "{75990FAE-022C-4114-9B92-508FAA8A3989}"
+	ProjectSection(SolutionItems) = preProject
+		ReporteMovimientosWindow.xaml = ReporteMovimientosWindow.xaml
+		ReporteMovimientosWindow.xaml.cs = ReporteMovimientosWindow.xaml.cs
+		ReporteSelectorWindow.xaml = ReporteSelectorWindow.xaml
+		ReporteSelectorWindow.xaml.cs = ReporteSelectorWindow.xaml.cs
+		ReporteStockWindow.xaml = ReporteStockWindow.xaml
+		ReporteStockWindow.xaml.cs = ReporteStockWindow.xaml.cs
+		TipoMaterialSelectorWindow.xaml = TipoMaterialSelectorWindow.xaml
+		TipoMaterialSelectorWindow.xaml.cs = TipoMaterialSelectorWindow.xaml.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "punto de venta", "punto de venta", "{E64E27AA-6F65-436E-9C78-DD7412632F90}"
+	ProjectSection(SolutionItems) = preProject
+		ConfigurarComisionesWindow.xaml.cs = ConfigurarComisionesWindow.xaml.cs
+		ConfigurarImpresoraWindow.xaml.cs = ConfigurarImpresoraWindow.xaml.cs
+		ConfigurarPrecioVentaWindow.xaml.cs = ConfigurarPrecioVentaWindow.xaml.cs
+		IngresarPesoWindow.xaml.cs = IngresarPesoWindow.xaml.cs
+		ProcesarPagoWindow.xaml.cs = ProcesarPagoWindow.xaml.cs
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{19356ACD-B931-40AB-AEEA-BBAAD64F7758}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19356ACD-B931-40AB-AEEA-BBAAD64F7758}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19356ACD-B931-40AB-AEEA-BBAAD64F7758}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19356ACD-B931-40AB-AEEA-BBAAD64F7758}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2AE6F244-01B2-450B-9D25-F26A473C3F77} = {CB0EA23B-7609-429B-AE5F-878D7E0ED6A5}
+		{6202C26B-1D9A-450E-8F80-6F3F5193CDDA} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
+		{3752C113-5FEA-4D3C-8FE4-3AACA9B549AC} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
+		{BB6D79AC-DF4D-4327-AAC8-8575AAE57C01} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
+		{75990FAE-022C-4114-9B92-508FAA8A3989} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
+		{E64E27AA-6F65-436E-9C78-DD7412632F90} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {40C49D51-0910-42B9-B9B4-A1B5D9126FA2}
+	EndGlobalSection
+EndGlobal

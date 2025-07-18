@@ -1,0 +1,102 @@
+﻿<Window x:Class="costbenefi.Views.TipoMaterialSelectorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Seleccionar Tipo de Material" Height="600" Width="540"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        Background="#F8F9FA">
+
+    <Grid Margin="25">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#2E3B4E" Padding="20" Margin="0,0,0,20" CornerRadius="8">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="📦 ¿Qué tipo de material vas a agregar?" 
+                           FontSize="18" FontWeight="Bold" 
+                           Foreground="White" HorizontalAlignment="Center" TextAlignment="Center"/>
+                <TextBlock Text="Selecciona el formulario más adecuado" 
+                           FontSize="12" Foreground="#B0C4DE" 
+                           HorizontalAlignment="Center" Margin="0,5,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Options con ScrollViewer -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                
+                <!-- Opción A Granel -->
+                <Border BorderBrush="#17A2B8" BorderThickness="2" CornerRadius="10" Padding="20" 
+                        Background="White" Cursor="Hand" x:Name="BorderGranel"
+                        Margin="0,0,0,20"
+                        MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave"
+                        MouseLeftButtonUp="BtnGranel_Click">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Column="0" Text="🧪" FontSize="35" 
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        
+                        <StackPanel Grid.Column="1" Margin="15,0,0,0">
+                            <TextBlock Text="📏 PRODUCTOS A GRANEL" FontSize="16" FontWeight="Bold" 
+                                       Foreground="#17A2B8" Margin="0,0,0,5"/>
+                            <TextBlock Text="• Líquidos (ml, litros)" FontSize="12" Foreground="#666" Margin="0,2"/>
+                            <TextBlock Text="• Polvos y granulados (g, kg)" FontSize="12" Foreground="#666" Margin="0,2"/>
+                            <TextBlock Text="• Materias primas pesables" FontSize="12" Foreground="#666" Margin="0,2"/>
+                            <TextBlock Text="• Productos que se venden por peso/volumen" FontSize="11" 
+                                       Foreground="#28A745" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Opción Piezas -->
+                <Border BorderBrush="#28A745" BorderThickness="2" CornerRadius="10" Padding="20" 
+                        Background="White" Cursor="Hand" x:Name="BorderPiezas"
+                        Margin="0,0,0,20"
+                        MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave"
+                        MouseLeftButtonUp="BtnPiezas_Click">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Column="0" Text="📦" FontSize="35" 
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        
+                        <StackPanel Grid.Column="1" Margin="15,0,0,0">
+                            <TextBlock Text="📦 PIEZAS Y PAQUETES" FontSize="16" FontWeight="Bold" 
+                                       Foreground="#28A745" Margin="0,0,0,5"/>
+                            <TextBlock Text="• Productos unitarios (botellas, frascos)" FontSize="12" Foreground="#666" Margin="0,2"/>
+                            <TextBlock Text="• Paquetes y cajas (docenas, packs)" FontSize="12" Foreground="#666" Margin="0,2"/>
+                            <TextBlock Text="• Productos que vienen empaquetados" FontSize="12" Foreground="#666" Margin="0,2"/>
+                            <TextBlock Text="• Productos que se cuentan por unidades" FontSize="11" 
+                                       Foreground="#17A2B8" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <Grid Grid.Row="2" Margin="0,20,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Text="💡 Tip: Presiona 1 para Granel, 2 para Piezas" 
+                           FontSize="10" Foreground="#6B7280" VerticalAlignment="Center" 
+                           Margin="0,0,15,0"/>
+                <Button x:Name="BtnCancelar" Content="❌ Cancelar" 
+                        Width="100" Height="35"
+                        Background="#6C757D" Foreground="White" FontSize="13"
+                        BorderThickness="0" Click="BtnCancelar_Click"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

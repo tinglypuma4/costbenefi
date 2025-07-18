@@ -1,0 +1,589 @@
+﻿<Window x:Class="costbenefi.Views.EditAddStockWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Gestión de Material" Height="700" Width="800"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        MinHeight="650" MinWidth="750"
+        Background="#F8F9FA">
+
+    <Window.Resources>
+        <!-- Estilos Modernos y Compactos -->
+        <Style x:Key="ModernTextBox" TargetType="TextBox">
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#DDD"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Margin" Value="0,3"/>
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="#007ACC"/>
+                    <Setter Property="Background" Value="#F8F9FA"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="#AAA"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ModernComboBox" TargetType="ComboBox">
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#DDD"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Margin" Value="0,3"/>
+        </Style>
+
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="Margin" Value="0,8,0,8"/>
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#495057"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+
+        <Style x:Key="HelpButton" TargetType="Button">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Background" Value="#3498DB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Content" Value="?"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="5,0,0,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse Fill="{TemplateBinding Background}" 
+                                    Stroke="{TemplateBinding BorderBrush}"
+                                    StrokeThickness="{TemplateBinding BorderThickness}"/>
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2980B9"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5,3"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinHeight" Value="35"/>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+            <Setter Property="Background" Value="#27AE60"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#229954"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+            <Setter Property="Background" Value="#6C757D"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#5A6268"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="WarningButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+            <Setter Property="Background" Value="#E74C3C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#C0392B"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="InfoCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E9ECEF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="15"/>
+            <Setter Property="Margin" Value="0,8"/>
+        </Style>
+
+        <Style x:Key="ValueDisplay" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header Mejorado y Compacto -->
+        <Border Grid.Row="0" Padding="20,15" CornerRadius="8,8,0,0" Margin="0,0,0,15">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#667eea" Offset="0"/>
+                    <GradientStop Color="#764ba2" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock x:Name="TxtTitulo" Text="📦 GESTIÓN DE MATERIAL" 
+                               FontSize="20" FontWeight="Bold" 
+                               Foreground="White"/>
+                    <TextBlock x:Name="TxtSubtitulo" Text="Editar información o ajustar stock" 
+                               FontSize="12" Foreground="#E0E7FF" 
+                               Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#ffffff30" Padding="12,6" CornerRadius="15">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="💾" FontSize="14" Margin="0,0,5,0"/>
+                            <TextBlock Text="Auto-guardado activo" FontSize="11" 
+                                      Foreground="White" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Contenido Principal en Columnas -->
+        <Grid Grid.Row="1" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.2*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Columna Izquierda: Información Principal -->
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,10,0">
+                <StackPanel>
+
+                    <!-- Información Básica del Producto -->
+                    <Border Style="{StaticResource InfoCard}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <TextBlock Text="📋 Información del Producto" Style="{StaticResource SectionHeader}"/>
+                                <Button Style="{StaticResource HelpButton}" Click="ShowHelp_InfoBasica"/>
+                            </StackPanel>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- ID -->
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="ID:" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtId" Style="{StaticResource ModernTextBox}"
+                                        IsReadOnly="True" Background="#F8F9FA"/>
+
+                                <!-- Nombre -->
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Nombre:" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtNombre" Style="{StaticResource ModernTextBox}"
+                                        ToolTip="Nombre identificativo del material"/>
+                                <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource HelpButton}" 
+                                       Click="ShowHelp_Nombre"/>
+
+                                <!-- Categoría -->
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Categoría:" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox Grid.Row="2" Grid.Column="1" x:Name="CmbCategoria" Style="{StaticResource ModernComboBox}"
+                                         IsEditable="True" ToolTip="Seleccione o escriba una categoría">
+                                    <ComboBoxItem Content="Líquidos"/>
+                                    <ComboBoxItem Content="Polvos"/>
+                                    <ComboBoxItem Content="Botellas"/>
+                                    <ComboBoxItem Content="Frascos"/>
+                                    <ComboBoxItem Content="Envases"/>
+                                    <ComboBoxItem Content="Materias Primas"/>
+                                    <ComboBoxItem Content="Químicos"/>
+                                    <ComboBoxItem Content="Herramientas"/>
+                                </ComboBox>
+                                <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource HelpButton}" 
+                                       Click="ShowHelp_Categoria"/>
+
+                                <!-- Proveedor -->
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Proveedor:" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" x:Name="TxtProveedor" Style="{StaticResource ModernTextBox}"
+                                        ToolTip="Nombre del proveedor o distribuidor"/>
+                                <Button Grid.Row="3" Grid.Column="2" Style="{StaticResource HelpButton}" 
+                                       Click="ShowHelp_Proveedor"/>
+
+                                <!-- Código de Barras -->
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Código:" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Grid.Row="4" Grid.Column="1" x:Name="TxtCodigoBarras" Style="{StaticResource ModernTextBox}"
+                                        FontFamily="Consolas" ToolTip="Código de barras del producto"/>
+                                <Button Grid.Row="4" Grid.Column="2" Style="{StaticResource HelpButton}" 
+                                       Click="ShowHelp_CodigoBarras"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Gestión de Stock -->
+                    <Border Style="{StaticResource InfoCard}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <TextBlock Text="📦 Gestión de Stock" Style="{StaticResource SectionHeader}"/>
+                                <Button Style="{StaticResource HelpButton}" Click="ShowHelp_GestionStock"/>
+                            </StackPanel>
+
+                            <TabControl MinHeight="420" MaxHeight="500" Margin="0">
+                                <!-- Pestaña: Agregar Stock -->
+                                <TabItem Header="➕ Agregar">
+                                    <Grid Margin="20">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Cantidad -->
+                                        <Grid Grid.Row="0" Margin="0,0,0,15">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="60"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Cantidad:" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Column="1" x:Name="TxtCantidadAgregar" Style="{StaticResource ModernTextBox}"
+                                                    Text="0" TextChanged="CantidadAgregarChanged" Width="200"/>
+                                            <TextBlock Grid.Column="2" x:Name="TxtUnidadAgregar" Text="kg" 
+                                                      Style="{StaticResource FieldLabel}" HorizontalAlignment="Center"/>
+                                            <Button Grid.Column="3" Style="{StaticResource HelpButton}" 
+                                                   Click="ShowHelp_CantidadAgregar"/>
+                                        </Grid>
+
+                                        <!-- Precio Total -->
+                                        <Grid Grid.Row="1" Margin="0,0,0,15">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Precio Total:" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Column="1" x:Name="TxtPrecioTotalAgregar" Style="{StaticResource ModernTextBox}"
+                                                    Text="0" TextChanged="PrecioAgregarChanged" Width="200"/>
+                                            <CheckBox Grid.Column="2" x:Name="ChkIncluyeIVAAgregar" Content="Inc. IVA"
+                                                     VerticalAlignment="Center" FontSize="11" Margin="8,0"
+                                                     IsChecked="True" Checked="IVAAgregarChanged" Unchecked="IVAAgregarChanged"/>
+                                            <Button Grid.Column="3" Style="{StaticResource HelpButton}" 
+                                                   Click="ShowHelp_PrecioTotal"/>
+                                        </Grid>
+
+                                        <!-- IVA -->
+                                        <Grid Grid.Row="2" Margin="0,0,0,15">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="% IVA:" Style="{StaticResource FieldLabel}"/>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                <TextBox x:Name="TxtIVAAgregar" Width="60" Style="{StaticResource ModernTextBox}"
+                                                        Text="16" TextChanged="IVATextBoxChanged" Margin="0"/>
+                                                <TextBlock Text="%" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                                            </StackPanel>
+                                            <Button Grid.Column="3" Style="{StaticResource HelpButton}" 
+                                                   Click="ShowHelp_IVA"/>
+                                        </Grid>
+
+                                        <!-- Resumen -->
+                                        <Border Grid.Row="3" Background="#F0FDF4" BorderBrush="#10B981" 
+                                               BorderThickness="1" CornerRadius="6" Padding="15" Margin="0,15,0,15">
+                                            <TextBlock x:Name="TxtResumenAgregar" 
+                                                      Text="💡 Complete los datos para ver el cálculo..."
+                                                      FontSize="14" TextWrapping="Wrap" Foreground="#065F46" Height="60"/>
+                                        </Border>
+
+                                        <!-- Botón -->
+                                        <Button Grid.Row="4" x:Name="BtnAgregarStock" Content="✅ Agregar Stock" 
+                                               Style="{StaticResource PrimaryButton}" IsEnabled="True"
+                                               Click="BtnAgregarStock_Click" Margin="0,15,0,0" Width="200"/>
+                                    </Grid>
+                                </TabItem>
+
+                                <!-- Pestaña: Quitar Stock -->
+                                <TabItem Header="➖ Quitar">
+                                    <Grid Margin="10">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Cantidad -->
+                                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="50"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Cantidad:" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Column="1" x:Name="TxtCantidadQuitar" Style="{StaticResource ModernTextBox}"
+                                                    Text="0" TextChanged="CantidadQuitarChanged"/>
+                                            <TextBlock Grid.Column="2" x:Name="TxtUnidadQuitar" Text="kg" 
+                                                      Style="{StaticResource FieldLabel}" HorizontalAlignment="Center"/>
+                                            <Button Grid.Column="3" Style="{StaticResource HelpButton}" 
+                                                   Click="ShowHelp_CantidadQuitar"/>
+                                        </Grid>
+
+                                        <!-- Razón -->
+                                        <Grid Grid.Row="1" Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Razón:" Style="{StaticResource FieldLabel}"/>
+                                            <ComboBox Grid.Column="1" x:Name="CmbRazonQuitar" Style="{StaticResource ModernComboBox}">
+                                                <ComboBoxItem Content="🏭 Uso en producción"/>
+                                                <ComboBoxItem Content="Venta"/>
+                                                <ComboBoxItem Content="📉 Stock perdido"/>
+                                                <ComboBoxItem Content="⚠️ Merma/deterioro"/>
+                                                <ComboBoxItem Content="🔄 Devolución a proveedor"/>
+                                                <ComboBoxItem Content="🧪 Muestras/pruebas"/>
+                                                <ComboBoxItem Content="❌ Error de inventario"/>
+                                                <ComboBoxItem Content="📝 Otros"/>
+                                            </ComboBox>
+                                            <Button Grid.Column="2" Style="{StaticResource HelpButton}" 
+                                                   Click="ShowHelp_RazonQuitar"/>
+                                        </Grid>
+
+                                        <!-- Resumen -->
+                                        <Border Grid.Row="2" Background="#FEF2F2" BorderBrush="#EF4444" 
+                                               BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,8">
+                                            <TextBlock x:Name="TxtResumenQuitar" 
+                                                      Text="⚠️ Stock después del ajuste: esperando datos..."
+                                                      FontSize="12" TextWrapping="Wrap" Foreground="#7F1D1D"/>
+                                        </Border>
+
+                                        <!-- Botón -->
+                                        <Button Grid.Row="3" x:Name="BtnQuitarStock" Content="❌ Quitar Stock" 
+                                               Style="{StaticResource WarningButton}" IsEnabled="True"
+                                               Click="BtnQuitarStock_Click" Margin="0,8,0,0"/>
+                                    </Grid>
+                                </TabItem>
+                            </TabControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Observaciones -->
+                    <Border Style="{StaticResource InfoCard}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="📝 Observaciones e Historial" Style="{StaticResource SectionHeader}"/>
+                                <Button Style="{StaticResource HelpButton}" Click="ShowHelp_Observaciones"/>
+                            </StackPanel>
+                            <TextBox x:Name="TxtObservaciones" Height="80" Style="{StaticResource ModernTextBox}"
+                                    TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                    FontFamily="Consolas" FontSize="11"
+                                    ToolTip="Historial automático de movimientos y notas adicionales"/>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Columna Derecha: Información de Stock y Precios -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="10,0,0,0">
+                <StackPanel>
+
+                    <!-- Stock Actual -->
+                    <Border Style="{StaticResource InfoCard}" Background="#ECFDF5">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="📊 Stock Actual" Style="{StaticResource SectionHeader}" Foreground="#065F46"/>
+                                <Button Style="{StaticResource HelpButton}" Click="ShowHelp_StockActual"/>
+                            </StackPanel>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="60"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="#10B981" CornerRadius="6" Padding="15,8">
+                                    <TextBlock x:Name="TxtStockActual" Text="0.00" 
+                                              Style="{StaticResource ValueDisplay}" Foreground="White"/>
+                                </Border>
+                                <TextBlock Grid.Column="1" x:Name="TxtUnidad" Text="kg" 
+                                          Style="{StaticResource FieldLabel}" HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Alerta de Stock Mínimo -->
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="⚠️ Mín:" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Grid.Column="1" x:Name="TxtAlertaMinimo" Style="{StaticResource ModernTextBox}"
+                                        Margin="8,0"/>
+                                <Button Grid.Column="2" Style="{StaticResource HelpButton}" 
+                                       Click="ShowHelp_StockMinimo"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Precios por Unidad -->
+                    <Border Style="{StaticResource InfoCard}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="💰 Precios por Unidad" Style="{StaticResource SectionHeader}"/>
+                                <Button Style="{StaticResource HelpButton}" Click="ShowHelp_Precios"/>
+                            </StackPanel>
+
+                            <!-- Precio Sin IVA -->
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Sin IVA:" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Grid.Column="1" x:Name="TxtPrecioPorUnidadSinIVA" Style="{StaticResource ModernTextBox}"
+                                        Background="#EFF6FF" TextChanged="PrecioChanged" Margin="8,0"/>
+                                <Button Grid.Column="2" Style="{StaticResource HelpButton}" 
+                                       Click="ShowHelp_PrecioSinIVA"/>
+                            </Grid>
+
+                            <!-- Precio Con IVA -->
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Con IVA:" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Grid.Column="1" x:Name="TxtPrecioPorUnidadConIVA" Style="{StaticResource ModernTextBox}"
+                                        Background="#ECFDF5" TextChanged="PrecioChanged" Margin="8,0"/>
+                                <Button Grid.Column="2" Style="{StaticResource HelpButton}" 
+                                       Click="ShowHelp_PrecioConIVA"/>
+                            </Grid>
+
+                            <!-- Porcentaje IVA -->
+                            <Border Background="#FEF3C7" Padding="10" CornerRadius="4">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="📊 IVA: " FontWeight="SemiBold" FontSize="12"/>
+                                    <TextBlock x:Name="TxtPorcentajeIVA" Text="16.0%" FontWeight="Bold" Foreground="#F59E0B"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Valores Totales -->
+                    <Border Style="{StaticResource InfoCard}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="💎 Valor Total Inventario" Style="{StaticResource SectionHeader}"/>
+                                <Button Style="{StaticResource HelpButton}" Click="ShowHelp_ValorTotal"/>
+                            </StackPanel>
+
+                            <!-- Sin IVA -->
+                            <Border Background="#EFF6FF" Padding="12,8" CornerRadius="4" Margin="0,0,0,8">
+                                <StackPanel>
+                                    <TextBlock Text="💙 Sin IVA" FontWeight="SemiBold" FontSize="11" 
+                                              HorizontalAlignment="Center" Foreground="#1E40AF"/>
+                                    <TextBlock x:Name="TxtValorTotalSinIVA" Text="$0.00" 
+                                              Style="{StaticResource ValueDisplay}" Foreground="#1E40AF"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Con IVA -->
+                            <Border Background="#ECFDF5" Padding="12,8" CornerRadius="4">
+                                <StackPanel>
+                                    <TextBlock Text="💚 Con IVA" FontWeight="SemiBold" FontSize="11" 
+                                              HorizontalAlignment="Center" Foreground="#065F46"/>
+                                    <TextBlock x:Name="TxtValorTotalConIVA" Text="$0.00" 
+                                              Style="{StaticResource ValueDisplay}" Foreground="#065F46"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- IVA Calculado -->
+                            <Border Background="#FEF3C7" Padding="8" CornerRadius="4" Margin="0,8,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="📊 IVA Calculado" FontWeight="SemiBold" FontSize="11" 
+                                              HorizontalAlignment="Center" Foreground="#92400E"/>
+                                    <TextBlock x:Name="TxtIVACalculado" Text="16.0%" 
+                                              FontSize="14" FontWeight="Bold" HorizontalAlignment="Center" 
+                                              Foreground="#F59E0B"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Acciones Rápidas -->
+                    <Border Style="{StaticResource InfoCard}" Background="#F8F9FA">
+                        <StackPanel>
+                            <TextBlock Text="⚡ Acciones Rápidas" Style="{StaticResource SectionHeader}"/>
+                            <Button Content="📋 Ver Bitácora" Style="{StaticResource SecondaryButton}" 
+                                   Click="VerBitacora_Click" Margin="0,5"/>
+                            <Button Content="📊 Generar Reporte" Style="{StaticResource SecondaryButton}" 
+                                   Click="GenerarReporte_Click" Margin="0,0,0,5"/>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Botones de Acción -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="BtnGuardar" Content="💾 Guardar Cambios" 
+                   Style="{StaticResource PrimaryButton}" Width="160" Height="40"
+                   Click="BtnGuardar_Click" Cursor="Hand"/>
+            <Button x:Name="BtnCancelar" Content="❌ Cancelar" 
+                   Style="{StaticResource SecondaryButton}" Width="120" Height="40"
+                   Click="BtnCancelar_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

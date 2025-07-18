@@ -1,0 +1,656 @@
+﻿<Window x:Class="costbenefi.Views.ReporteStockWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Title="📊 Reporte de Stock Avanzado" Height="800" Width="1400"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        MinHeight="700" MinWidth="1200"
+        Background="#F8FAFC">
+
+    <Window.Resources>
+        <!-- Estilos modernos mejorados -->
+        <Style x:Key="ModernCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#000000" Opacity="0.06" ShadowDepth="1" BlurRadius="6"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CompactButton" TargetType="Button">
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="4,2"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#E2E8F0"/>
+                                <Setter Property="BorderBrush" Value="#94A3B8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#CBD5E1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#3B82F6"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#2563EB"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#64748B"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#475569"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#334155"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FilterToggleButton" TargetType="ToggleButton">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F1F5F9"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Background" Value="#3B82F6"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderBrush" Value="#2563EB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CompactTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ScrollViewer Name="PART_ContentHost" 
+                                          Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header Principal Compacto -->
+        <Border Grid.Row="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid Margin="20,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Orientation="Horizontal">
+                    <TextBlock Text="📊" FontSize="24" Margin="0,0,8,0"/>
+                    <StackPanel>
+                        <TextBlock Text="Reporte de Stock" 
+                                   FontSize="20" FontWeight="Bold" 
+                                   Foreground="#1E293B"/>
+                        <TextBlock x:Name="TxtSubtitulo" Text="Análisis de inventario en tiempo real" 
+                                   FontSize="12" Foreground="#64748B"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Estadísticas en Header -->
+                <Border Grid.Column="1" Background="#F8FAFC" Padding="12,6" CornerRadius="6" Margin="0,0,12,0">
+                    <TextBlock x:Name="TxtEstadisticas" Text="📊 Productos: 0 | Valor: $0.00" 
+                              FontSize="12" FontWeight="Medium" Foreground="#475569"/>
+                </Border>
+
+                <Border Grid.Column="2" Background="#F1F5F9" Padding="8,6" CornerRadius="6">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📅" FontSize="12" Margin="0,0,6,0"/>
+                        <TextBlock x:Name="TxtFechaReporte" 
+                                  Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='dd/MM/yyyy HH:mm'}" 
+                                  FontSize="11" Foreground="#64748B"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Panel de Filtros Compacto y Colapsable -->
+        <Border Grid.Row="1" Background="#FAFBFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <StackPanel Margin="20,8">
+                <!-- Cabecera de Filtros -->
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0" x:Name="BtnToggleFiltros" Content="🔍 Filtros" 
+                           Style="{StaticResource CompactButton}" Click="BtnToggleFiltros_Click"
+                           FontWeight="SemiBold"/>
+
+                    <!-- Filtros Rápidos Inline -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="12,0">
+                        <TextBlock Text="Filtros rápidos:" FontSize="11" Foreground="#64748B" 
+                                  VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                        <Button x:Name="BtnFiltroTodos" Content="📦 Todos" Style="{StaticResource CompactButton}"
+                               Click="BtnFiltroTodos_Click"/>
+
+                        <Button x:Name="BtnFiltroStockBajo" Content="⚠️ Stock Bajo" Style="{StaticResource CompactButton}"
+                               Click="BtnFiltroStockBajo_Click"/>
+
+                        <Button x:Name="BtnFiltroAltoValor" Content="💎 Alto Valor" Style="{StaticResource CompactButton}"
+                               Click="BtnFiltroAltoValor_Click"/>
+
+                        <Border x:Name="BorderAlertaStock" Background="#FEF3C7" Padding="8,4" CornerRadius="4" 
+                               Visibility="Collapsed" Margin="12,0,0,0">
+                            <TextBlock x:Name="TxtAlertaStock" Text="⚠️ Stock Bajo: 0" 
+                                      FontSize="11" FontWeight="Medium" Foreground="#D97706"/>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button x:Name="BtnLimpiarFiltros" Content="🗑️ Limpiar" 
+                               Style="{StaticResource CompactButton}" Click="BtnLimpiarFiltros_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Panel de Filtros Detallados (Colapsable) -->
+                <Border x:Name="PanelFiltrosDetallados" Style="{StaticResource ModernCard}" 
+                       Visibility="Collapsed" Margin="0,4">
+                    <Grid Margin="16,12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Primera fila de filtros -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Productos -->
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="📦 Productos" FontSize="12" FontWeight="SemiBold" 
+                                          Foreground="#374151" Margin="0,0,0,6"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" x:Name="BtnProductos" Content="Seleccionar..." 
+                                           Style="{StaticResource CompactButton}" HorizontalAlignment="Stretch"
+                                           Click="BtnProductos_Click"/>
+                                    <TextBlock Grid.Column="1" x:Name="TxtProductosSeleccionados" Text="0" 
+                                              FontSize="11" Foreground="#64748B" 
+                                              VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </Grid>
+
+                                <!-- Popup para productos -->
+                                <Popup x:Name="PopupProductos" Placement="Bottom" 
+                                      PlacementTarget="{Binding ElementName=BtnProductos}">
+                                    <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1" 
+                                           CornerRadius="6" Padding="12" MaxHeight="200" MinWidth="280">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <CheckBox Grid.Column="0" x:Name="ChkTodosProductos" 
+                                                         Content="Todos" FontWeight="SemiBold" FontSize="11"
+                                                         Checked="ChkTodosProductos_Checked" 
+                                                         Unchecked="ChkTodosProductos_Unchecked"/>
+                                                <Button Grid.Column="1" Content="✓" Width="20" Height="20" FontSize="9"
+                                                       Background="#10B981" Foreground="White" BorderThickness="0"
+                                                       Click="BtnSeleccionarTodos_Click" Margin="4,0"/>
+                                                <Button Grid.Column="2" Content="✗" Width="20" Height="20" FontSize="9"
+                                                       Background="#EF4444" Foreground="White" BorderThickness="0"
+                                                       Click="BtnDeseleccionarTodos_Click"/>
+                                            </Grid>
+                                            <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">
+                                                <StackPanel x:Name="PanelProductos"/>
+                                            </ScrollViewer>
+                                            <Button Content="Aplicar" Style="{StaticResource PrimaryButton}" 
+                                                   Margin="0,8,0,0" Click="BtnAplicarProductos_Click"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
+                            </StackPanel>
+
+                            <!-- Categorías -->
+                            <StackPanel Grid.Column="1" Margin="8,0">
+                                <TextBlock Text="🏷️ Categorías" FontSize="12" FontWeight="SemiBold" 
+                                          Foreground="#374151" Margin="0,0,0,6"/>
+                                <Button x:Name="BtnCategorias" Content="Seleccionar..." 
+                                       Style="{StaticResource CompactButton}" Click="BtnCategorias_Click"/>
+
+                                <Popup x:Name="PopupCategorias" Placement="Bottom" 
+                                      PlacementTarget="{Binding ElementName=BtnCategorias}">
+                                    <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1" 
+                                           CornerRadius="6" Padding="12" MaxHeight="150" MinWidth="200">
+                                        <StackPanel>
+                                            <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto">
+                                                <StackPanel x:Name="PanelCategorias"/>
+                                            </ScrollViewer>
+                                            <Button Content="Aplicar" Style="{StaticResource PrimaryButton}" 
+                                                   Margin="0,8,0,0" Click="BtnAplicarCategorias_Click"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
+                            </StackPanel>
+
+                            <!-- Proveedores -->
+                            <StackPanel Grid.Column="2" Margin="8,0">
+                                <TextBlock Text="🏢 Proveedores" FontSize="12" FontWeight="SemiBold" 
+                                          Foreground="#374151" Margin="0,0,0,6"/>
+                                <Button x:Name="BtnProveedores" Content="Seleccionar..." 
+                                       Style="{StaticResource CompactButton}" Click="BtnProveedores_Click"/>
+
+                                <Popup x:Name="PopupProveedores" Placement="Bottom" 
+                                      PlacementTarget="{Binding ElementName=BtnProveedores}">
+                                    <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1" 
+                                           CornerRadius="6" Padding="12" MaxHeight="150" MinWidth="200">
+                                        <StackPanel>
+                                            <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto">
+                                                <StackPanel x:Name="PanelProveedores"/>
+                                            </ScrollViewer>
+                                            <Button Content="Aplicar" Style="{StaticResource PrimaryButton}" 
+                                                   Margin="0,8,0,0" Click="BtnAplicarProveedores_Click"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
+                            </StackPanel>
+
+                            <!-- Opciones especiales -->
+                            <StackPanel Grid.Column="3" Margin="8,0,0,0">
+                                <TextBlock Text="⚙️ Opciones" FontSize="12" FontWeight="SemiBold" 
+                                          Foreground="#374151" Margin="0,0,0,6"/>
+                                <CheckBox x:Name="ChkSoloStockBajo" Content="Solo stock bajo" 
+                                         FontSize="11" Foreground="#EF4444" FontWeight="Medium"
+                                         Checked="FiltroCheckbox_Changed" Unchecked="FiltroCheckbox_Changed"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Segunda fila - Rangos numéricos -->
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Rango de Stock -->
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <CheckBox x:Name="ChkFiltrarPorStock" Content="💾 Filtrar por Stock" 
+                                         FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"
+                                         Checked="FiltroCheckbox_Changed" Unchecked="FiltroCheckbox_Changed"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Stock Mínimo:" FontSize="10" 
+                                              Foreground="#64748B" Margin="0,0,0,2"/>
+                                    <TextBox Grid.Row="1" Grid.Column="0" x:Name="TxtStockMin" Style="{StaticResource CompactTextBox}"
+                                            IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorStock}"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="—" Margin="4,0" VerticalAlignment="Center" Foreground="#9CA3AF"/>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Stock Máximo:" FontSize="10" 
+                                              Foreground="#64748B" Margin="0,0,0,2"/>
+                                    <TextBox Grid.Row="1" Grid.Column="2" x:Name="TxtStockMax" Style="{StaticResource CompactTextBox}"
+                                            IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorStock}"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Rango de Valor -->
+                            <StackPanel Grid.Column="1" Margin="8,0">
+                                <CheckBox x:Name="ChkFiltrarPorValor" Content="💰 Filtrar por Valor" 
+                                         FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"
+                                         Checked="FiltroCheckbox_Changed" Unchecked="FiltroCheckbox_Changed"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Valor Mínimo:" FontSize="10" 
+                                              Foreground="#64748B" Margin="0,0,0,2"/>
+                                    <TextBox Grid.Row="1" Grid.Column="0" x:Name="TxtValorMin" Style="{StaticResource CompactTextBox}"
+                                            IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorValor}"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="—" Margin="4,0" VerticalAlignment="Center" Foreground="#9CA3AF"/>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Valor Máximo:" FontSize="10" 
+                                              Foreground="#64748B" Margin="0,0,0,2"/>
+                                    <TextBox Grid.Row="1" Grid.Column="2" x:Name="TxtValorMax" Style="{StaticResource CompactTextBox}"
+                                            IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorValor}"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Botón aplicar -->
+                            <Button Grid.Column="2" x:Name="BtnAplicarFiltros" Content="🔍 Aplicar Filtros" 
+                                   Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom"
+                                   Click="BtnAplicarFiltros_Click" Margin="16,0,0,0"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- DataGrid - Mayor Espacio -->
+        <Border Grid.Row="2" Style="{StaticResource ModernCard}" Margin="20,8,20,8">
+            <DataGrid x:Name="DgStock" AutoGenerateColumns="False" 
+                     GridLinesVisibility="Horizontal" HeadersVisibility="Column"
+                     RowBackground="White" AlternatingRowBackground="#FAFBFC"
+                     BorderThickness="0" FontSize="13" RowHeight="32">
+
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#F8FAFC"/>
+                        <Setter Property="Foreground" Value="#1E293B"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Padding" Value="12,8"/>
+                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F1F5F9"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="📦 Producto" Binding="{Binding Nombre}" Width="*" MinWidth="200">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="Medium"/>
+                                <Setter Property="Padding" Value="12,6"/>
+                                <Setter Property="Foreground" Value="#1E293B"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="🏷️ Categoría" Binding="{Binding Categoria}" Width="120">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Padding" Value="12,6"/>
+                                <Setter Property="Foreground" Value="#64748B"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="📊 Stock" Binding="{Binding Stock, StringFormat=F2}" Width="90">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Right"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Padding" Value="12,6"/>
+                                <Setter Property="Foreground" Value="#1E293B"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="📏 Unidad" Binding="{Binding Unidad}" Width="60">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="12,6"/>
+                                <Setter Property="Foreground" Value="#64748B"/>
+                                <Setter Property="FontSize" Value="11"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="💰 Precio Unit." Binding="{Binding PrecioUnitario, StringFormat=C4}" Width="110">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Right"/>
+                                <Setter Property="Padding" Value="12,6"/>
+                                <Setter Property="Foreground" Value="#1E293B"/>
+                                <Setter Property="FontSize" Value="12"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="💎 Valor Total" Binding="{Binding ValorTotal, StringFormat=C2}" Width="120">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Right"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Foreground" Value="#059669"/>
+                                <Setter Property="Padding" Value="12,6"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="⚠️ Stock" Binding="{Binding StockBajo}" Width="80">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="12,6"/>
+                                <Setter Property="FontWeight" Value="Medium"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="⚠️ Sí">
+                                        <Setter Property="Foreground" Value="#DC2626"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="✅ No">
+                                        <Setter Property="Foreground" Value="#059669"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="🏢 Proveedor" Binding="{Binding Proveedor}" Width="140">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Padding" Value="12,6"/>
+                                <Setter Property="Foreground" Value="#64748B"/>
+                                <Setter Property="FontSize" Value="12"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- Panel de Acciones Inferior -->
+        <Border Grid.Row="3" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <Grid Margin="20,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Info adicional -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="📊 Resumen:" FontSize="12" FontWeight="Medium" 
+                              Foreground="#475569" Margin="0,0,8,0"/>
+
+                    <TextBlock x:Name="TxtResumenDetalle" 
+                              Text="Productos mostrados vs total filtrado" 
+                              FontSize="11" Foreground="#64748B"/>
+                </StackPanel>
+
+                <!-- Acciones -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+
+                    <!-- NUEVO: Selector de Período -->
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="📅 Período:" FontSize="11" FontWeight="Medium" 
+                                  Foreground="#475569" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="CmbPeriodo" Width="120" Height="32" FontSize="12" 
+                                 VerticalContentAlignment="Center" SelectedIndex="2">
+                            <ComboBoxItem Content="📆 Día"/>
+                            <ComboBoxItem Content="📅 Semana"/>
+                            <ComboBoxItem Content="🗓️ Mes"/>
+                            <ComboBoxItem Content="📋 Año"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- MODIFICADO: Selector de Formato -->
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="📊 Formato:" FontSize="11" FontWeight="Medium" 
+                                  Foreground="#475569" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="CmbTipoReporte" Width="160" Height="32" FontSize="12" 
+                                 VerticalContentAlignment="Center" SelectedIndex="0">
+                            <ComboBoxItem Content="📋 Estándar"/>
+                            <ComboBoxItem Content="📊 Ejecutivo"/>
+                            <ComboBoxItem Content="📈 Detallado"/>
+                            <ComboBoxItem Content="⚠️ Solo Stock Bajo"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Botones existentes -->
+                    <Button x:Name="BtnExportarPDF" Content="📄 Exportar PDF" 
+                           Style="{StaticResource PrimaryButton}" Click="BtnExportarPDF_Click"/>
+
+                    <Button x:Name="BtnExportarExcel" Content="📊 Exportar Excel" 
+                           Style="{StaticResource PrimaryButton}" Click="BtnExportarExcel_Click"
+                           Background="#10B981" Margin="4"/>
+
+                    <Button x:Name="BtnRegresar" Content="← Regresar" 
+                           Style="{StaticResource SecondaryButton}" Click="BtnRegresar_Click" Cursor="Hand"/>
+
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,54 @@
+﻿<Window x:Class="costbenefi.Views.ReporteSelectorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Seleccionar Reporte" Height="300" Width="400"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#F5F7FA">
+
+    <Window.Resources>
+        <Style x:Key="CompactButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,10,0,10"/>
+            <Setter Property="Padding" Value="10"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Título -->
+        <TextBlock Grid.Row="0" Text="📊 Seleccionar Reporte"
+                   FontSize="18" FontWeight="Bold"
+                   HorizontalAlignment="Center" Margin="0,0,0,20"
+                   Foreground="#2E3B4E"/>
+
+        <!-- Botones de selección -->
+        <StackPanel Grid.Row="1" VerticalAlignment="Center">
+            <Button x:Name="BtnReporteMovimientos" Content="📜 Reporte de Movimientos"
+                    Background="#10B981" Foreground="White"
+                    Style="{StaticResource CompactButtonStyle}"
+                    Click="BtnReporteMovimientos_Click"/>
+
+            <Button x:Name="BtnReporteStock" Content="📈 Reporte de Stock"
+                    Background="#3B82F6" Foreground="White"
+                    Style="{StaticResource CompactButtonStyle}"
+                    Click="BtnReporteStock_Click"/>
+        </StackPanel>
+
+        <!-- Botón Regresar -->
+        <Button Grid.Row="2" x:Name="BtnRegresar" Content="⬅️ Regresar"
+                Width="100" Background="#6B7280" Foreground="White"
+                Style="{StaticResource CompactButtonStyle}"
+                HorizontalAlignment="Right"
+                Click="BtnRegresar_Click"/>
+    </Grid>
+</Window>

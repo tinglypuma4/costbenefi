@@ -1,0 +1,223 @@
+﻿<Window x:Class="costbenefi.Views.VentanaConfiguracionReporte"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🔧 Configuración de Reporte" Height="700" Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F8F9FA">
+
+    <Window.Resources>
+        <Style x:Key="ModernCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E0E6ED"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#4F46E5"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3730A3"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#6B7280"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#4B5563"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#1F2937"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+    </Window.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="White" Padding="20" CornerRadius="8" 
+                    BorderBrush="#E5E7EB" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="🔧 Configuración de Reporte" 
+                               FontSize="20" FontWeight="Bold" 
+                               Foreground="#1F2937" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Personalice su reporte seleccionando las opciones deseadas" 
+                               FontSize="12" Foreground="#6B7280" 
+                               HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Configuración -->
+            <StackPanel Grid.Row="1" Margin="0,16,0,0">
+
+                <!-- Tipo de Reporte -->
+                <Border Style="{StaticResource ModernCard}">
+                    <StackPanel>
+                        <TextBlock Text="📊 Tipo de Reporte" Style="{StaticResource SectionHeader}"/>
+                        <ComboBox x:Name="CmbTipoReporte" Height="35" FontSize="13" SelectedIndex="0">
+                            <ComboBoxItem Content="📋 Reporte Estándar" Tag="Estandar"/>
+                            <ComboBoxItem Content="📊 Reporte Ejecutivo" Tag="Ejecutivo"/>
+                            <ComboBoxItem Content="📈 Análisis Detallado" Tag="Detallado"/>
+                            <ComboBoxItem Content="⚠️ Solo Stock Bajo" Tag="SoloStockBajo"/>
+                        </ComboBox>
+                        <TextBlock x:Name="TxtDescripcionTipo" Text="Reporte básico con información esencial del inventario" 
+                                   FontSize="11" Foreground="#6B7280" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Período -->
+                <Border Style="{StaticResource ModernCard}">
+                    <StackPanel>
+                        <TextBlock Text="📅 Período de Análisis" Style="{StaticResource SectionHeader}"/>
+                        <ComboBox x:Name="CmbPeriodo" Height="35" FontSize="13" SelectedIndex="0"
+                                  SelectionChanged="CmbPeriodo_SelectionChanged">
+                            <ComboBoxItem Content="📆 Hoy" Tag="Diario"/>
+                            <ComboBoxItem Content="📝 Esta Semana" Tag="Semanal"/>
+                            <ComboBoxItem Content="📊 Este Mes" Tag="Mensual"/>
+                            <ComboBoxItem Content="📈 Este Año" Tag="Anual"/>
+                            <ComboBoxItem Content="🔧 Personalizado" Tag="Personalizado"/>
+                        </ComboBox>
+
+                        <!-- Panel de fechas personalizadas -->
+                        <StackPanel x:Name="PanelFechasPersonalizadas" Visibility="Collapsed" Margin="0,12,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Fecha Inicio" FontSize="11" Foreground="#6B7280" Margin="0,0,0,4"/>
+                                    <DatePicker x:Name="DpFechaInicio" Height="32" FontSize="12"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Fecha Fin" FontSize="11" Foreground="#6B7280" Margin="0,0,0,4"/>
+                                    <DatePicker x:Name="DpFechaFin" Height="32" FontSize="12"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+
+                        <TextBlock x:Name="TxtPeriodoSeleccionado" Text="Se analizarán los datos del día de hoy" 
+                                   FontSize="11" Foreground="#6B7280" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Opciones Adicionales -->
+                <Border Style="{StaticResource ModernCard}">
+                    <StackPanel>
+                        <TextBlock Text="⚙️ Opciones Adicionales" Style="{StaticResource SectionHeader}"/>
+
+                        <CheckBox x:Name="ChkSoloStockBajo" Content="Incluir solo productos con stock bajo" 
+                                  FontSize="12" Margin="0,4"/>
+
+                        <CheckBox x:Name="ChkAbrirAutomaticamente" Content="Abrir archivo automáticamente" 
+                                  FontSize="12" Margin="0,4" IsChecked="True"/>
+
+                        <Separator Margin="0,8"/>
+
+                        <!-- Categorías -->
+                        <StackPanel>
+                            <TextBlock Text="📋 Categorías" Style="{StaticResource SectionHeader}"/>
+                            <ListBox x:Name="LstCategorias" SelectionMode="Multiple" Height="100" FontSize="12"/>
+                        </StackPanel>
+
+                        <!-- Proveedores -->
+                        <StackPanel>
+                            <TextBlock Text="👥 Proveedores" Style="{StaticResource SectionHeader}"/>
+                            <ListBox x:Name="LstProveedores" SelectionMode="Multiple" Height="100" FontSize="12"/>
+                        </StackPanel>
+
+                        <Separator Margin="0,8"/>
+
+                        <StackPanel>
+                            <TextBlock Text="Carpeta de destino (opcional):" FontSize="11" Foreground="#6B7280" Margin="0,0,0,4"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox x:Name="TxtRutaDestino" Grid.Column="0" Height="30" FontSize="12" 
+                                         Text="Carpeta temporal del sistema"/>
+
+                                <Button Grid.Column="1" Content="📁" Width="35" Height="30" 
+                                        Background="#F3F4F6" BorderBrush="#D1D5DB" 
+                                        Click="BtnSeleccionarCarpeta_Click" Margin="4,0,0,0"/>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Resumen -->
+                <Border Style="{StaticResource ModernCard}" Background="#F8F9FA">
+                    <StackPanel>
+                        <TextBlock Text="📋 Resumen de Configuración" Style="{StaticResource SectionHeader}"/>
+                        <TextBlock x:Name="TxtResumenConfiguracion" 
+                                   Text="Reporte Estándar • Período: Hoy • Productos: Todos"
+                                   FontSize="12" Foreground="#374151" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Botones -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <Button x:Name="BtnCancelar" Content="❌ Cancelar" 
+                        Style="{StaticResource SecondaryButton}" Click="BtnCancelar_Click"/>
+                <Button x:Name="BtnGenerar" Content="📄 Generar Reporte" 
+                        Style="{StaticResource PrimaryButton}" Click="BtnGenerar_Click"/>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Window>

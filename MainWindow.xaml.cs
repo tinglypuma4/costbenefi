@@ -1,0 +1,1385 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using Microsoft.EntityFrameworkCore;
+using costbenefi.Data;
+using costbenefi.Models;
+using costbenefi.Views;
+using costbenefi.Services;
+
+namespace costbenefi
+{
+    public partial class MainWindow : Window
+    {
+        private readonly AppDbContext _context;
+        private List<RawMaterial> _allMaterials = new();
+        private List<RawMaterial> _filteredMaterials = new();
+
+        // ========== VARIABLES POS ==========
+        private List<RawMaterial> _productosParaVenta = new();
+        private List<RawMaterial> _productosParaVentaFiltrados = new();
+        private ObservableCollection<DetalleVenta> _carritoItems = new();
+
+        // Servicios POS
+        private TicketPrinter _ticketPrinter;
+        private BasculaService _basculaService;
+        private ScannerPOSService _scannerService;
+        private POSIntegrationService _posIntegrationService;
+
+        // Estado POS
+        private bool _posLoaded = false;
+        private decimal _totalVentasHoy = 0;
+        private int _cantidadVentasHoy = 0;
+
+        public MainWindow()
+        {
+            InitializeComponent();
+            _context = new AppDbContext();
+
+            // Asegurar que la base de datos existe
+            _context.Database.EnsureCreated();
+
+            // Inicializar servicios POS
+            InitializePOSServices();
+
+            // Configurar carrito
+            LstCarrito.ItemsSource = _carritoItems;
+
+            // Cargar datos iniciales
+            LoadData();
+
+            // Configurar timer para actualizar fecha/hora
+            var timer = new System.Windows.Threading.DispatcherTimer();
+            timer.Interval = TimeSpan.FromMinutes(1);
+            timer.Tick += (s, e) => UpdateDateTime();
+            timer.Start();
+        }
+
+        // ========== INICIALIZACIÓN POS ==========
+        private void InitializePOSServices()
+        {
+            try
+            {
+                // Inicializar servicios básicos primero
+                _ticketPrinter = new TicketPrinter();
+                _basculaService = new BasculaService();
+                _scannerService = new ScannerPOSService();
+
+                // Inicializar servicio integrado con los servicios básicos
+                _posIntegrationService = new POSIntegrationService(_ticketPrinter, _basculaService, _scannerService);
+
+                // Configurar eventos con las firmas correctas
+                _basculaService.PesoRecibido += (sender, e) =>
+                {
+                    Dispatcher.BeginInvoke(new Action(async () => await OnPesoRecibido(e.Peso)));
+                };
+
+                _scannerService.ProductoEscaneado += (sender, e) =>
+                {
+                    Dispatcher.BeginInvoke(new Action(async () => await OnProductoEscaneado(e.CodigoBarras)));
+                };
+
+                _posIntegrationService.ErrorOcurrido += (sender, e) =>
+                {
+                    Dispatcher.BeginInvoke(new Action(() => OnErrorPOSOcurrido(e.TipoDispositivo, e.Mensaje)));
+                };
+
+                // Conectar dispositivos
+                var conectados = 0;
+                if (_basculaService.Conectar()) conectados++;
+                if (_scannerService != null) conectados++;
+                if (_ticketPrinter != null) conectados++;
+
+                TxtStatusPOS.Text = $"✅ POS inicializado - {conectados}/3 dispositivos";
+            }
+            catch (Exception ex)
+            {
+                TxtStatusPOS.Text = "❌ Error al inicializar POS";
+                MessageBox.Show($"Error al inicializar servicios POS: {ex.Message}",
+                              "Error POS", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void UpdateDateTime()
+        {
+            // El binding automático debería manejar esto, pero podemos forzar actualización si es necesario
+        }
+
+        private async void LoadData()
+        {
+            try
+            {
+                TxtStatus.Text = "⏳ Cargando datos...";
+
+                // ✅ El filtro global automáticamente excluye eliminados
+                _allMaterials = await _context.RawMaterials
+                    .OrderBy(m => m.NombreArticulo)
+                    .ToListAsync();
+
+                _filteredMaterials = new List<RawMaterial>(_allMaterials);
+
+                UpdateDataGrid();
+                UpdateStatusBar();
+
+                TxtStatus.Text = "✅ Sistema listo";
+
+                // Mostrar estadísticas de productos eliminados (opcional)
+                var totalEliminados = await _context.GetDeletedRawMaterials().CountAsync();
+                if (totalEliminados > 0)
+                {
+                    TxtStatus.Text += $" | {totalEliminados} eliminados";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al cargar datos: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatus.Text = "❌ Error al cargar datos";
+            }
+        }
+
+        // ========== CARGA DE DATOS POS ==========
+        private async Task LoadDataPuntoVenta()
+        {
+            try
+            {
+                TxtStatusPOS.Text = "⏳ Cargando productos para venta...";
+
+                // Cargar productos disponibles para venta
+                _productosParaVenta = await _context.GetProductosDisponiblesParaVenta().ToListAsync();
+                _productosParaVentaFiltrados = new List<RawMaterial>(_productosParaVenta);
+
+                // Actualizar lista
+                LstProductosPOS.ItemsSource = _productosParaVentaFiltrados;
+
+                // Cargar estadísticas del día
+                await LoadEstadisticasDelDia();
+
+                // Actualizar contadores
+                UpdateContadoresPOS();
+
+                TxtStatusPOS.Text = "✅ Sistema POS listo";
+                _posLoaded = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al cargar datos POS: {ex.Message}",
+                              "Error POS", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatusPOS.Text = "❌ Error al cargar datos POS";
+            }
+        }
+
+        private async Task LoadEstadisticasDelDia()
+        {
+            try
+            {
+                var hoy = DateTime.Today;
+                var ventasHoy = await _context.GetVentasDelDia(hoy).ToListAsync();
+
+                _cantidadVentasHoy = ventasHoy.Count;
+                _totalVentasHoy = ventasHoy.Sum(v => v.Total);
+
+                // Actualizar header
+                TxtVentasHoy.Text = $"Ventas hoy: {_cantidadVentasHoy}";
+                TxtTotalVentasHoy.Text = $"Total: {_totalVentasHoy:C2}";
+            }
+            catch (Exception ex)
+            {
+                TxtVentasHoy.Text = "Ventas hoy: Error";
+                TxtTotalVentasHoy.Text = "Total: $0.00";
+            }
+        }
+
+        private void UpdateContadoresPOS()
+        {
+            // Actualizar contador productos
+            TxtCountProductos.Text = $"{_productosParaVentaFiltrados.Count} productos";
+            TxtProductosDisponibles.Text = $"Productos: {_productosParaVenta.Count}";
+
+            // Actualizar contador carrito
+            TxtCountCarrito.Text = $"{_carritoItems.Count} artículos";
+
+            // Calcular totales del carrito
+            ActualizarTotalesCarrito();
+        }
+
+        private void UpdateDataGrid()
+        {
+            DgMateriales.ItemsSource = null;
+            DgMateriales.ItemsSource = _filteredMaterials;
+
+            // Actualizar contadores en header
+            TxtContadorHeader.Text = $"{_filteredMaterials.Count} productos activos";
+        }
+
+        private void UpdateStatusBar()
+        {
+            if (_filteredMaterials?.Any() == true)
+            {
+                // Calcular totales de todos los materiales filtrados
+                decimal totalConIVA = _filteredMaterials.Sum(m => m.ValorTotalConIVA);
+                decimal totalSinIVA = _filteredMaterials.Sum(m => m.ValorTotalSinIVA);
+                decimal diferenciaIVA = totalConIVA - totalSinIVA;
+
+                // Actualizar textos del status bar (versión completa)
+                TxtTotalConIVA.Text = $"Total con IVA: {totalConIVA:C2}";
+                TxtTotalSinIVA.Text = $"Total sin IVA: {totalSinIVA:C2}";
+                TxtDiferenciaIVA.Text = $"Diferencia IVA: {diferenciaIVA:C2}";
+
+                // Actualizar versiones compactas en el toolbar
+                TxtTotalConIVACompact.Text = $"c/IVA: {FormatCompactCurrency(totalConIVA)}";
+                TxtTotalSinIVACompact.Text = $"s/IVA: {FormatCompactCurrency(totalSinIVA)}";
+                TxtDiferenciaIVACompact.Text = $"Δ: {FormatCompactCurrency(diferenciaIVA)}";
+
+                // Cambiar colores según el valor
+                if (diferenciaIVA > 1000)
+                {
+                    TxtDiferenciaIVA.Foreground = new SolidColorBrush(
+                        Color.FromRgb(220, 53, 69)); // Rojo para valores altos
+                }
+                else if (diferenciaIVA > 500)
+                {
+                    TxtDiferenciaIVA.Foreground = new SolidColorBrush(
+                        Color.FromRgb(255, 193, 7)); // Amarillo para valores medios
+                }
+                else
+                {
+                    TxtDiferenciaIVA.Foreground = new SolidColorBrush(
+                        Color.FromRgb(40, 167, 69)); // Verde para valores bajos
+                }
+            }
+            else
+            {
+                // Reset para valores vacíos
+                TxtTotalConIVA.Text = "Total con IVA: $0.00";
+                TxtTotalSinIVA.Text = "Total sin IVA: $0.00";
+                TxtDiferenciaIVA.Text = "Diferencia IVA: $0.00";
+
+                TxtTotalConIVACompact.Text = "c/IVA: $0";
+                TxtTotalSinIVACompact.Text = "s/IVA: $0";
+                TxtDiferenciaIVACompact.Text = "Δ: $0";
+            }
+        }
+
+        private string FormatCompactCurrency(decimal value)
+        {
+            if (value >= 1000000)
+                return $"${value / 1000000:F1}M";
+            else if (value >= 1000)
+                return $"${value / 1000:F1}K";
+            else
+                return $"${value:F0}";
+        }
+
+        // ========== MÉTODOS POS PRINCIPALES ==========
+        private async Task AgregarProductoAlCarrito(RawMaterial producto, decimal cantidad = 1)
+        {
+            try
+            {
+                // Verificar stock disponible
+                if (cantidad > producto.StockTotal)
+                {
+                    MessageBox.Show($"Stock insuficiente. Disponible: {producto.StockTotal:F2} {producto.UnidadMedida}",
+                                  "Stock Insuficiente", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Buscar si ya existe en el carrito
+                var itemExistente = _carritoItems.FirstOrDefault(i => i.RawMaterialId == producto.Id);
+
+                if (itemExistente != null)
+                {
+                    // Actualizar cantidad existente
+                    if (itemExistente.Cantidad + cantidad > producto.StockTotal)
+                    {
+                        MessageBox.Show($"Cantidad total excede el stock. Disponible: {producto.StockTotal:F2} {producto.UnidadMedida}",
+                                      "Stock Insuficiente", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    itemExistente.Cantidad += cantidad;
+                    itemExistente.CalcularSubTotal();
+                }
+                else
+                {
+                    // Crear nuevo item del carrito
+                    var nuevoItem = new DetalleVenta
+                    {
+                        RawMaterialId = producto.Id,
+                        NombreProducto = producto.NombreArticulo,
+                        Cantidad = cantidad,
+                        PrecioUnitario = producto.PrecioVentaFinal,
+                        UnidadMedida = producto.UnidadMedida,
+                        CostoUnitario = producto.PrecioConIVA,
+                        PorcentajeIVA = producto.PorcentajeIVA,
+                        DescuentoAplicado = producto.TieneDescuentoActivo ? producto.PrecioDescuento : 0
+                    };
+
+                    nuevoItem.CalcularSubTotal();
+                    _carritoItems.Add(nuevoItem);
+                }
+
+                // Actualizar interfaz
+                UpdateContadoresPOS();
+                TxtStatusPOS.Text = $"✅ Agregado: {producto.NombreArticulo} x{cantidad:F2}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al agregar producto: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ActualizarTotalesCarrito()
+        {
+            try
+            {
+                if (_carritoItems.Any())
+                {
+                    // ✅ CORRECCIÓN: Sin IVA adicional, los precios ya incluyen IVA
+                    decimal subtotal = _carritoItems.Sum(i => i.SubTotal);
+                    decimal descuentoTotal = _carritoItems.Sum(i => i.DescuentoAplicado * i.Cantidad);
+
+                    // ✅ IVA es solo informativo (muestra cuánto IVA está incluido en los precios)
+                    // Asumiendo que los precios incluyen 16% de IVA
+                    decimal ivaIncluido = subtotal - (subtotal / 1.16m);
+
+                    // ✅ Total = subtotal (sin agregar IVA adicional)
+                    decimal total = subtotal;
+
+                    // Actualizar textos
+                    TxtSubTotal.Text = subtotal.ToString("C2");
+                    TxtDescuento.Text = descuentoTotal.ToString("C2");
+                    TxtIVA.Text = $"{ivaIncluido:C2} (incluido)"; // Mostrar como "incluido"
+                    TxtTotal.Text = total.ToString("C2");
+
+                    // Calcular análisis costo-beneficio
+                    var gananciaTotal = _carritoItems.Sum(i => i.GananciaLinea);
+                    var margenPromedio = _carritoItems.Any() ?
+                        _carritoItems.Average(i => i.MargenPorcentaje) : 0;
+
+                    TxtGananciaPrevista.Text = $"Ganancia: {gananciaTotal:C2}";
+                    TxtMargenPromedio.Text = $"Margen: {margenPromedio:F1}%";
+                }
+                else
+                {
+                    // Resetear totales
+                    TxtSubTotal.Text = "$0.00";
+                    TxtDescuento.Text = "$0.00";
+                    TxtIVA.Text = "$0.00 (incluido)";
+                    TxtTotal.Text = "$0.00";
+                    TxtGananciaPrevista.Text = "Ganancia: $0.00";
+                    TxtMargenPromedio.Text = "Margen: 0%";
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtStatusPOS.Text = "❌ Error al calcular totales";
+            }
+        }
+
+        // ✅ MÉTODO ÚNICO - PROCESAMIENTO DE VENTA (CORREGIDO)
+        private async Task<bool> ProcesarVentaUnico()
+        {
+            try
+            {
+                if (!_carritoItems.Any())
+                {
+                    MessageBox.Show("El carrito está vacío.", "Carrito Vacío",
+                                  MessageBoxButton.OK, MessageBoxImage.Information);
+                    return false;
+                }
+
+                // Calcular total sin IVA adicional
+                decimal subtotal = _carritoItems.Sum(i => i.SubTotal);
+                decimal total = subtotal;
+
+                // Abrir ventana de procesamiento de pagos
+                var pagoWindow = new ProcesarPagoWindow(total, TxtCliente.Text.Trim());
+                if (pagoWindow.ShowDialog() != true)
+                {
+                    return false; // Usuario canceló el pago
+                }
+
+                // Crear la venta con información de comisiones e IVA
+                var venta = new Venta
+                {
+                    Cliente = pagoWindow.NombreCliente,
+                    Usuario = Environment.UserName,
+                    FormaPago = "Tarjeta", // Asumiendo que ProcesarPagoWindow maneja solo pagos con tarjeta
+                    Estado = "Completada",
+                    Observaciones = ""
+                };
+
+                // Establecer formas de pago y comisiones
+                venta.EstablecerFormasPago(0, pagoWindow.Monto, 0); // Solo tarjeta
+                venta.ComisionTarjeta = pagoWindow.ComisionTarjeta;
+                venta.IVAComision = pagoWindow.IVAComision;
+                venta.ComisionTotal = pagoWindow.ComisionTarjeta + pagoWindow.IVAComision;
+
+                // Agregar detalles
+                foreach (var item in _carritoItems)
+                {
+                    venta.AgregarDetalle(item);
+                }
+
+                // Calcular totales
+                venta.CalcularTotales();
+
+                // Generar número de ticket
+                venta.GenerarNumeroTicket();
+
+                // Verificar stock y actualizar
+                foreach (var detalle in venta.DetallesVenta)
+                {
+                    var producto = await _context.RawMaterials.FindAsync(detalle.RawMaterialId);
+                    if (producto == null || !producto.ReducirStock(detalle.Cantidad))
+                    {
+                        MessageBox.Show($"Error: Stock insuficiente para {detalle.NombreProducto}",
+                                      "Error de Stock", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return false;
+                    }
+
+                    // Crear movimiento de venta
+                    var movimiento = Movimiento.CrearMovimientoVenta(
+                        detalle.RawMaterialId,
+                        detalle.Cantidad,
+                        $"Venta POS - Ticket #{venta.NumeroTicket}",
+                        Environment.UserName,
+                        detalle.PrecioUnitario,
+                        detalle.UnidadMedida,
+                        venta.NumeroTicket.ToString(),
+                        venta.Cliente);
+
+                    _context.Movimientos.Add(movimiento);
+                }
+
+                // Guardar en base de datos
+                _context.Ventas.Add(venta);
+                await _context.SaveChangesAsync();
+
+                // Imprimir ticket
+                try
+                {
+                    await _ticketPrinter.ImprimirTicket(venta, "Impresora_POS");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Venta procesada pero error al imprimir: {ex.Message}",
+                                  "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+
+                // Limpiar carrito
+                _carritoItems.Clear();
+                UpdateContadoresPOS();
+
+                // Actualizar estadísticas
+                await LoadEstadisticasDelDia();
+
+                // Mostrar confirmación con análisis financiero completo
+                string mensajeConfirmacion = "✅ VENTA PROCESADA EXITOSAMENTE!\n\n";
+                mensajeConfirmacion += $"📄 Ticket: #{venta.NumeroTicket}\n";
+                mensajeConfirmacion += $"👤 Cliente: {venta.Cliente}\n";
+                mensajeConfirmacion += $"💰 Total: {venta.Total:C2}\n";
+                mensajeConfirmacion += $"💳 Forma de pago: {venta.FormaPago}\n\n";
+
+                // Desglose financiero
+                mensajeConfirmacion += "📊 ANÁLISIS FINANCIERO:\n";
+                mensajeConfirmacion += $"   • Ganancia bruta: {venta.GananciaBruta:C2}\n";
+
+                if (venta.ComisionTarjeta > 0)
+                {
+                    mensajeConfirmacion += $"   • Comisión base: {venta.ComisionTarjeta:C2} ({pagoWindow.PorcentajeComisionTarjeta:F2}%)\n";
+                    if (venta.IVAComision > 0)
+                    {
+                        mensajeConfirmacion += $"   • IVA sobre comisión: {venta.IVAComision:C2} ({pagoWindow.PorcentajeIVA:F2}%)\n";
+                        mensajeConfirmacion += $"   • Comisión total: {venta.ComisionTotal:C2}\n";
+                    }
+                    mensajeConfirmacion += $"   • Ganancia neta: {venta.GananciaNeta:C2}\n";
+                    mensajeConfirmacion += $"   • Margen neto: {venta.MargenNeto:F2}%\n";
+                    mensajeConfirmacion += $"   • Total real recibido: {venta.TotalRealRecibido:C2}\n";
+                }
+                else
+                {
+                    mensajeConfirmacion += $"   • Margen: {venta.MargenPromedio:F2}%\n";
+                }
+
+                MessageBox.Show(mensajeConfirmacion, "Venta Completada",
+                              MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // Actualizar status con información de comisiones
+                string statusMsg = $"✅ Venta #{venta.NumeroTicket} completada - {venta.Total:C2}";
+                if (venta.ComisionTotal > 0)
+                {
+                    statusMsg += $" | Neto: {venta.TotalRealRecibido:C2}";
+                }
+                TxtStatusPOS.Text = statusMsg;
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al procesar venta: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatusPOS.Text = "❌ Error al procesar venta";
+                return false;
+            }
+        }
+
+        // ========== EVENT HANDLERS POS ==========
+        private void TxtBuscarPOS_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string searchText = TxtBuscarPOS.Text.ToLower().Trim();
+
+            if (string.IsNullOrEmpty(searchText))
+            {
+                _productosParaVentaFiltrados = new List<RawMaterial>(_productosParaVenta);
+            }
+            else
+            {
+                _productosParaVentaFiltrados = _productosParaVenta.Where(p =>
+                    p.NombreArticulo.ToLower().Contains(searchText) ||
+                    p.Categoria.ToLower().Contains(searchText) ||
+                    p.CodigoBarras.ToLower().Contains(searchText)
+                ).ToList();
+            }
+
+            LstProductosPOS.ItemsSource = _productosParaVentaFiltrados;
+            UpdateContadoresPOS();
+        }
+
+        private void BtnConfigComisiones_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var configWindow = new ConfigurarComisionesWindow();
+                if (configWindow.ShowDialog() == true)
+                {
+                    TxtStatusPOS.Text = "✅ Configuración de comisiones actualizada";
+
+                    string mensaje = "✅ Configuración de comisiones guardada!\n\n" +
+                                   "Los nuevos valores se aplicarán en las próximas ventas.";
+
+                    // Agregar información sobre IVA si está configurado
+                    if (configWindow.TerminalCobraIVA)
+                    {
+                        mensaje += "\n\n🧮 Nota: El terminal cobrará IVA adicional del 16% sobre las comisiones.";
+                    }
+
+                    MessageBox.Show(mensaje, "Configuración Actualizada",
+                                  MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al configurar comisiones: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatusPOS.Text = "❌ Error al configurar comisiones";
+            }
+        }
+
+        private void BtnConfigurarPrecios_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var preciosWindow = new ConfigurarPrecioVentaWindow(_context);
+                if (preciosWindow.ShowDialog() == true)
+                {
+                    // Actualizar datos POS después de configurar precios
+                    _ = LoadDataPuntoVenta();
+                    TxtStatusPOS.Text = "✅ Precios actualizados - Sistema POS sincronizado";
+
+                    MessageBox.Show("✅ Precios de venta configurados exitosamente!\n\n" +
+                                  "Los productos están listos para el punto de venta.",
+                                  "Configuración Completada",
+                                  MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir configuración de precios: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatusPOS.Text = "❌ Error al configurar precios";
+            }
+        }
+
+        private async void TxtBuscarPOS_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                string codigo = TxtBuscarPOS.Text.Trim();
+                if (!string.IsNullOrEmpty(codigo))
+                {
+                    // Buscar producto por código de barras
+                    var producto = _productosParaVenta.FirstOrDefault(p =>
+                        p.CodigoBarras.Equals(codigo, StringComparison.OrdinalIgnoreCase));
+
+                    if (producto != null)
+                    {
+                        await AgregarProductoAlCarrito(producto);
+                        TxtBuscarPOS.Text = "";
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Producto no encontrado: {codigo}",
+                                      "Producto No Encontrado", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+            }
+        }
+
+        private void BtnBuscarPOS_Click(object sender, RoutedEventArgs e)
+        {
+            TxtBuscarPOS.Focus();
+        }
+
+        private void LstProductosPOS_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Solo para feedback visual
+        }
+
+        private async void LstProductosPOS_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (LstProductosPOS.SelectedItem is RawMaterial producto)
+            {
+                // Verificar si es producto por peso
+                if (producto.UnidadMedida.ToLower().Contains("kg") ||
+                    producto.UnidadMedida.ToLower().Contains("gr"))
+                {
+                    // Abrir ventana para ingresar peso con los parámetros requeridos
+                    var pesoWindow = new IngresarPesoWindow(_context, producto, _basculaService);
+                    if (pesoWindow.ShowDialog() == true)
+                    {
+                        await AgregarProductoAlCarrito(producto, pesoWindow.PesoIngresado);
+                    }
+                }
+                else
+                {
+                    // Agregar cantidad fija
+                    await AgregarProductoAlCarrito(producto, 1);
+                }
+            }
+        }
+
+        private void BtnEliminarDelCarrito_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is DetalleVenta item)
+            {
+                _carritoItems.Remove(item);
+                UpdateContadoresPOS();
+                TxtStatusPOS.Text = $"✅ Eliminado: {item.NombreProducto}";
+            }
+        }
+
+        private async void BtnProcesarVenta_Click(object sender, RoutedEventArgs e)
+        {
+            await ProcesarVentaUnico();
+        }
+
+        private void BtnLimpiarCarrito_Click(object sender, RoutedEventArgs e)
+        {
+            if (_carritoItems.Any())
+            {
+                var result = MessageBox.Show("¿Limpiar el carrito de compras?",
+                                           "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (result == MessageBoxResult.Yes)
+                {
+                    _carritoItems.Clear();
+                    UpdateContadoresPOS();
+                    TxtStatusPOS.Text = "✅ Carrito limpiado";
+                }
+            }
+        }
+
+        private async void BtnVerVentas_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var ventasHoy = await _context.GetVentasDelDia(DateTime.Today).ToListAsync();
+
+                if (!ventasHoy.Any())
+                {
+                    MessageBox.Show("No hay ventas registradas hoy.", "Sin Ventas",
+                                  MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                string reporte = $"📊 VENTAS DEL DÍA - {DateTime.Today:dd/MM/yyyy}\n\n";
+                reporte += $"Total de ventas: {ventasHoy.Count}\n";
+                reporte += $"Monto total: {ventasHoy.Sum(v => v.Total):C2}\n";
+                reporte += $"Ganancia total: {ventasHoy.Sum(v => v.GananciaBruta):C2}\n\n";
+                reporte += "ÚLTIMAS VENTAS:\n";
+
+                foreach (var venta in ventasHoy.OrderByDescending(v => v.FechaVenta).Take(10))
+                {
+                    reporte += $"#{venta.NumeroTicket} - {venta.FechaVenta:HH:mm} - {venta.Total:C2} - {venta.Cliente}\n";
+                }
+
+                MessageBox.Show(reporte, "Ventas del Día", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al consultar ventas: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnEscanerPOS_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _scannerService.MostrarVentanaEscaneo();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al activar escáner: {ex.Message}",
+                              "Error Escáner", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtEstadoEscaner.Text = "📱 ERROR";
+                TxtEstadoEscaner.Parent.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(239, 68, 68)));
+            }
+        }
+
+        private async void BtnBascula_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (LstProductosPOS.SelectedItem is RawMaterial producto)
+                {
+                    if (producto.UnidadMedida.ToLower().Contains("kg") ||
+                        producto.UnidadMedida.ToLower().Contains("gr"))
+                    {
+                        // Leer peso de la báscula
+                        var peso = await _basculaService.LeerPesoAsync();
+                        if (peso > 0)
+                        {
+                            await AgregarProductoAlCarrito(producto, peso);
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Seleccione un producto que se venda por peso.",
+                                      "Producto No Válido", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Seleccione un producto primero.",
+                                  "Selección Requerida", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al usar báscula: {ex.Message}",
+                              "Error Báscula", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtEstadoBascula.Text = "⚖️ ERROR";
+                TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(239, 68, 68)));
+            }
+        }
+
+        private void BtnImpresora_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var configWindow = new ConfigurarImpresoraWindow();
+                configWindow.ShowDialog();
+
+                TxtStatusPOS.Text = "✅ Configuración de impresora actualizada";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al configurar impresora: {ex.Message}",
+                              "Error Impresora", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtEstadoImpresora.Text = "🖨️ ERROR";
+                TxtEstadoImpresora.Parent.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(239, 68, 68)));
+            }
+        }
+
+        private async Task OnPesoRecibido(decimal peso)
+        {
+            try
+            {
+                if (LstProductosPOS.SelectedItem is RawMaterial producto)
+                {
+                    await AgregarProductoAlCarrito(producto, peso);
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtStatusPOS.Text = $"❌ Error al procesar peso: {ex.Message}";
+            }
+        }
+
+        private async Task OnProductoEscaneado(string codigoBarras)
+        {
+            try
+            {
+                var producto = _productosParaVenta.FirstOrDefault(p =>
+                    p.CodigoBarras.Equals(codigoBarras, StringComparison.OrdinalIgnoreCase));
+
+                if (producto != null)
+                {
+                    await AgregarProductoAlCarrito(producto);
+                }
+                else
+                {
+                    MessageBox.Show($"Producto no encontrado: {codigoBarras}",
+                                  "Código No Encontrado", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtStatusPOS.Text = $"❌ Error al procesar código: {ex.Message}";
+            }
+        }
+
+        private void OnErrorPOSOcurrido(string dispositivo, string mensaje)
+        {
+            MessageBox.Show($"Error en dispositivo POS: {mensaje}",
+                          "Error POS", MessageBoxButton.OK, MessageBoxImage.Error);
+            TxtStatusPOS.Text = $"❌ Error POS: {dispositivo}";
+        }
+
+        private void TxtBuscar_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string searchText = TxtBuscar.Text.ToLower().Trim();
+
+            if (string.IsNullOrEmpty(searchText))
+            {
+                _filteredMaterials = new List<RawMaterial>(_allMaterials);
+            }
+            else
+            {
+                _filteredMaterials = _allMaterials.Where(m =>
+                    m.NombreArticulo.ToLower().Contains(searchText) ||
+                    m.Categoria.ToLower().Contains(searchText) ||
+                    m.Proveedor.ToLower().Contains(searchText) ||
+                    m.CodigoBarras.ToLower().Contains(searchText)
+                ).ToList();
+            }
+
+            UpdateDataGrid();
+            UpdateStatusBar();
+        }
+
+        private void BtnBuscar_Click(object sender, RoutedEventArgs e)
+        {
+            TxtBuscar.Focus();
+        }
+
+        private async void BtnActualizar_Click(object sender, RoutedEventArgs e)
+        {
+            await RefreshData();
+        }
+
+        private async Task RefreshData()
+        {
+            try
+            {
+                BtnActualizar.IsEnabled = false;
+                BtnActualizar.Content = "⏳";
+                BtnActualizar.ToolTip = "Actualizando...";
+
+                await Task.Delay(500); // Pequeña pausa para mejor UX
+
+                // ✅ Solo productos activos (filtro global automático)
+                _allMaterials = await _context.RawMaterials
+                    .OrderBy(m => m.NombreArticulo)
+                    .ToListAsync();
+
+                // Mantener filtro actual si existe
+                string currentSearch = TxtBuscar.Text.ToLower().Trim();
+                if (string.IsNullOrEmpty(currentSearch))
+                {
+                    _filteredMaterials = new List<RawMaterial>(_allMaterials);
+                }
+                else
+                {
+                    _filteredMaterials = _allMaterials.Where(m =>
+                        m.NombreArticulo.ToLower().Contains(currentSearch) ||
+                        m.Categoria.ToLower().Contains(currentSearch) ||
+                        m.Proveedor.ToLower().Contains(currentSearch) ||
+                        m.CodigoBarras.ToLower().Contains(currentSearch)).ToList();
+                }
+
+                UpdateDataGrid();
+                UpdateStatusBar();
+
+                // Actualizar POS si está cargado
+                if (_posLoaded)
+                {
+                    await LoadDataPuntoVenta();
+                }
+
+                TxtStatus.Text = $"✅ Actualizado - {DateTime.Now:HH:mm:ss}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al actualizar: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatus.Text = "❌ Error al actualizar datos";
+            }
+            finally
+            {
+                BtnActualizar.IsEnabled = true;
+                BtnActualizar.Content = "🔄";
+                BtnActualizar.ToolTip = "Actualizar datos";
+            }
+        }
+
+        private async void BtnAgregar_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectorWindow = new TipoMaterialSelectorWindow(_context);
+                if (selectorWindow.ShowDialog() == true)
+                {
+                    await RefreshData();
+                    TxtStatus.Text = "✅ Material agregado correctamente";
+
+                    // Mostrar confirmación con información del último material agregado
+                    var ultimoMaterial = await _context.RawMaterials
+                        .OrderByDescending(m => m.Id)
+                        .FirstOrDefaultAsync();
+
+                    if (ultimoMaterial != null)
+                    {
+                        MessageBox.Show(
+                            $"✅ Material creado exitosamente!\n\n" +
+                            $"Producto: {ultimoMaterial.NombreArticulo}\n" +
+                            $"Stock inicial: {ultimoMaterial.StockTotal:F2} {ultimoMaterial.UnidadMedida}\n" +
+                            $"Valor total: {ultimoMaterial.ValorTotalConIVA:C2}",
+                            "Material Agregado",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al agregar material: {ex.Message}", "Error",
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatus.Text = "❌ Error al agregar material";
+            }
+        }
+
+        private async void BtnEditar_Click(object sender, RoutedEventArgs e)
+        {
+            if (DgMateriales.SelectedItem is RawMaterial selectedMaterial)
+            {
+                try
+                {
+                    var editWindow = new EditAddStockWindow(_context, selectedMaterial);
+                    if (editWindow.ShowDialog() == true)
+                    {
+                        await RefreshData();
+                        TxtStatus.Text = $"✅ Material actualizado - {editWindow.MotivoEdicion}";
+
+                        MessageBox.Show(
+                            $"✅ Material actualizado correctamente!\n\n" +
+                            $"Cambios: {editWindow.MotivoEdicion}",
+                            "Actualización Exitosa",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al editar material: {ex.Message}", "Error",
+                                  MessageBoxButton.OK, MessageBoxImage.Error);
+                    TxtStatus.Text = "❌ Error al editar material";
+                }
+            }
+            else
+            {
+                MessageBox.Show("Seleccione un material para editar.",
+                              "Selección Requerida", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private async void BtnEliminar_Click(object sender, RoutedEventArgs e)
+        {
+            if (DgMateriales.SelectedItem is RawMaterial selectedMaterial)
+            {
+                try
+                {
+                    // Verificar movimientos
+                    var cantidadMovimientos = await _context.Movimientos
+                        .CountAsync(m => m.RawMaterialId == selectedMaterial.Id);
+
+                    // Confirmación
+                    var mensaje = $"¿Eliminar '{selectedMaterial.NombreArticulo}'?\n\n" +
+                                 $"Movimientos: {cantidadMovimientos}\n" +
+                                 $"Stock: {selectedMaterial.StockTotal:F2} {selectedMaterial.UnidadMedida}\n" +
+                                 $"Valor: {selectedMaterial.ValorTotalConIVA:C2}\n\n" +
+                                 $"✅ El historial se conservará para auditoría.";
+
+                    var result = MessageBox.Show(mensaje, "Confirmar Eliminación",
+                        MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                    if (result != MessageBoxResult.Yes) return;
+
+                    // Obtener material
+                    var materialDB = await _context.RawMaterials.FindAsync(selectedMaterial.Id);
+                    if (materialDB == null)
+                    {
+                        MessageBox.Show("Material no encontrado.", "Error",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    // Eliminación lógica
+                    materialDB.Eliminado = true;
+                    materialDB.FechaEliminacion = DateTime.Now;
+                    materialDB.UsuarioEliminacion = Environment.UserName;
+                    materialDB.MotivoEliminacion = $"Eliminado - Stock: {materialDB.StockTotal:F2}";
+
+                    // Crear movimiento
+                    var movimiento = new Movimiento
+                    {
+                        RawMaterialId = materialDB.Id,
+                        TipoMovimiento = "Eliminación",
+                        Cantidad = materialDB.StockTotal,
+                        Motivo = $"Eliminado por {Environment.UserName}",
+                        Usuario = Environment.UserName,
+                        PrecioConIVA = materialDB.PrecioConIVA,
+                        PrecioSinIVA = materialDB.PrecioSinIVA,
+                        UnidadMedida = materialDB.UnidadMedida
+                    };
+
+                    _context.Movimientos.Add(movimiento);
+                    await _context.SaveChangesAsync();
+
+                    // Actualizar
+                    await RefreshData();
+                    TxtStatus.Text = "✅ Eliminado (historial conservado)";
+
+                    MessageBox.Show(
+                        $"✅ ¡Eliminación exitosa!\n\n" +
+                        $"Producto: {materialDB.NombreArticulo}\n" +
+                        $"Historial: {cantidadMovimientos + 1} movimientos\n" +
+                        $"Nuevo ID: #{movimiento.Id}",
+                        "Éxito", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error: {ex.Message}", "Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Seleccione un material.", "Selección Requerida",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void BtnEscaner_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var scannerWindow = new BarcodeScannerWindow(_context);
+                scannerWindow.ShowDialog();
+
+                // Refrescar datos después de usar el escáner
+                _ = RefreshData();
+            }
+            catch (Exception ex)
+            {
+                // Si no existe BarcodeScannerWindow, mostrar input manual
+                var inputWindow = new ManualBarcodeInputWindow(_context);
+                if (inputWindow.ShowDialog() == true)
+                {
+                    _ = RefreshData();
+                }
+            }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            // Disposed servicios POS
+            _ticketPrinter?.Dispose();
+            _basculaService?.Dispose();
+            _scannerService?.Dispose();
+            _posIntegrationService?.Dispose();
+
+            _context?.Dispose();
+            base.OnClosed(e);
+        }
+
+        private async void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.Source is TabControl tabControl)
+            {
+                switch (tabControl.SelectedIndex)
+                {
+                    case 0: // Materia Prima
+                        TxtStatus.Text = "✅ Módulo de Materia Prima activo";
+                        break;
+                    case 1: // PUNTO DE VENTA
+                        TxtStatusPOS.Text = "💰 Cargando Sistema POS...";
+                        if (!_posLoaded)
+                        {
+                            await LoadDataPuntoVenta();
+                        }
+                        break;
+                    case 2: // Reportes
+                        TxtStatus.Text = "📊 Módulo de Reportes disponible";
+                        break;
+                    case 3: // Procesos
+                        TxtStatus.Text = "⚙️ Módulo de Procesos (próximamente)";
+                        break;
+                    case 4: // Análisis
+                        TxtStatus.Text = "📈 Módulo de Análisis (próximamente)";
+                        break;
+                    case 5: // Configuración
+                        TxtStatus.Text = "⚙️ Configuración del sistema (próximamente)";
+                        break;
+                    case 6: // Mi Información
+                        TxtStatus.Text = "👨‍💻 Información del desarrollador - Esaú Villagrán";
+                        break;
+                }
+            }
+        }
+
+        private void BtnAbrirReportes_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var reportSelectorWindow = new ReporteSelectorWindow(_context);
+                reportSelectorWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir reportes: {ex.Message}", "Error",
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnConfigurarProcesos_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("🔧 Módulo de Procesos\n\n" +
+                          "Esta funcionalidad estará disponible en una próxima versión.\n" +
+                          "Permitirá configurar y gestionar procesos de producción.",
+                          "Próximamente", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void BtnVerDashboard_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("📊 Dashboard de Análisis\n\n" +
+                          "Esta funcionalidad estará disponible en una próxima versión.\n" +
+                          "Incluirá gráficos avanzados y métricas de rendimiento.",
+                          "Próximamente", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void BtnAbrirConfiguracion_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("⚙️ Configuración del Sistema\n\n" +
+                          "Esta funcionalidad estará disponible en una próxima versión.\n" +
+                          "Permitirá configurar parámetros generales del sistema.",
+                          "Próximamente", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void BtnAbrirInformacion_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var infoWindow = new MiInformacionWindow
+                {
+                    Owner = this
+                };
+                infoWindow.ShowDialog();
+
+                // Actualizar status después de cerrar la ventana
+                TxtStatus.Text = "👨‍💻 Ventana de información cerrada";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir información del desarrollador: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatus.Text = "❌ Error al abrir información";
+            }
+        }
+    }
+
+    public class ManualBarcodeInputWindow : Window
+    {
+        private readonly AppDbContext _context;
+        public string CodigoIngresado { get; private set; } = "";
+
+        public ManualBarcodeInputWindow(AppDbContext context)
+        {
+            _context = context;
+            InitializeComponent();
+        }
+
+        private void InitializeComponent()
+        {
+            Title = "Ingreso Manual de Código";
+            Width = 400;
+            Height = 200;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ResizeMode = ResizeMode.NoResize;
+            Background = new SolidColorBrush(Color.FromRgb(248, 249, 250));
+
+            var grid = new Grid();
+            grid.Margin = new Thickness(20);
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            // Título
+            var titulo = new TextBlock
+            {
+                Text = "📱 Ingreso Manual de Código",
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 20),
+                Foreground = new SolidColorBrush(Color.FromRgb(46, 59, 78))
+            };
+            Grid.SetRow(titulo, 0);
+            grid.Children.Add(titulo);
+
+            // Instrucción
+            var instruccion = new TextBlock
+            {
+                Text = "Escriba o pegue el código de barras:",
+                FontSize = 12,
+                Margin = new Thickness(0, 0, 0, 10),
+                Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128))
+            };
+            Grid.SetRow(instruccion, 1);
+            grid.Children.Add(instruccion);
+
+            // TextBox para código
+            var txtCodigo = new TextBox
+            {
+                Name = "TxtCodigo",
+                Padding = new Thickness(10),
+                FontSize = 14,
+                FontFamily = new FontFamily("Consolas"),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(206, 212, 218)),
+                BorderThickness = new Thickness(1),
+                Margin = new Thickness(0, 0, 0, 20),
+                MaxLength = 50 // Límite razonable para códigos de barras
+            };
+            Grid.SetRow(txtCodigo, 2);
+            grid.Children.Add(txtCodigo);
+
+            // Botones
+            var panelBotones = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+
+            var btnCancelar = new Button
+            {
+                Content = "❌ Cancelar",
+                Width = 100,
+                Height = 35,
+                Margin = new Thickness(0, 0, 10, 0),
+                Background = new SolidColorBrush(Color.FromRgb(108, 117, 125)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                FontSize = 12
+            };
+            btnCancelar.Click += (s, e) => { DialogResult = false; Close(); };
+
+            var btnAceptar = new Button
+            {
+                Content = "✅ Procesar",
+                Width = 100,
+                Height = 35,
+                Background = new SolidColorBrush(Color.FromRgb(40, 167, 69)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                FontSize = 12
+            };
+            btnAceptar.Click += async (s, e) => await ProcesarCodigo(txtCodigo.Text);
+
+            panelBotones.Children.Add(btnCancelar);
+            panelBotones.Children.Add(btnAceptar);
+            Grid.SetRow(panelBotones, 4);
+            grid.Children.Add(panelBotones);
+
+            Content = grid;
+
+            // Enfocar el textbox al cargar
+            Loaded += (s, e) => txtCodigo.Focus();
+
+            // Procesar al presionar Enter
+            txtCodigo.KeyDown += async (s, e) =>
+            {
+                if (e.Key == Key.Enter)
+                {
+                    await ProcesarCodigo(txtCodigo.Text);
+                }
+            };
+        }
+
+        private async Task ProcesarCodigo(string codigo)
+        {
+            if (string.IsNullOrWhiteSpace(codigo))
+            {
+                MessageBox.Show("Ingrese un código válido.", "Código Requerido",
+                              MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            CodigoIngresado = codigo.Trim();
+
+            try
+            {
+                // Buscar solo en productos activos
+                var existingMaterial = await _context.RawMaterials
+                    .FirstOrDefaultAsync(m => m.CodigoBarras == CodigoIngresado);
+
+                if (existingMaterial != null)
+                {
+                    // Código existente - abrir formulario de edición
+                    var editWindow = new EditAddStockWindow(_context, existingMaterial);
+                    if (editWindow.ShowDialog() == true)
+                    {
+                        MessageBox.Show(
+                            $"✅ Producto actualizado!\n\n" +
+                            $"Cambios: {editWindow.MotivoEdicion}",
+                            "Actualización por Código",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+                    }
+                }
+                else
+                {
+                    // Código nuevo - abrir selector
+                    var selectorWindow = new TipoMaterialSelectorWindow(_context, CodigoIngresado);
+                    if (selectorWindow.ShowDialog() == true)
+                    {
+                        MessageBox.Show(
+                            "✅ Nuevo producto creado correctamente!",
+                            "Creación por Código",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+                    }
+                }
+
+                DialogResult = true;
+                Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al procesar código: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+}
