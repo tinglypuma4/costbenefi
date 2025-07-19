@@ -1,11 +1,27 @@
 using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.CompilerServices;
 
 namespace costbenefi.Models
 {
-    public class DetalleVenta
+    /// <summary>
+    /// DetalleVenta CON NOTIFICACIONES - Solo se agregó INotifyPropertyChanged
+    /// </summary>
+    public class DetalleVenta : INotifyPropertyChanged
     {
+        #region Campos privados para notificaciones
+        private decimal _cantidad;
+        private decimal _precioUnitario;
+        private decimal _subTotal;
+        private decimal _costoUnitario;
+        private string _nombreProducto;
+        private string _unidadMedida;
+        private decimal _porcentajeIVA = 16.0m;
+        private decimal _descuentoAplicado = 0;
+        #endregion
+
         [Key]
         public int Id { get; set; }
 
@@ -16,47 +32,121 @@ namespace costbenefi.Models
         public int RawMaterialId { get; set; }
         public virtual RawMaterial RawMaterial { get; set; }
 
-        // ===== DATOS DEL PRODUCTO VENDIDO =====
+        // ===== DATOS DEL PRODUCTO VENDIDO CON NOTIFICACIÓN =====
 
         [Column(TypeName = "decimal(18,4)")]
-        public decimal Cantidad { get; set; }
+        public decimal Cantidad
+        {
+            get => _cantidad;
+            set
+            {
+                if (SetProperty(ref _cantidad, value))
+                {
+                    CalcularSubTotal();
+                    OnPropertyChanged(nameof(ValorSinDescuento));
+                    OnPropertyChanged(nameof(GananciaLinea));
+                    OnPropertyChanged(nameof(MargenPorcentaje));
+                }
+            }
+        }
 
         [Column(TypeName = "decimal(18,4)")]
-        public decimal PrecioUnitario { get; set; }
+        public decimal PrecioUnitario
+        {
+            get => _precioUnitario;
+            set
+            {
+                if (SetProperty(ref _precioUnitario, value))
+                {
+                    CalcularSubTotal();
+                    OnPropertyChanged(nameof(ValorSinDescuento));
+                    OnPropertyChanged(nameof(GananciaLinea));
+                    OnPropertyChanged(nameof(MargenPorcentaje));
+                }
+            }
+        }
 
         [Column(TypeName = "decimal(18,4)")]
-        public decimal SubTotal { get; set; }
+        public decimal SubTotal
+        {
+            get => _subTotal;
+            set
+            {
+                if (SetProperty(ref _subTotal, value))
+                {
+                    OnPropertyChanged(nameof(GananciaLinea));
+                    OnPropertyChanged(nameof(MargenPorcentaje));
+                    OnPropertyChanged(nameof(IVALinea));
+                    OnPropertyChanged(nameof(TotalConIVA));
+                }
+            }
+        }
 
         [Column(TypeName = "decimal(18,4)")]
-        public decimal CostoUnitario { get; set; }
+        public decimal CostoUnitario
+        {
+            get => _costoUnitario;
+            set
+            {
+                if (SetProperty(ref _costoUnitario, value))
+                {
+                    OnPropertyChanged(nameof(GananciaLinea));
+                    OnPropertyChanged(nameof(MargenPorcentaje));
+                }
+            }
+        }
 
         // ===== CAMPOS ADICIONALES PARA EL TICKET =====
 
         [Required]
         [StringLength(200)]
-        public string NombreProducto { get; set; }
+        public string NombreProducto
+        {
+            get => _nombreProducto;
+            set => SetProperty(ref _nombreProducto, value);
+        }
 
         [Required]
         [StringLength(20)]
-        public string UnidadMedida { get; set; }
+        public string UnidadMedida
+        {
+            get => _unidadMedida;
+            set => SetProperty(ref _unidadMedida, value);
+        }
 
         [Column(TypeName = "decimal(5,2)")]
-        public decimal PorcentajeIVA { get; set; } = 16.0m;
+        public decimal PorcentajeIVA
+        {
+            get => _porcentajeIVA;
+            set
+            {
+                if (SetProperty(ref _porcentajeIVA, value))
+                {
+                    OnPropertyChanged(nameof(IVALinea));
+                    OnPropertyChanged(nameof(TotalConIVA));
+                }
+            }
+        }
 
         [Column(TypeName = "decimal(18,4)")]
-        public decimal DescuentoAplicado { get; set; } = 0;
+        public decimal DescuentoAplicado
+        {
+            get => _descuentoAplicado;
+            set
+            {
+                if (SetProperty(ref _descuentoAplicado, value))
+                {
+                    CalcularSubTotal();
+                    OnPropertyChanged(nameof(TieneDescuento));
+                }
+            }
+        }
 
-        // ===== PROPIEDADES CALCULADAS =====
+        // ===== PROPIEDADES CALCULADAS (IGUALES QUE ANTES) =====
 
-        /// <summary>
-        /// Ganancia de esta línea de venta
-        /// </summary>
         [NotMapped]
         public decimal GananciaLinea => SubTotal - (CostoUnitario * Cantidad);
 
-        /// <summary>
-        /// Margen de ganancia en porcentaje para esta línea
-        /// </summary>
         [NotMapped]
         public decimal MargenPorcentaje
         {
@@ -67,89 +157,56 @@ namespace costbenefi.Models
             }
         }
 
-        /// <summary>
-        /// IVA de esta línea de venta
-        /// </summary>
         [NotMapped]
         public decimal IVALinea => SubTotal * (PorcentajeIVA / 100);
 
-        /// <summary>
-        /// Total con IVA incluido para esta línea
-        /// </summary>
         [NotMapped]
         public decimal TotalConIVA => SubTotal + IVALinea;
 
-        /// <summary>
-        /// Precio unitario con IVA
-        /// </summary>
         [NotMapped]
         public decimal PrecioUnitarioConIVA => PrecioUnitario * (1 + (PorcentajeIVA / 100));
 
-        /// <summary>
-        /// Valor total sin descuentos
-        /// </summary>
         [NotMapped]
         public decimal ValorSinDescuento => Cantidad * PrecioUnitario;
 
-        /// <summary>
-        /// Indica si tiene descuento aplicado
-        /// </summary>
         [NotMapped]
         public bool TieneDescuento => DescuentoAplicado > 0;
 
-        // ===== MÉTODOS =====
+        // ===== MÉTODOS (IGUALES QUE ANTES) =====
 
-        /// <summary>
-        /// Calcula el subtotal basado en cantidad y precio
-        /// </summary>
         public void CalcularSubTotal()
         {
-            SubTotal = (Cantidad * PrecioUnitario) - DescuentoAplicado;
+            var nuevoSubTotal = (Cantidad * PrecioUnitario) - DescuentoAplicado;
+            if (nuevoSubTotal < 0) nuevoSubTotal = 0;
 
-            // Asegurar que no sea negativo
-            if (SubTotal < 0) SubTotal = 0;
+            if (Math.Abs(_subTotal - nuevoSubTotal) > 0.001m)
+            {
+                _subTotal = nuevoSubTotal;
+                OnPropertyChanged(nameof(SubTotal));
+            }
         }
 
-        /// <summary>
-        /// Aplica un descuento a esta línea específica
-        /// </summary>
         public void AplicarDescuento(decimal descuento)
         {
             DescuentoAplicado = descuento;
-            CalcularSubTotal();
         }
 
-        /// <summary>
-        /// Aplica un descuento por porcentaje
-        /// </summary>
         public void AplicarDescuentoPorcentaje(decimal porcentaje)
         {
             var valorSinDescuento = Cantidad * PrecioUnitario;
             DescuentoAplicado = valorSinDescuento * (porcentaje / 100);
-            CalcularSubTotal();
         }
 
-        /// <summary>
-        /// Actualiza la cantidad y recalcula
-        /// </summary>
         public void ActualizarCantidad(decimal nuevaCantidad)
         {
             Cantidad = nuevaCantidad;
-            CalcularSubTotal();
         }
 
-        /// <summary>
-        /// Actualiza el precio unitario y recalcula
-        /// </summary>
         public void ActualizarPrecio(decimal nuevoPrecio)
         {
             PrecioUnitario = nuevoPrecio;
-            CalcularSubTotal();
         }
 
-        /// <summary>
-        /// Valida que los datos del detalle sean correctos
-        /// </summary>
         public bool ValidarDetalle()
         {
             return Cantidad > 0 &&
@@ -159,18 +216,12 @@ namespace costbenefi.Models
                    RawMaterialId > 0;
         }
 
-        /// <summary>
-        /// Obtiene descripción formateada para el ticket
-        /// </summary>
         public string ObtenerDescripcionTicket()
         {
             var descuento = TieneDescuento ? $" (Desc: {DescuentoAplicado:C2})" : "";
             return $"{NombreProducto} - {Cantidad:F2} {UnidadMedida} × {PrecioUnitario:C2}{descuento}";
         }
 
-        /// <summary>
-        /// Copia datos del producto para el detalle
-        /// </summary>
         public void CopiarDatosProducto(RawMaterial producto)
         {
             RawMaterialId = producto.Id;
@@ -179,6 +230,24 @@ namespace costbenefi.Models
             PrecioUnitario = producto.PrecioVentaFinal;
             CostoUnitario = producto.PrecioConIVA;
             PorcentajeIVA = producto.PorcentajeIVA;
+        }
+
+        // ===== IMPLEMENTACIÓN DE INotifyPropertyChanged =====
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
+        {
+            if (Equals(field, value)) return false;
+
+            field = value;
+            OnPropertyChanged(propertyName);
+            return true;
         }
     }
 }

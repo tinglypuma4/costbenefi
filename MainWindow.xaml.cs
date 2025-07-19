@@ -59,6 +59,7 @@ namespace costbenefi
             timer.Interval = TimeSpan.FromMinutes(1);
             timer.Tick += (s, e) => UpdateDateTime();
             timer.Start();
+            ConfigurarActualizacionAutomatica();
         }
 
         // ========== INICIALIZACIÓN POS ==========
@@ -174,7 +175,6 @@ namespace costbenefi
                 TxtStatusPOS.Text = "❌ Error al cargar datos POS";
             }
         }
-
         private async Task LoadEstadisticasDelDia()
         {
             try
@@ -303,8 +303,7 @@ namespace costbenefi
                         return;
                     }
 
-                    itemExistente.Cantidad += cantidad;
-                    itemExistente.CalcularSubTotal();
+                    itemExistente.ActualizarCantidad(itemExistente.Cantidad + cantidad);
                 }
                 else
                 {
@@ -482,6 +481,9 @@ namespace costbenefi
                 // Actualizar estadísticas
                 await LoadEstadisticasDelDia();
 
+                // ✅ LÍNEA AGREGADA: Actualizar productos después de venta
+                await RefrescarProductosAutomatico("stock actualizado después de venta");
+
                 // Mostrar confirmación con análisis financiero completo
                 string mensajeConfirmacion = "✅ VENTA PROCESADA EXITOSAMENTE!\n\n";
                 mensajeConfirmacion += $"📄 Ticket: #{venta.NumeroTicket}\n";
@@ -581,6 +583,60 @@ namespace costbenefi
                 MessageBox.Show($"Error al configurar comisiones: {ex.Message}",
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 TxtStatusPOS.Text = "❌ Error al configurar comisiones";
+            }
+        }
+        private async Task RefrescarProductosAutomatico(string motivo = "")
+        {
+            try
+            {
+                if (!_posLoaded) return; // Solo si POS está cargado
+
+                // Recargar productos desde base de datos
+                _productosParaVenta = await _context.GetProductosDisponiblesParaVenta().ToListAsync();
+
+                // Aplicar filtro actual si existe
+                string filtroActual = TxtBuscarPOS.Text.ToLower().Trim();
+                if (string.IsNullOrEmpty(filtroActual))
+                {
+                    _productosParaVentaFiltrados = new List<RawMaterial>(_productosParaVenta);
+                }
+                else
+                {
+                    _productosParaVentaFiltrados = _productosParaVenta.Where(p =>
+                        p.NombreArticulo.ToLower().Contains(filtroActual) ||
+                        p.Categoria.ToLower().Contains(filtroActual) ||
+                        p.CodigoBarras.ToLower().Contains(filtroActual)
+                    ).ToList();
+                }
+
+                // Actualizar lista sin perder selección
+                var seleccionActual = LstProductosPOS.SelectedItem;
+                LstProductosPOS.ItemsSource = null;
+                LstProductosPOS.ItemsSource = _productosParaVentaFiltrados;
+
+                // Restaurar selección si el producto sigue disponible
+                if (seleccionActual is RawMaterial productoSeleccionado)
+                {
+                    var productoActualizado = _productosParaVentaFiltrados
+                        .FirstOrDefault(p => p.Id == productoSeleccionado.Id);
+                    if (productoActualizado != null)
+                    {
+                        LstProductosPOS.SelectedItem = productoActualizado;
+                    }
+                }
+
+                // Actualizar contadores
+                UpdateContadoresPOS();
+
+                // Mostrar mensaje discreto si hay motivo
+                if (!string.IsNullOrEmpty(motivo))
+                {
+                    TxtStatusPOS.Text = $"✅ Productos actualizados ({motivo})";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AUTO-REFRESH] Error: {ex.Message}");
             }
         }
 
@@ -876,7 +932,6 @@ namespace costbenefi
         {
             await RefreshData();
         }
-
         private async Task RefreshData()
         {
             try
@@ -885,14 +940,13 @@ namespace costbenefi
                 BtnActualizar.Content = "⏳";
                 BtnActualizar.ToolTip = "Actualizando...";
 
-                await Task.Delay(500); // Pequeña pausa para mejor UX
+                await Task.Delay(500);
 
-                // ✅ Solo productos activos (filtro global automático)
+                // Actualizar inventario (código existente)
                 _allMaterials = await _context.RawMaterials
                     .OrderBy(m => m.NombreArticulo)
                     .ToListAsync();
 
-                // Mantener filtro actual si existe
                 string currentSearch = TxtBuscar.Text.ToLower().Trim();
                 if (string.IsNullOrEmpty(currentSearch))
                 {
@@ -910,11 +964,8 @@ namespace costbenefi
                 UpdateDataGrid();
                 UpdateStatusBar();
 
-                // Actualizar POS si está cargado
-                if (_posLoaded)
-                {
-                    await LoadDataPuntoVenta();
-                }
+                // ✅ AUTOMÁTICO: Actualizar POS si está cargado
+                await RefrescarProductosAutomatico("inventario actualizado");
 
                 TxtStatus.Text = $"✅ Actualizado - {DateTime.Now:HH:mm:ss}";
             }
@@ -931,7 +982,6 @@ namespace costbenefi
                 BtnActualizar.ToolTip = "Actualizar datos";
             }
         }
-
         private async void BtnAgregar_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -941,6 +991,7 @@ namespace costbenefi
                 {
                     await RefreshData();
                     TxtStatus.Text = "✅ Material agregado correctamente";
+                    await RefrescarProductosAutomatico("nuevo producto agregado");
 
                     // Mostrar confirmación con información del último material agregado
                     var ultimoMaterial = await _context.RawMaterials
@@ -979,6 +1030,7 @@ namespace costbenefi
                     {
                         await RefreshData();
                         TxtStatus.Text = $"✅ Material actualizado - {editWindow.MotivoEdicion}";
+                        await RefrescarProductosAutomatico("producto editado");
 
                         MessageBox.Show(
                             $"✅ Material actualizado correctamente!\n\n" +
@@ -1058,6 +1110,7 @@ namespace costbenefi
                     // Actualizar
                     await RefreshData();
                     TxtStatus.Text = "✅ Eliminado (historial conservado)";
+                    await RefrescarProductosAutomatico("producto eliminado");
 
                     MessageBox.Show(
                         $"✅ ¡Eliminación exitosa!\n\n" +
@@ -1112,7 +1165,19 @@ namespace costbenefi
             _context?.Dispose();
             base.OnClosed(e);
         }
-
+        private void ConfigurarActualizacionAutomatica()
+        {
+            var timerActualizacion = new System.Windows.Threading.DispatcherTimer();
+            timerActualizacion.Interval = TimeSpan.FromMinutes(5); // Cada 5 minutos
+            timerActualizacion.Tick += async (s, e) =>
+            {
+                if (_posLoaded && MainTabControl.SelectedIndex == 1) // Solo si está en pestaña POS
+                {
+                    await RefrescarProductosAutomatico();
+                }
+            };
+            timerActualizacion.Start();
+        }
         private async void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.Source is TabControl tabControl)
