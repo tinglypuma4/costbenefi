@@ -12,6 +12,8 @@ using costbenefi.Data;
 using costbenefi.Models;
 using costbenefi.Views;
 using costbenefi.Services;
+using System.ComponentModel;
+using System.Globalization;
 
 namespace costbenefi
 {
@@ -25,6 +27,7 @@ namespace costbenefi
         private List<RawMaterial> _productosParaVenta = new();
         private List<RawMaterial> _productosParaVentaFiltrados = new();
         private ObservableCollection<DetalleVenta> _carritoItems = new();
+        private CorteCajaService _corteCajaService;
 
         // Servicios POS
         private TicketPrinter _ticketPrinter;
@@ -72,6 +75,7 @@ namespace costbenefi
                 _ticketPrinter = new TicketPrinter();
                 _basculaService = new BasculaService(_context); // ✅ CORREGIDO: Pasar contexto
                 _scannerService = new ScannerPOSService();
+                _corteCajaService = new CorteCajaService(_context);
 
                 // Configurar eventos de báscula
                 _basculaService.PesoRecibido += (sender, e) =>
@@ -222,11 +226,67 @@ namespace costbenefi
                 // Actualizar header
                 TxtVentasHoy.Text = $"Ventas hoy: {_cantidadVentasHoy}";
                 TxtTotalVentasHoy.Text = $"Total: {_totalVentasHoy:C2}";
+                await VerificarEstadoCorteCaja();
             }
             catch (Exception ex)
             {
                 TxtVentasHoy.Text = "Ventas hoy: Error";
                 TxtTotalVentasHoy.Text = "Total: $0.00";
+            }
+        }
+
+        // <summary>
+        /// Verifica si se puede hacer corte de caja hoy
+        /// </summary>
+        private async Task VerificarEstadoCorteCaja()
+        {
+            try
+            {
+                var hoy = DateTime.Today;
+                var existeCorte = await _corteCajaService.ExisteCorteDelDiaAsync(hoy);
+                var estadisticas = await _corteCajaService.ObtenerEstadisticasDelDiaAsync(hoy);
+
+                // Actualizar interfaz según el estado
+                if (existeCorte)
+                {
+                    var corte = await _corteCajaService.ObtenerCorteDelDiaAsync(hoy);
+                    ActualizarEstadoCorteCaja(corte);
+                }
+                else if (estadisticas.CantidadTickets > 0)
+                {
+                    // Hay ventas pero no corte - mostrar notificación
+                    TxtStatusPOS.Text = $"💰 {estadisticas.CantidadTickets} ventas pendientes de corte";
+                }
+                else
+                {
+                    // Sin ventas del día
+                    TxtStatusPOS.Text = "📊 Sin ventas registradas hoy";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error al verificar estado corte: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Actualiza la interfaz según el estado del corte
+        /// </summary>
+        private void ActualizarEstadoCorteCaja(CorteCaja corte)
+        {
+            if (corte == null) return;
+
+            switch (corte.Estado)
+            {
+                case "Completado":
+                    TxtStatusPOS.Text = $"✅ Corte completado - {corte.TotalVentasCalculado:C2}";
+                    break;
+                case "Pendiente":
+                    TxtStatusPOS.Text = $"⏳ Corte pendiente - {corte.CantidadTickets} tickets";
+                    break;
+                case "Cancelado":
+                    TxtStatusPOS.Text = $"❌ Corte cancelado - Revisar";
+                    break;
             }
         }
 
@@ -252,6 +312,152 @@ namespace costbenefi
             TxtContadorHeader.Text = $"{_filteredMaterials.Count} productos activos";
         }
 
+        /// <summary>
+        /// Abre la ventana de corte de caja
+        /// </summary>
+        private async void BtnCorteCaja_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Verificar si hay ventas del día
+                var hoy = DateTime.Today;
+                var estadisticas = await _corteCajaService.ObtenerEstadisticasDelDiaAsync(hoy);
+
+                if (estadisticas.CantidadTickets == 0)
+                {
+                    MessageBox.Show("No hay ventas registradas para hacer el corte de caja de hoy.",
+                                  "Sin Ventas", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // Verificar si ya existe corte
+                var corteExistente = await _corteCajaService.ObtenerCorteDelDiaAsync(hoy);
+
+                Window corteCajaWindow;
+
+                if (corteExistente != null)
+                {
+                    // Abrir corte existente para edición
+                    var mensaje = $"Ya existe un corte para hoy ({corteExistente.Estado}).\n\n" +
+                                 $"🎯 Total ventas: {corteExistente.TotalVentasCalculado:C2}\n" +
+                                 $"📄 Tickets: {corteExistente.CantidadTickets}\n" +
+                                 $"⚖️ Estado: {corteExistente.ObtenerEstadoDescriptivo()}\n\n" +
+                                 $"¿Desea abrirlo?";
+
+                    var resultado = MessageBox.Show(mensaje, "Corte Existente",
+                                                  MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                    if (resultado != MessageBoxResult.Yes) return;
+
+                    corteCajaWindow = new CorteCajaWindow(_context, corteExistente);
+                }
+                else
+                {
+                    // Confirmar creación de nuevo corte
+                    var confirmar = MessageBox.Show(
+                        $"🎯 CREAR CORTE DE CAJA - {hoy:dd/MM/yyyy}\n\n" +
+                        $"📊 Resumen del día:\n" +
+                        $"   • Total ventas: {estadisticas.TotalVentas:C2}\n" +
+                        $"   • Cantidad tickets: {estadisticas.CantidadTickets}\n" +
+                        $"   • Efectivo: {estadisticas.EfectivoTotal:C2}\n" +
+                        $"   • Tarjeta: {estadisticas.TarjetaTotal:C2}\n" +
+                        $"   • Transferencia: {estadisticas.TransferenciaTotal:C2}\n\n" +
+                        $"¿Proceder con el corte de caja?",
+                        "Confirmar Corte de Caja", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                    if (confirmar != MessageBoxResult.Yes) return;
+
+                    corteCajaWindow = new CorteCajaWindow(_context, hoy);
+                }
+
+                // Configurar ventana
+                corteCajaWindow.Owner = this;
+                corteCajaWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+                // Mostrar ventana
+                if (corteCajaWindow.ShowDialog() == true)
+                {
+                    // Actualizar estadísticas después del corte
+                    await LoadEstadisticasDelDia();
+                    await VerificarEstadoCorteCaja();
+
+                    TxtStatusPOS.Text = "✅ Corte de caja completado exitosamente";
+
+                    // Mostrar notificación de éxito
+                    MessageBox.Show("✅ Corte de caja procesado correctamente!\n\n" +
+                                  "El sistema se ha actualizado con la información del corte.",
+                                  "Corte Completado", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir corte de caja: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatusPOS.Text = "❌ Error al abrir corte de caja";
+            }
+        }
+
+        /// <summary>
+        /// Abre la ventana de reportes de cortes históricos
+        /// </summary>
+        private async void BtnReporteCortes_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var reporteWindow = new ReporteCorteCajaWindow(_context)
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                reporteWindow.Show();
+                TxtStatusPOS.Text = "📊 Reporte de cortes de caja abierto";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir reporte de cortes: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatusPOS.Text = "❌ Error al abrir reporte de cortes";
+            }
+        }
+
+        /// <summary>
+        /// Muestra estadísticas rápidas de cortes de caja
+        /// </summary>
+        private async void BtnEstadisticasCortes_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var desde = DateTime.Today.AddDays(-30); // Últimos 30 días
+                var hasta = DateTime.Today;
+
+                var analisis = await _corteCajaService.ObtenerAnalisisCortesAsync(desde, hasta);
+
+                var mensaje = $"📊 ESTADÍSTICAS DE CORTES (30 días)\n\n" +
+                             $"📅 Período: {analisis.Periodo}\n" +
+                             $"📊 Cortes realizados: {analisis.CantidadCortes}\n" +
+                             $"💰 Total ventas: {analisis.TotalVentas:C2}\n" +
+                             $"💵 Total comisiones: {analisis.TotalComisiones:C2}\n" +
+                             $"📈 Total ganancias: {analisis.TotalGanancias:C2}\n" +
+                             $"📊 Promedio diario: {analisis.PromedioDiario:C2}\n\n" +
+                             $"⚖️ CONCILIACIÓN:\n" +
+                             $"   • Diferencias detectadas: {analisis.DiferienciasDetectadas}\n" +
+                             $"   • Sobrantes total: {analisis.SobrantesTotal:C2}\n" +
+                             $"   • Faltantes total: {analisis.FaltantesTotal:C2}\n" +
+                             $"   • Exactitud: {analisis.PorcentajeExactitud:F1}%";
+
+                MessageBox.Show(mensaje, "Estadísticas de Cortes",
+                              MessageBoxButton.OK, MessageBoxImage.Information);
+
+                TxtStatusPOS.Text = "📊 Estadísticas mostradas";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al obtener estadísticas: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatusPOS.Text = "❌ Error al obtener estadísticas";
+            }
+        }
         private void UpdateStatusBar()
         {
             if (_filteredMaterials?.Any() == true)
@@ -1199,6 +1405,7 @@ namespace costbenefi
             _basculaService?.Dispose();
             _scannerService?.Dispose();
             _posIntegrationService?.Dispose();
+            _corteCajaService?.Dispose();
 
             _context?.Dispose();
             base.OnClosed(e);
@@ -1212,6 +1419,9 @@ namespace costbenefi
                 if (_posLoaded && MainTabControl.SelectedIndex == 1) // Solo si está en pestaña POS
                 {
                     await RefrescarProductosAutomatico();
+
+                    // También verificar estado de corte de caja
+                    await VerificarEstadoCorteCaja();
                 }
             };
             timerActualizacion.Start();
@@ -1230,6 +1440,11 @@ namespace costbenefi
                         if (!_posLoaded)
                         {
                             await LoadDataPuntoVenta();
+                        }
+                        else
+                        {
+                            // Si ya está cargado, verificar estado de corte
+                            await VerificarEstadoCorteCaja();
                         }
                         break;
                     case 2: // Reportes

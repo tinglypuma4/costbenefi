@@ -1,0 +1,336 @@
+﻿<Window x:Class="costbenefi.Views.CorteCajaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="💰 Corte de Caja Diario" 
+        Height="800" Width="1000"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource MaterialDesignPaper}"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        FontFamily="{DynamicResource MaterialDesignFont}"
+        ResizeMode="CanResize">
+
+    <Window.Resources>
+        <!-- Estilos personalizados -->
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryHueDarkBrush}"/>
+        </Style>
+        
+        <Style x:Key="SubHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,5,0,5"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryHueMidBrush}"/>
+        </Style>
+        
+        <Style x:Key="ValueTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="Foreground" Value="{StaticResource MaterialDesignBody}"/>
+        </Style>
+        
+        <Style x:Key="MoneyTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ValueTextStyle}">
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize" Value="16"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- HEADER -->
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="💰 CORTE DE CAJA DIARIO" Style="{StaticResource HeaderTextStyle}" FontSize="24"/>
+                <TextBlock x:Name="TxtFechaCorte" Text="📅 Fecha: [Fecha]" Style="{StaticResource SubHeaderTextStyle}"/>
+                <TextBlock x:Name="TxtUsuarioCorte" Text="👤 Usuario: [Usuario]" Style="{StaticResource SubHeaderTextStyle}"/>
+            </StackPanel>
+            
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                <TextBlock x:Name="TxtEstadoCorte" Text="⏳ PENDIENTE" FontSize="16" FontWeight="Bold" 
+                          HorizontalAlignment="Center" Padding="10,5" Background="Orange" Foreground="White"/>
+                <TextBlock x:Name="TxtHoraCorte" Text="🕐 Hora: [Hora]" Style="{StaticResource SubHeaderTextStyle}" 
+                          HorizontalAlignment="Right" Margin="0,5,0,0"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- COLUMNA IZQUIERDA: TOTALES DEL SISTEMA -->
+                <StackPanel Grid.Column="0">
+                    
+                    <!-- RESUMEN GENERAL -->
+                    <materialDesign:Card Margin="0,0,0,15" Padding="15">
+                        <StackPanel>
+                            <TextBlock Text="💻 TOTALES DEL SISTEMA" Style="{StaticResource HeaderTextStyle}"/>
+                            
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="📄 Cantidad de tickets:" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="TxtCantidadTickets" Text="0" Style="{StaticResource ValueTextStyle}"/>
+
+                                <Separator Grid.Row="1" Grid.ColumnSpan="2" Margin="0,5"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="💰 Total de ventas:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="TxtTotalVentas" Text="$0.00" Style="{StaticResource MoneyTextStyle}" Foreground="Green"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="📈 Ganancia neta:" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" x:Name="TxtGananciaNeta" Text="$0.00" Style="{StaticResource MoneyTextStyle}" Foreground="Blue"/>
+                            </Grid>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <!-- FORMAS DE PAGO -->
+                    <materialDesign:Card Margin="0,0,0,15" Padding="15">
+                        <StackPanel>
+                            <TextBlock Text="💳 FORMAS DE PAGO" Style="{StaticResource HeaderTextStyle}"/>
+                            
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="💵 Efectivo:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="TxtEfectivoCalculado" Text="$0.00" Style="{StaticResource MoneyTextStyle}"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="💳 Tarjetas:" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TxtTarjetaCalculado" Text="$0.00" Style="{StaticResource MoneyTextStyle}"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="🏦 Transferencias:" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="TxtTransferenciaCalculado" Text="$0.00" Style="{StaticResource MoneyTextStyle}"/>
+
+                                <Separator Grid.Row="3" Grid.ColumnSpan="2" Margin="0,10"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="🏪 Comisiones totales:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                <TextBlock Grid.Row="4" Grid.Column="1" x:Name="TxtComisionesTotal" Text="$0.00" Style="{StaticResource MoneyTextStyle}" Foreground="Red"/>
+                            </Grid>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <!-- DETALLE DE COMISIONES -->
+                    <materialDesign:Card x:Name="CardComisiones" Margin="0,0,0,15" Padding="15" Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Text="🏦 DETALLE DE COMISIONES" Style="{StaticResource HeaderTextStyle}"/>
+                            
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Comisión base:" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="TxtComisionBase" Text="$0.00" Style="{StaticResource MoneyTextStyle}"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="IVA sobre comisión:" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TxtIVAComision" Text="$0.00" Style="{StaticResource MoneyTextStyle}"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Total real recibido:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="TxtTotalRealRecibido" Text="$0.00" Style="{StaticResource MoneyTextStyle}" Foreground="Green"/>
+                            </Grid>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                </StackPanel>
+
+                <!-- COLUMNA DERECHA: CONTEO FÍSICO Y CONCILIACIÓN -->
+                <StackPanel Grid.Column="2">
+                    
+                    <!-- CONTEO FÍSICO -->
+                    <materialDesign:Card Margin="0,0,0,15" Padding="15">
+                        <StackPanel>
+                            <TextBlock Text="💵 CONTEO FÍSICO DE EFECTIVO" Style="{StaticResource HeaderTextStyle}"/>
+                            
+                            <!-- Fondo inicial -->
+                            <Grid Margin="0,10,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Column="0" Text="Fondo de caja inicial:" VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1" x:Name="TxtFondoInicial" Width="120" HorizontalAlignment="Right"
+                                        materialDesign:HintAssist.Hint="$0.00" Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                                        PreviewTextInput="NumericTextBox_PreviewTextInput" TextChanged="TxtFondoInicial_TextChanged"/>
+                            </Grid>
+
+                            <!-- Efectivo contado -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Column="0" Text="Efectivo contado en caja:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                <TextBox Grid.Column="1" x:Name="TxtEfectivoContado" Width="120" HorizontalAlignment="Right"
+                                        materialDesign:HintAssist.Hint="$0.00" Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                                        PreviewTextInput="NumericTextBox_PreviewTextInput" TextChanged="TxtEfectivoContado_TextChanged"/>
+                            </Grid>
+
+                            <!-- Efectivo esperado -->
+                            <Grid Margin="0,0,0,15">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Column="0" Text="Efectivo esperado:" VerticalAlignment="Center" Style="{StaticResource SubHeaderTextStyle}"/>
+                                <TextBlock Grid.Column="1" x:Name="TxtEfectivoEsperado" Text="$0.00" Style="{StaticResource MoneyTextStyle}" Foreground="Blue"/>
+                            </Grid>
+
+                            <!-- Fondo para mañana -->
+                            <Grid Margin="0,0,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Column="0" Text="Fondo para mañana:" VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1" x:Name="TxtFondoSiguiente" Width="120" HorizontalAlignment="Right"
+                                        materialDesign:HintAssist.Hint="$1,000.00" Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                                        PreviewTextInput="NumericTextBox_PreviewTextInput" TextChanged="CalcularDiferencias"/>
+                            </Grid>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <!-- CONCILIACIÓN Y DIFERENCIAS -->
+                    <materialDesign:Card x:Name="CardDiferencias" Margin="0,0,0,15" Padding="15">
+                        <StackPanel>
+                            <TextBlock Text="⚖️ CONCILIACIÓN" Style="{StaticResource HeaderTextStyle}"/>
+                            
+                            <!-- Diferencia principal -->
+                            <Grid Margin="0,10,0,15">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Column="0" Text="Diferencia (Contado - Esperado):" VerticalAlignment="Center" FontWeight="Bold"/>
+                                <TextBlock Grid.Column="1" x:Name="TxtDiferencia" Text="$0.00" Style="{StaticResource MoneyTextStyle}" FontWeight="Bold"/>
+                            </Grid>
+
+                            <!-- Estado de la diferencia -->
+                            <Border x:Name="BorderEstadoDiferencia" Background="LightGray" Padding="10,5" CornerRadius="3" Margin="0,0,0,15">
+                                <TextBlock x:Name="TxtEstadoDiferencia" Text="⏳ Pendiente de conteo" HorizontalAlignment="Center" FontWeight="Bold"/>
+                            </Border>
+
+                            <!-- Efectivo para depositar -->
+                            <Grid Margin="0,0,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Column="0" Text="Efectivo para depositar:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                <TextBlock Grid.Column="1" x:Name="TxtEfectivoParaDepositar" Text="$0.00" Style="{StaticResource MoneyTextStyle}" Foreground="Green"/>
+                            </Grid>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <!-- DEPÓSITO BANCARIO -->
+                    <materialDesign:Card x:Name="CardDeposito" Margin="0,0,0,15" Padding="15" Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Text="🏧 DEPÓSITO BANCARIO" Style="{StaticResource HeaderTextStyle}"/>
+                            
+                            <CheckBox x:Name="ChkRealizarDeposito" Content="Realizar depósito bancario" Margin="0,10,0,15"
+                                     Checked="ChkRealizarDeposito_Checked" Unchecked="ChkRealizarDeposito_Unchecked"/>
+                            
+                            <StackPanel x:Name="PanelDeposito" Visibility="Collapsed">
+                                <TextBox x:Name="TxtMontoDeposito" materialDesign:HintAssist.Hint="Monto a depositar"
+                                        Style="{StaticResource MaterialDesignFloatingHintTextBox}" Margin="0,0,0,10"
+                                        PreviewTextInput="NumericTextBox_PreviewTextInput"/>
+                                
+                                <TextBox x:Name="TxtReferenciaDeposito" materialDesign:HintAssist.Hint="Número de referencia"
+                                        Style="{StaticResource MaterialDesignFloatingHintTextBox}" Margin="0,0,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <!-- OBSERVACIONES -->
+                    <materialDesign:Card Margin="0,0,0,0" Padding="15">
+                        <StackPanel>
+                            <TextBlock Text="📝 OBSERVACIONES" Style="{StaticResource HeaderTextStyle}"/>
+                            
+                            <TextBox x:Name="TxtObservaciones" Height="100" TextWrapping="Wrap" AcceptsReturn="True"
+                                    materialDesign:HintAssist.Hint="Observaciones del corte de caja (opcional)"
+                                    Style="{StaticResource MaterialDesignFloatingHintTextBox}" VerticalScrollBarVisibility="Auto"/>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- FOOTER CON BOTONES -->
+        <Grid Grid.Row="2" Margin="0,20,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Estado y validación -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <materialDesign:PackIcon x:Name="IconEstado" Kind="ClockOutline" Width="20" Height="20" 
+                                        VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBlock x:Name="TxtEstadoValidacion" Text="⏳ Complete el conteo físico" 
+                          VerticalAlignment="Center" Style="{StaticResource SubHeaderTextStyle}"/>
+            </StackPanel>
+
+            <!-- Botones de acción -->
+            <Button Grid.Column="2" x:Name="BtnVerDetalle" Content="📊 Ver Detalle" Width="120" Height="40" 
+                    Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,10,0" Click="BtnVerDetalle_Click"/>
+
+            <Button Grid.Column="3" x:Name="BtnCancelar" Content="❌ Cancelar" Width="120" Height="40" 
+                    Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,10,0" Click="BtnCancelar_Click"/>
+
+            <Button Grid.Column="4" x:Name="BtnCompletarCorte" Content="✅ Completar Corte" Width="150" Height="40" 
+                    Style="{StaticResource MaterialDesignRaisedButton}" IsEnabled="False" Click="BtnCompletarCorte_Click"/>
+        </Grid>
+
+    </Grid>
+</Window>

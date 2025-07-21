@@ -13,6 +13,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{4669A151-9FDC-4236-88BB-FBBFCCDB57D7}"
 	ProjectSection(SolutionItems) = preProject
 		BasculaService.cs = BasculaService.cs
+		CorteCajaService.cs = CorteCajaService.cs
 		CorteRobustoService.cs = CorteRobustoService.cs
 		POSIntegrationService.cs = POSIntegrationService.cs
 		ScannerPOSService.cs = ScannerPOSService.cs
@@ -50,6 +51,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Helpers", "Helpers", "{243C
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reportes", "Reportes", "{2AE6F244-01B2-450B-9D25-F26A473C3F77}"
 	ProjectSection(SolutionItems) = preProject
+		ReporteCaja.cs = ReporteCaja.cs
 		ReporteMovimientos.cs = ReporteMovimientos.cs
 		ReporteStock.cs = ReporteStock.cs
 		ReporteVentas.cs = ReporteVentas.cs
@@ -82,6 +84,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "informacion", "informacion"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reporte_auditoria", "Reporte_auditoria", "{75990FAE-022C-4114-9B92-508FAA8A3989}"
 	ProjectSection(SolutionItems) = preProject
+		ReporteCorteCajaWindow.cs = ReporteCorteCajaWindow.cs
 		ReporteMovimientosWindow.xaml = ReporteMovimientosWindow.xaml
 		ReporteMovimientosWindow.xaml.cs = ReporteMovimientosWindow.xaml.cs
 		ReporteSelectorWindow.xaml = ReporteSelectorWindow.xaml
@@ -100,6 +103,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "punto de venta", "punto de 
 		ConfigurarComisionesWindow.xaml.cs = ConfigurarComisionesWindow.xaml.cs
 		ConfigurarImpresoraWindow.xaml.cs = ConfigurarImpresoraWindow.xaml.cs
 		ConfigurarPrecioVentaWindow.xaml.cs = ConfigurarPrecioVentaWindow.xaml.cs
+		CorteCajaWindow.xaml = CorteCajaWindow.xaml
+		CorteCajaWindow.xaml.cs = CorteCajaWindow.xaml.cs
 		IngresarPesoWindow.xaml.cs = IngresarPesoWindow.xaml.cs
 		ProcesarPagoWindow.xaml.cs = ProcesarPagoWindow.xaml.cs
 	EndProjectSection

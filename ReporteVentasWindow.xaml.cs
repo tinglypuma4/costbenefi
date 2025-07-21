@@ -604,7 +604,7 @@ namespace costbenefi.Views
             if (formas.Count > 1)
                 return "🔄 Combinado";
             else if (formas.Count == 1)
-                return formas[0] + " " + (venta.MontoEfectivo > 0 ? "Efectivo" :
+                return formas[0] + " " + (venta.MontoEfectivo > 0 ? "Efectivo" : 
                                          venta.MontoTarjeta > 0 ? "Tarjeta" : "Transferencia");
             else
                 return "❓ Desconocido";

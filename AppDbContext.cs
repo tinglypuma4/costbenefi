@@ -4,16 +4,19 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using costbenefi.Models;
+using System.Collections.Generic;
 
 namespace costbenefi.Data
 {
     public class AppDbContext : DbContext
     {
         // ===== DbSets EXISTENTES =====
+
         public DbSet<RawMaterial> RawMaterials { get; set; }
         public DbSet<Movimiento> Movimientos { get; set; }
 
         // ========== ✅ DbSets PARA POS ==========
+        public DbSet<CorteCaja> CortesCaja { get; set; }
         public DbSet<Venta> Ventas { get; set; }
         public DbSet<DetalleVenta> DetalleVentas { get; set; }
 
@@ -377,6 +380,113 @@ namespace costbenefi.Data
                 entity.HasIndex(e => e.Nombre);
             });
 
+            modelBuilder.Entity<CorteCaja>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.UsuarioCorte)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.Estado)
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasDefaultValue("Pendiente");
+
+                entity.Property(e => e.Observaciones)
+                    .HasMaxLength(1000)
+                    .HasDefaultValue("");
+
+                entity.Property(e => e.MotivoSobrante)
+                    .HasMaxLength(500)
+                    .HasDefaultValue("");
+
+                entity.Property(e => e.MotivoFaltante)
+                    .HasMaxLength(500)
+                    .HasDefaultValue("");
+
+                entity.Property(e => e.ReferenciaDeposito)
+                    .HasMaxLength(100)
+                    .HasDefaultValue("");
+
+                // Configuración de campos decimales
+                entity.Property(e => e.TotalVentasCalculado)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.EfectivoCalculado)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.TarjetaCalculado)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.TransferenciaCalculado)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.ComisionesCalculadas)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.IVAComisionesCalculado)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.ComisionesTotalesCalculadas)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.GananciaBrutaCalculada)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.GananciaNetaCalculada)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.EfectivoContado)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.FondoCajaInicial)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(1000);
+
+                entity.Property(e => e.FondoCajaSiguiente)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(1000);
+
+                entity.Property(e => e.MontoDepositado)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.DepositoRealizado)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.CantidadTickets)
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.FechaCorte)
+                    .HasDefaultValueSql("date('now')");
+
+                entity.Property(e => e.FechaHoraCorte)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.FechaCreacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.FechaActualizacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                // Índices para CorteCaja
+                entity.HasIndex(e => e.FechaCorte).IsUnique();
+                entity.HasIndex(e => e.UsuarioCorte);
+                entity.HasIndex(e => e.Estado);
+                entity.HasIndex(e => e.FechaHoraCorte);
+            });
+
             SeedData(modelBuilder);
         }
 
@@ -672,6 +782,173 @@ namespace costbenefi.Data
                     entry.Entity.FechaActualizacion = DateTime.Now;
                 }
             }
+
+            var corteEntries = ChangeTracker.Entries<CorteCaja>();
+            foreach (var entry in corteEntries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.FechaCreacion = DateTime.Now;
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                    entry.Entity.FechaHoraCorte = DateTime.Now;
+
+                    // Establecer fecha de corte solo si no está definida
+                    if (entry.Entity.FechaCorte == default)
+                    {
+                        entry.Entity.FechaCorte = DateTime.Today;
+                    }
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Obtiene el corte de caja del día especificado
+        /// </summary>
+        public async Task<CorteCaja?> GetCorteDelDiaAsync(DateTime fecha)
+        {
+            var fechaSolo = fecha.Date;
+            return await CortesCaja
+                .FirstOrDefaultAsync(c => c.FechaCorte == fechaSolo);
+        }
+
+        /// <summary>
+        /// Verifica si existe un corte para el día especificado
+        /// </summary>
+        public async Task<bool> ExisteCorteDelDiaAsync(DateTime fecha)
+        {
+            var fechaSolo = fecha.Date;
+            return await CortesCaja
+                .AnyAsync(c => c.FechaCorte == fechaSolo);
+        }
+
+        /// <summary>
+        /// Obtiene cortes de caja en un rango de fechas
+        /// </summary>
+        public IQueryable<CorteCaja> GetCortesEnRango(DateTime desde, DateTime hasta)
+        {
+            return CortesCaja.Where(c =>
+                c.FechaCorte >= desde.Date &&
+                c.FechaCorte <= hasta.Date);
+        }
+
+        /// <summary>
+        /// Obtiene estadísticas financieras del día para corte de caja
+        /// </summary>
+        public async Task<dynamic> GetEstadisticasFinancierasDelDiaAsync(DateTime fecha)
+        {
+            var ventasDelDia = GetVentasDelDia(fecha);
+
+            var estadisticas = await ventasDelDia
+                .GroupBy(v => 1) // Agrupar todas las ventas
+                .Select(g => new
+                {
+                    TotalVentas = g.Sum(v => v.Total),
+                    CantidadTickets = g.Count(),
+                    TotalEfectivo = g.Sum(v => v.MontoEfectivo),
+                    TotalTarjeta = g.Sum(v => v.MontoTarjeta),
+                    TotalTransferencia = g.Sum(v => v.MontoTransferencia),
+                    TotalComisiones = g.Sum(v => v.ComisionTarjeta),
+                    TotalIVAComisiones = g.Sum(v => v.IVAComision),
+                    TotalComisionesCompletas = g.Sum(v => v.ComisionTotal),
+                    GananciaBruta = g.Sum(v => v.DetallesVenta.Sum(d => d.GananciaLinea)),
+                    GananciaNeta = g.Sum(v => v.GananciaBruta) - g.Sum(v => v.ComisionTotal)
+                })
+                .FirstOrDefaultAsync();
+
+            return estadisticas ?? new
+            {
+                TotalVentas = 0m,
+                CantidadTickets = 0,
+                TotalEfectivo = 0m,
+                TotalTarjeta = 0m,
+                TotalTransferencia = 0m,
+                TotalComisiones = 0m,
+                TotalIVAComisiones = 0m,
+                TotalComisionesCompletas = 0m,
+                GananciaBruta = 0m,
+                GananciaNeta = 0m
+            };
+        }
+
+        /// <summary>
+        /// Obtiene ventas detalladas para el corte de caja
+        /// </summary>
+        public async Task<List<Venta>> GetVentasParaCorteAsync(DateTime fecha)
+        {
+            return await GetVentasDelDia(fecha)
+                .Include(v => v.DetallesVenta)
+                    .ThenInclude(d => d.RawMaterial)
+                .OrderBy(v => v.FechaVenta)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Obtiene el último corte de caja completado (para obtener fondo anterior)
+        /// </summary>
+        public async Task<CorteCaja?> GetUltimoCorteCompletadoAsync()
+        {
+            return await CortesCaja
+                .Where(c => c.Estado == "Completado")
+                .OrderByDescending(c => c.FechaCorte)
+                .FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// Obtiene cortes con diferencias significativas para auditoría
+        /// </summary>
+        public async Task<List<CorteCaja>> GetCortesConDiferenciasAsync(decimal margenMaximo = 10)
+        {
+            // Como DiferenciaEfectivo es una propiedad calculada, 
+            // tenemos que traer todos los cortes y filtrar en memoria
+            var cortes = await CortesCaja
+                .Where(c => c.Estado == "Completado")
+                .ToListAsync();
+
+            return cortes
+                .Where(c => Math.Abs(c.DiferenciaEfectivo) > margenMaximo)
+                .OrderByDescending(c => Math.Abs(c.DiferenciaEfectivo))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Obtiene resumen mensual de cortes para reportes
+        /// </summary>
+        public async Task<dynamic> GetResumenMensualCortesAsync(int año, int mes)
+        {
+            var primerDia = new DateTime(año, mes, 1);
+            var ultimoDia = primerDia.AddMonths(1).AddDays(-1);
+
+            var cortes = await GetCortesEnRango(primerDia, ultimoDia)
+                .Where(c => c.Estado == "Completado")
+                .ToListAsync();
+
+            if (!cortes.Any())
+            {
+                return new
+                {
+                    Mes = $"{primerDia:MMMM yyyy}",
+                    CantidadCortes = 0,
+                    TotalVentas = 0m,
+                    TotalGanancias = 0m,
+                    PromedioDiario = 0m,
+                    DiasConDiferencias = 0
+                };
+            }
+
+            return new
+            {
+                Mes = $"{primerDia:MMMM yyyy}",
+                CantidadCortes = cortes.Count,
+                TotalVentas = cortes.Sum(c => c.TotalVentasCalculado),
+                TotalGanancias = cortes.Sum(c => c.GananciaNetaCalculada),
+                PromedioDiario = cortes.Average(c => c.TotalVentasCalculado),
+                DiasConDiferencias = cortes.Count(c => !c.DiferenciaAceptable)
+            };
         }
     }
 }

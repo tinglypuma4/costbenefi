@@ -2,11 +2,68 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Sistema Costo-Beneficio" Height="750" Width="1600"
         WindowStartupLocation="CenterScreen" WindowState="Maximized"
         Background="#F5F7FA">
 
     <Window.Resources>
+
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Foreground" Value="#2E3B4E"/>
+        </Style>
+
+        <Style x:Key="SubHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,5,0,5"/>
+            <Setter Property="Foreground" Value="#666"/>
+        </Style>
+
+        <Style x:Key="MaterialDesignRaisedButton" TargetType="Button">
+            <Setter Property="Background" Value="#2196F3"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="MaterialDesignOutlinedButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#2196F3"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#2196F3"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Estilos para botones compactos -->
         <Style x:Key="CompactButtonStyle" TargetType="Button">
             <Setter Property="Height" Value="32"/>
@@ -18,7 +75,7 @@
         </Style>
 
         <!-- Estilo para TextBlocks del header -->
-        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+        <Style x:Key="HeaderTextPOSStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -170,15 +227,15 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0" Text="📦 Gestión de Materia Prima" 
-                                       FontSize="18" Style="{StaticResource HeaderTextStyle}"/>
+                                       FontSize="18" Style="{StaticResource HeaderTextPOSStyle}"/>
 
                             <TextBlock Grid.Column="1" x:Name="TxtContadorHeader" Text="0 productos" 
-                                       FontSize="12" Style="{StaticResource HeaderTextStyle}" 
+                                       FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
                                        Margin="0,0,30,0" Opacity="0.9"/>
 
                             <TextBlock Grid.Column="2" x:Name="TxtFechaHora" 
                                        Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='dd/MM/yyyy HH:mm'}" 
-                                       FontSize="12" Style="{StaticResource HeaderTextStyle}" Opacity="0.9"/>
+                                       FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" Opacity="0.9"/>
                         </Grid>
                     </Border>
 
@@ -473,7 +530,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- ========== PESTAÑA POS ACTUALIZADA ========== -->
+            <!-- ========== PESTAÑA POS SIMPLIFICADA ========== -->
             <TabItem Header="💰 Punto de Venta" Style="{StaticResource TabItemStyle}">
                 <Grid Background="#F8FAFC">
                     <Grid.RowDefinitions>
@@ -493,24 +550,24 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0" Text="💰 Sistema Punto de Venta" 
-                                       FontSize="18" Style="{StaticResource HeaderTextStyle}"/>
+                                       FontSize="18" Style="{StaticResource HeaderTextPOSStyle}"/>
 
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,30,0">
                                 <TextBlock x:Name="TxtVentasHoy" Text="Ventas hoy: 0" 
-                                           FontSize="12" Style="{StaticResource HeaderTextStyle}" 
+                                           FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
                                            Margin="0,0,15,0" Opacity="0.9"/>
                                 <TextBlock x:Name="TxtTotalVentasHoy" Text="Total: $0.00" 
-                                           FontSize="12" Style="{StaticResource HeaderTextStyle}" 
+                                           FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
                                            Opacity="0.9"/>
                             </StackPanel>
 
                             <TextBlock Grid.Column="2" x:Name="TxtFechaHoraPOS" 
                                        Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='dd/MM/yyyy HH:mm'}" 
-                                       FontSize="12" Style="{StaticResource HeaderTextStyle}" Opacity="0.9"/>
+                                       FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" Opacity="0.9"/>
                         </Grid>
                     </Border>
 
-                    <!-- Toolbar POS - SIN BOTÓN DE ANÁLISIS -->
+                    <!-- Toolbar POS -->
                     <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
                         <Grid Margin="15,5">
                             <Grid.ColumnDefinitions>
@@ -519,7 +576,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- ===== DISPOSITIVOS POS ACTUALIZADOS ===== -->
+                            <!-- ===== DISPOSITIVOS POS + CORTE DE CAJA ===== -->
                             <StackPanel Grid.Column="0" Orientation="Horizontal">
                                 <Button x:Name="BtnEscanerPOS" Content="📱 Escáner" Width="90"
                                         Background="#8B5CF6" Foreground="White" 
@@ -541,11 +598,16 @@
                                         Style="{StaticResource POSButtonStyle}"
                                         Click="BtnConfigurarPrecios_Click" Height="32"/>
 
-                                <!-- ===== SOLO BOTÓN DE COMISIONES (SIN ANÁLISIS) ===== -->
                                 <Button x:Name="BtnConfigComisiones" Content="🏦 Comisiones" Width="100"
                                         Background="#EF4444" Foreground="White"
                                         Style="{StaticResource POSButtonStyle}"
                                         Click="BtnConfigComisiones_Click" Height="32"/>
+
+                                <!-- BOTÓN DE CORTE DE CAJA -->
+                                <Button x:Name="BtnCorteCaja" Content="💰 Corte Caja" Width="110"
+                                        Background="#28A745" Foreground="White"
+                                        Style="{StaticResource POSButtonStyle}"
+                                        Click="BtnCorteCaja_Click" Height="32"/>
                             </StackPanel>
 
                             <!-- Búsqueda productos POS -->
@@ -850,6 +912,41 @@
                                     <RowDefinition Height="40"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
+
+                                <Border Background="#F8F9FA" CornerRadius="8" Padding="20" Margin="0,0,0,15">
+                                    <StackPanel>
+                                        <TextBlock Text="💰 Reportes de Corte de Caja" Style="{StaticResource HeaderTextStyle}"/>
+                                        <TextBlock Text="Consulta y análisis de cortes de caja diarios" 
+                                                   Style="{StaticResource SubHeaderTextStyle}" Margin="0,0,0,15"/>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <Button Grid.Column="0" x:Name="BtnReporteCortesCompleto" 
+                    Click="BtnReporteCortes_Click" Margin="0,0,10,0"
+                    Style="{StaticResource MaterialDesignRaisedButton}" Height="60">
+                                                <StackPanel>
+                                                    <TextBlock Text="📊" FontSize="24" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="Historial de Cortes" FontWeight="Bold" Margin="0,5,0,0"/>
+                                                    <TextBlock Text="Ver todos los cortes realizados" FontSize="11"/>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <Button Grid.Column="1" x:Name="BtnAnalisisCortes" 
+                    Click="BtnEstadisticasCortes_Click" Margin="10,0,0,0"
+                    Style="{StaticResource MaterialDesignOutlinedButton}" Height="60">
+                                                <StackPanel>
+                                                    <TextBlock Text="📈" FontSize="24" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="Análisis Financiero" FontWeight="Bold" Margin="0,5,0,0"/>
+                                                    <TextBlock Text="Estadísticas y métricas" FontSize="11"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
 
                                 <!-- Reporte de Ventas -->
                                 <Border Grid.Row="0" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1"
