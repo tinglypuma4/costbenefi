@@ -13,9 +13,12 @@ namespace costbenefi.Data
         public DbSet<RawMaterial> RawMaterials { get; set; }
         public DbSet<Movimiento> Movimientos { get; set; }
 
-        // ========== ✅ NUEVOS DbSets PARA POS ==========
+        // ========== ✅ DbSets PARA POS ==========
         public DbSet<Venta> Ventas { get; set; }
         public DbSet<DetalleVenta> DetalleVentas { get; set; }
+
+        // ========== ✅ NUEVO DbSet PARA BÁSCULA ==========
+        public DbSet<ConfiguracionBascula> ConfiguracionesBascula { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -71,7 +74,7 @@ namespace costbenefi.Data
                 entity.Property(e => e.PrecioBaseSinIVA)
                     .HasColumnType("decimal(18,4)");
 
-                // ========== ✅ NUEVAS CONFIGURACIONES PARA CAMPOS POS ==========
+                // ========== ✅ CONFIGURACIONES PARA CAMPOS POS ==========
                 entity.Property(e => e.PrecioVenta)
                     .HasColumnType("decimal(18,4)")
                     .HasDefaultValue(0);
@@ -125,7 +128,7 @@ namespace costbenefi.Data
                 entity.HasIndex(e => e.FechaEliminacion);
                 entity.HasIndex(e => e.UsuarioEliminacion);
 
-                // ========== ✅ NUEVOS ÍNDICES PARA POS ==========
+                // ========== ✅ ÍNDICES PARA POS ==========
                 entity.HasIndex(e => e.ActivoParaVenta);
                 entity.HasIndex(e => e.FechaVencimiento);
                 entity.HasIndex(e => e.PrecioVenta);
@@ -170,7 +173,7 @@ namespace costbenefi.Data
                 entity.HasIndex(e => e.FechaMovimiento);
             });
 
-            // ========== ✅ NUEVA CONFIGURACIÓN PARA Venta ==========
+            // ========== ✅ CONFIGURACIÓN PARA Venta ==========
             modelBuilder.Entity<Venta>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -210,6 +213,35 @@ namespace costbenefi.Data
                 entity.Property(e => e.FechaVenta)
                     .HasDefaultValueSql("datetime('now')");
 
+                // Propiedades para comisiones
+                entity.Property(e => e.ComisionTarjeta)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.PorcentajeComisionTarjeta)
+                    .HasColumnType("decimal(5,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.MontoTarjeta)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.MontoEfectivo)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.MontoTransferencia)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.IVAComision)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.ComisionTotal)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
                 // Índices para Venta
                 entity.HasIndex(e => e.NumeroTicket).IsUnique();
                 entity.HasIndex(e => e.FechaVenta);
@@ -217,7 +249,7 @@ namespace costbenefi.Data
                 entity.HasIndex(e => e.Estado);
             });
 
-            // ========== ✅ NUEVA CONFIGURACIÓN PARA DetalleVenta ==========
+            // ========== ✅ CONFIGURACIÓN PARA DetalleVenta ==========
             modelBuilder.Entity<DetalleVenta>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -266,6 +298,85 @@ namespace costbenefi.Data
                 entity.HasIndex(e => e.RawMaterialId);
             });
 
+            // ========== ✅ NUEVA CONFIGURACIÓN PARA ConfiguracionBascula ==========
+            modelBuilder.Entity<ConfiguracionBascula>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Nombre)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.Puerto)
+                    .IsRequired()
+                    .HasMaxLength(10);
+
+                entity.Property(e => e.BaudRate)
+                    .HasDefaultValue(9600);
+
+                entity.Property(e => e.DataBits)
+                    .HasDefaultValue(8);
+
+                entity.Property(e => e.Paridad)
+                    .HasDefaultValue(0); // None = 0, Odd = 1, Even = 2
+
+                entity.Property(e => e.StopBits)
+                    .HasDefaultValue(1); // One = 1, Two = 2
+
+                entity.Property(e => e.ControlFlujo)
+                    .HasDefaultValue(0); // None = 0, XOnXOff = 1, RequestToSend = 2
+
+                entity.Property(e => e.TimeoutLectura)
+                    .HasDefaultValue(1000);
+
+                entity.Property(e => e.TimeoutEscritura)
+                    .HasDefaultValue(1000);
+
+                entity.Property(e => e.IntervaloLectura)
+                    .HasDefaultValue(1000);
+
+                entity.Property(e => e.UnidadPeso)
+                    .HasMaxLength(10)
+                    .HasDefaultValue("kg");
+
+                entity.Property(e => e.TerminadorComando)
+                    .HasMaxLength(5)
+                    .HasDefaultValue("\r\n");
+
+                entity.Property(e => e.RequiereSolicitudPeso)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.ComandoSolicitarPeso)
+                    .HasMaxLength(20)
+                    .HasDefaultValue("P");
+
+                entity.Property(e => e.ComandoTara)
+                    .HasMaxLength(20)
+                    .HasDefaultValue("T");
+
+                entity.Property(e => e.ComandoInicializacion)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("");
+
+                entity.Property(e => e.PatronExtraccion)
+                    .HasMaxLength(200)
+                    .HasDefaultValue("");
+
+                entity.Property(e => e.EsConfiguracionActiva)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.FechaCreacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.FechaActualizacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                // Índices para ConfiguracionBascula
+                entity.HasIndex(e => e.EsConfiguracionActiva);
+                entity.HasIndex(e => e.Puerto);
+                entity.HasIndex(e => e.Nombre);
+            });
+
             SeedData(modelBuilder);
         }
 
@@ -297,7 +408,7 @@ namespace costbenefi.Data
                 .Where(m => RawMaterials.IgnoreQueryFilters().Any(r => r.Id == m.RawMaterialId && r.Eliminado));
         }
 
-        // ========== ✅ NUEVOS MÉTODOS PARA POS ==========
+        // ========== ✅ MÉTODOS PARA POS ==========
 
         /// <summary>
         /// Obtiene productos disponibles para venta en POS
@@ -403,6 +514,94 @@ namespace costbenefi.Data
             };
         }
 
+        // ========== ✅ NUEVOS MÉTODOS PARA BÁSCULA ==========
+
+        /// <summary>
+        /// Obtiene la configuración activa de báscula
+        /// </summary>
+        public async Task<ConfiguracionBascula?> GetConfiguracionBasculaActivaAsync()
+        {
+            return await ConfiguracionesBascula
+                .FirstOrDefaultAsync(c => c.EsConfiguracionActiva);
+        }
+
+        /// <summary>
+        /// Obtiene todas las configuraciones de báscula
+        /// </summary>
+        public async Task<ConfiguracionBascula[]> GetConfiguracionesBasculaAsync()
+        {
+            return await ConfiguracionesBascula
+                .OrderByDescending(c => c.EsConfiguracionActiva)
+                .ThenBy(c => c.Nombre)
+                .ToArrayAsync();
+        }
+
+        /// <summary>
+        /// Establece una configuración como activa
+        /// </summary>
+        public async Task<bool> EstablecerConfiguracionBasculaActivaAsync(int configuracionId)
+        {
+            try
+            {
+                // Desactivar todas las configuraciones
+                var configuraciones = await ConfiguracionesBascula.ToListAsync();
+                foreach (var config in configuraciones)
+                {
+                    config.EsConfiguracionActiva = false;
+                }
+
+                // Activar la configuración seleccionada
+                var nuevaActiva = configuraciones.FirstOrDefault(c => c.Id == configuracionId);
+                if (nuevaActiva != null)
+                {
+                    nuevaActiva.EsConfiguracionActiva = true;
+                    nuevaActiva.FechaActualizacion = DateTime.Now;
+                    await SaveChangesAsync();
+                    return true;
+                }
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Crea configuración de báscula por defecto si no existe
+        /// </summary>
+        public async Task CrearConfiguracionBasculaPorDefectoAsync()
+        {
+            try
+            {
+                var existeConfiguracion = await ConfiguracionesBascula.AnyAsync();
+                if (!existeConfiguracion)
+                {
+                    var puertos = System.IO.Ports.SerialPort.GetPortNames();
+                    var puertoDefecto = puertos.Length > 0 ? puertos[0] : "COM1";
+
+                    var configDefecto = new ConfiguracionBascula
+                    {
+                        Nombre = "Báscula Principal",
+                        Puerto = puertoDefecto,
+                        BaudRate = 9600,
+                        UnidadPeso = "kg",
+                        RequiereSolicitudPeso = false,
+                        PatronExtraccion = @"(\d+\.?\d*)",
+                        EsConfiguracionActiva = true
+                    };
+
+                    ConfiguracionesBascula.Add(configDefecto);
+                    await SaveChangesAsync();
+                }
+            }
+            catch
+            {
+                // Silencioso - no es crítico si falla
+            }
+        }
+
         // ===== MÉTODOS EXISTENTES DE SaveChanges =====
         public override int SaveChanges()
         {
@@ -441,21 +640,36 @@ namespace costbenefi.Data
                 }
             }
 
-            // ========== ✅ NUEVO: Timestamp para entidades POS ==========
+            // ========== ✅ Timestamp para entidades POS ==========
             var ventaEntries = ChangeTracker.Entries<Venta>();
             foreach (var entry in ventaEntries)
             {
                 if (entry.State == EntityState.Added)
                 {
                     entry.Entity.FechaVenta = DateTime.Now;
-                   
-if (entry.Entity.NumeroTicket == 0)
-{
-    var fecha = DateTime.Now;
-    // Formato más corto: MMddHHmm (máximo 12311159 = 8 dígitos)
-    var numeroTicket = int.Parse($"{fecha:MMdd}{fecha:HH}{fecha:mm}");
-    entry.Entity.NumeroTicket = numeroTicket;
-}
+
+                    if (entry.Entity.NumeroTicket == 0)
+                    {
+                        var fecha = DateTime.Now;
+                        // Formato más corto: MMddHHmm (máximo 12311159 = 8 dígitos)
+                        var numeroTicket = int.Parse($"{fecha:MMdd}{fecha:HH}{fecha:mm}");
+                        entry.Entity.NumeroTicket = numeroTicket;
+                    }
+                }
+            }
+
+            // ========== ✅ NUEVO: Timestamp para configuraciones de báscula ==========
+            var basculaEntries = ChangeTracker.Entries<ConfiguracionBascula>();
+            foreach (var entry in basculaEntries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.FechaCreacion = DateTime.Now;
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.FechaActualizacion = DateTime.Now;
                 }
             }
         }

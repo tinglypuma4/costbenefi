@@ -526,10 +526,10 @@
                                         Style="{StaticResource POSButtonStyle}" 
                                         Click="BtnEscanerPOS_Click" Height="32"/>
 
-                                <Button x:Name="BtnBascula" Content="⚖️ Báscula" Width="90"
-                                        Background="#F59E0B" Foreground="White"
-                                        Style="{StaticResource POSButtonStyle}"
-                                        Click="BtnBascula_Click" Height="32"/>
+                                <Button x:Name="BtnBascula" Content="⚖️ Config" Width="90"
+                                         Background="#F59E0B" Foreground="White"
+                                         Style="{StaticResource POSButtonStyle}"
+                                         Click="BtnBascula_Click" Height="32"/>
 
                                 <Button x:Name="BtnImpresora" Content="🖨️ Impresora" Width="90"
                                         Background="#6366F1" Foreground="White"

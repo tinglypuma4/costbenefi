@@ -27,6 +27,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{CB0EA23B-7609-429B-AE5F-878D7E0ED6A5}"
 	ProjectSection(SolutionItems) = preProject
+		ConfiguracionBascula.cs = ConfiguracionBascula.cs
 		Converters.cs = Converters.cs
 		CorteCaja.cs = CorteCaja.cs
 		CorteStock.cs = CorteStock.cs
@@ -95,6 +96,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reporte_auditoria", "Report
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "punto de venta", "punto de venta", "{E64E27AA-6F65-436E-9C78-DD7412632F90}"
 	ProjectSection(SolutionItems) = preProject
+		ConfigurarBasculaWindow.xaml.cs = ConfigurarBasculaWindow.xaml.cs
 		ConfigurarComisionesWindow.xaml.cs = ConfigurarComisionesWindow.xaml.cs
 		ConfigurarImpresoraWindow.xaml.cs = ConfigurarImpresoraWindow.xaml.cs
 		ConfigurarPrecioVentaWindow.xaml.cs = ConfigurarPrecioVentaWindow.xaml.cs

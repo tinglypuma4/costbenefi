@@ -63,37 +63,71 @@ namespace costbenefi
         }
 
         // ========== INICIALIZACIÓN POS ==========
+        // ✅ CORREGIR - Inicialización con báscula real
         private void InitializePOSServices()
         {
             try
             {
                 // Inicializar servicios básicos primero
                 _ticketPrinter = new TicketPrinter();
-                _basculaService = new BasculaService();
+                _basculaService = new BasculaService(_context); // ✅ CORREGIDO: Pasar contexto
                 _scannerService = new ScannerPOSService();
 
-                // Inicializar servicio integrado con los servicios básicos
-                _posIntegrationService = new POSIntegrationService(_ticketPrinter, _basculaService, _scannerService);
-
-                // Configurar eventos con las firmas correctas
+                // Configurar eventos de báscula
                 _basculaService.PesoRecibido += (sender, e) =>
                 {
                     Dispatcher.BeginInvoke(new Action(async () => await OnPesoRecibido(e.Peso)));
                 };
 
-                _scannerService.ProductoEscaneado += (sender, e) =>
+                _basculaService.ErrorOcurrido += (sender, error) =>
                 {
-                    Dispatcher.BeginInvoke(new Action(async () => await OnProductoEscaneado(e.CodigoBarras)));
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        TxtStatusPOS.Text = $"❌ Error báscula: {error}";
+                        TxtEstadoBascula.Text = "⚖️ ERROR";
+                        TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
+                            new SolidColorBrush(Color.FromRgb(239, 68, 68)));
+                    }));
                 };
 
-                _posIntegrationService.ErrorOcurrido += (sender, e) =>
+                _basculaService.EstadoConexionCambiado += (sender, conectada) =>
                 {
-                    Dispatcher.BeginInvoke(new Action(() => OnErrorPOSOcurrido(e.TipoDispositivo, e.Mensaje)));
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (conectada)
+                        {
+                            TxtEstadoBascula.Text = "⚖️ OK";
+                            TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
+                                new SolidColorBrush(Color.FromRgb(34, 197, 94)));
+                        }
+                        else
+                        {
+                            TxtEstadoBascula.Text = "⚖️ DESC";
+                            TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
+                                new SolidColorBrush(Color.FromRgb(249, 115, 22)));
+                        }
+                    }));
                 };
 
                 // Conectar dispositivos
                 var conectados = 0;
-                if (_basculaService.Conectar()) conectados++;
+
+                // Intentar conectar báscula
+                if (_basculaService.Conectar())
+                {
+                    conectados++;
+                    TxtEstadoBascula.Text = "⚖️ OK";
+                    TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
+                        new SolidColorBrush(Color.FromRgb(34, 197, 94)));
+                }
+                else
+                {
+                    TxtEstadoBascula.Text = "⚖️ DESC";
+                    TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
+                        new SolidColorBrush(Color.FromRgb(249, 115, 22)));
+                }
+
+                // Contar otros servicios
                 if (_scannerService != null) conectados++;
                 if (_ticketPrinter != null) conectados++;
 
@@ -801,40 +835,44 @@ namespace costbenefi
             }
         }
 
+        // ✅ CORREGIR - Botón para configurar báscula
         private async void BtnBascula_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (LstProductosPOS.SelectedItem is RawMaterial producto)
+                // Abrir configuración de báscula
+                var configWindow = new ConfigurarBasculaWindow(_context);
+                if (configWindow.ShowDialog() == true)
                 {
-                    if (producto.UnidadMedida.ToLower().Contains("kg") ||
-                        producto.UnidadMedida.ToLower().Contains("gr"))
+                    // Reconectar báscula con nueva configuración
+                    await _basculaService.DesconectarAsync();
+                    await Task.Delay(500); // Pequeña pausa
+
+                    var conectado = await _basculaService.ConectarAsync();
+
+                    if (conectado)
                     {
-                        // Leer peso de la báscula
-                        var peso = await _basculaService.LeerPesoAsync();
-                        if (peso > 0)
-                        {
-                            await AgregarProductoAlCarrito(producto, peso);
-                        }
+                        TxtEstadoBascula.Text = "⚖️ OK";
+                        TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
+                            new SolidColorBrush(Color.FromRgb(34, 197, 94)));
+                        TxtStatusPOS.Text = "✅ Báscula configurada y conectada";
                     }
                     else
                     {
-                        MessageBox.Show("Seleccione un producto que se venda por peso.",
-                                      "Producto No Válido", MessageBoxButton.OK, MessageBoxImage.Information);
+                        TxtEstadoBascula.Text = "⚖️ ERROR";
+                        TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
+                            new SolidColorBrush(Color.FromRgb(239, 68, 68)));
+                        TxtStatusPOS.Text = "❌ Error al conectar báscula";
                     }
-                }
-                else
-                {
-                    MessageBox.Show("Seleccione un producto primero.",
-                                  "Selección Requerida", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al usar báscula: {ex.Message}",
+                MessageBox.Show($"Error al configurar báscula: {ex.Message}",
                               "Error Báscula", MessageBoxButton.OK, MessageBoxImage.Error);
                 TxtEstadoBascula.Text = "⚖️ ERROR";
-                TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(239, 68, 68)));
+                TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
+                    new SolidColorBrush(Color.FromRgb(239, 68, 68)));
             }
         }
 
