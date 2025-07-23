@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+Ôªøusing System.Collections.Generic;
 using System.Linq;
 
 namespace costbenefi.Models
@@ -42,7 +42,7 @@ namespace costbenefi.Models
         public decimal? ValorMaximo { get; set; }
 
         /// <summary>
-        /// Indica si se han aplicado filtros especÌficos al reporte
+        /// Indica si se han aplicado filtros espec√≠ficos al reporte
         /// </summary>
         public bool TieneFiltrosAplicados =>
             ClientesSeleccionados.Any() ||
@@ -61,7 +61,7 @@ namespace costbenefi.Models
             SoloStockBajo;
 
         /// <summary>
-        /// Obtiene una descripciÛn textual de los filtros aplicados
+        /// Obtiene una descripci√≥n textual de los filtros aplicados
         /// </summary>
         public string DescripcionFiltros
         {
@@ -83,13 +83,13 @@ namespace costbenefi.Models
                     if (MontoMinimo.HasValue && MontoMaximo.HasValue)
                         descripciones.Add($"Monto: ${MontoMinimo:F2} - ${MontoMaximo:F2}");
                     else if (MontoMinimo.HasValue)
-                        descripciones.Add($"Monto mÌnimo: ${MontoMinimo:F2}");
+                        descripciones.Add($"Monto m√≠nimo: ${MontoMinimo:F2}");
                     else
-                        descripciones.Add($"Monto m·ximo: ${MontoMaximo:F2}");
+                        descripciones.Add($"Monto m√°ximo: ${MontoMaximo:F2}");
                 }
 
                 if (SoloVentasConComision)
-                    descripciones.Add("Solo ventas con comisiÛn");
+                    descripciones.Add("Solo ventas con comisi√≥n");
 
                 if (SoloVentasRentables)
                     descripciones.Add("Solo ventas rentables");

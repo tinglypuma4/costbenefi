@@ -11,7 +11,8 @@ namespace costbenefi.Data
     public class AppDbContext : DbContext
     {
         // ===== DbSets EXISTENTES =====
-
+        public DbSet<User> Users { get; set; }
+        public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<RawMaterial> RawMaterials { get; set; }
         public DbSet<Movimiento> Movimientos { get; set; }
 
@@ -486,6 +487,101 @@ namespace costbenefi.Data
                 entity.HasIndex(e => e.Estado);
                 entity.HasIndex(e => e.FechaHoraCorte);
             });
+            // ========== ✅ CONFIGURACIÓN PARA User ==========
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.NombreUsuario)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.NombreCompleto)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.Email)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.PasswordHash)
+                    .IsRequired();
+
+                entity.Property(e => e.Telefono)
+                    .HasMaxLength(20)
+                    .HasDefaultValue("");
+
+                entity.Property(e => e.Rol)
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasDefaultValue("Cajero");
+
+                entity.Property(e => e.Activo)
+                    .HasDefaultValue(true);
+
+                entity.Property(e => e.IntentosFallidos)
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.FechaCreacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.FechaActualizacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.UsuarioCreador)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("");
+
+                // Índices para User
+                entity.HasIndex(e => e.NombreUsuario).IsUnique();
+                entity.HasIndex(e => e.Email).IsUnique();
+                entity.HasIndex(e => e.Rol);
+                entity.HasIndex(e => e.Activo);
+                entity.HasIndex(e => e.FechaCreacion);
+            });
+            // ========== ✅ CONFIGURACIÓN PARA UserSession ==========
+            modelBuilder.Entity<UserSession>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.SessionToken)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.IpAddress)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("127.0.0.1");
+
+                entity.Property(e => e.NombreMaquina)
+                    .HasMaxLength(100)
+                    .HasDefaultValue("");
+
+                entity.Property(e => e.VersionApp)
+                    .HasMaxLength(20)
+                    .HasDefaultValue("1.0.0");
+
+                entity.Property(e => e.MotivoCierre)
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.FechaInicio)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.UltimaActividad)
+                    .HasDefaultValueSql("datetime('now')");
+
+                // Relación con User
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Índices para UserSession
+                entity.HasIndex(e => e.SessionToken).IsUnique();
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.FechaInicio);
+                entity.HasIndex(e => e.FechaCierre);
+
+            });
 
             SeedData(modelBuilder);
         }
@@ -803,6 +899,30 @@ namespace costbenefi.Data
                     entry.Entity.FechaActualizacion = DateTime.Now;
                 }
             }
+            // ========== ✅ NUEVO: Timestamp para usuarios ==========
+            var userEntries = ChangeTracker.Entries<User>();
+            foreach (var entry in userEntries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.FechaCreacion = DateTime.Now;
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+            }
+
+            var sessionEntries = ChangeTracker.Entries<UserSession>();
+            foreach (var entry in sessionEntries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.FechaInicio = DateTime.Now;
+                    entry.Entity.UltimaActividad = DateTime.Now;
+                }
+            }
         }
 
 
@@ -950,5 +1070,126 @@ namespace costbenefi.Data
                 DiasConDiferencias = cortes.Count(c => !c.DiferenciaAceptable)
             };
         }
+
+        // ========== ✅ MÉTODOS PARA GESTIÓN DE USUARIOS ==========
+
+        /// <summary>
+        /// Obtiene un usuario por nombre de usuario
+        /// </summary>
+        public async Task<User?> GetUserByUsernameAsync(string nombreUsuario)
+        {
+            return await Users
+                .FirstOrDefaultAsync(u => u.NombreUsuario == nombreUsuario && u.Activo);
+        }
+
+        /// <summary>
+        /// Obtiene usuarios por rol
+        /// </summary>
+        public async Task<List<User>> GetUsersByRoleAsync(string rol)
+        {
+            return await Users
+                .Where(u => u.Rol == rol && u.Activo)
+                .OrderBy(u => u.NombreCompleto)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Verifica si un nombre de usuario ya existe
+        /// </summary>
+        public async Task<bool> ExisteNombreUsuarioAsync(string nombreUsuario, int? excludeUserId = null)
+        {
+            return await Users
+                .AnyAsync(u => u.NombreUsuario == nombreUsuario &&
+                              (excludeUserId == null || u.Id != excludeUserId));
+        }
+
+        /// <summary>
+        /// Verifica si un email ya existe
+        /// </summary>
+        public async Task<bool> ExisteEmailAsync(string email, int? excludeUserId = null)
+        {
+            return await Users
+                .AnyAsync(u => u.Email == email &&
+                              (excludeUserId == null || u.Id != excludeUserId));
+        }
+
+        /// <summary>
+        /// Obtiene la sesión activa de un usuario
+        /// </summary>
+        public async Task<UserSession?> GetSesionActivaAsync(int userId)
+        {
+            return await UserSessions
+                .Where(s => s.UserId == userId && s.FechaCierre == null)
+                .OrderByDescending(s => s.FechaInicio)
+                .FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// Obtiene sesiones activas en el sistema
+        /// </summary>
+        public async Task<List<UserSession>> GetSesionesActivasAsync()
+        {
+            return await UserSessions
+                .Include(s => s.User)
+                .Where(s => s.FechaCierre == null)
+                .OrderByDescending(s => s.UltimaActividad)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Cierra sesiones inactivas automáticamente
+        /// </summary>
+        public async Task<int> CerrarSesionesInactivasAsync(int horasInactividad = 8)
+        {
+            var fechaLimite = DateTime.Now.AddHours(-horasInactividad);
+
+            var sesionesInactivas = await UserSessions
+                .Where(s => s.FechaCierre == null && s.UltimaActividad < fechaLimite)
+                .ToListAsync();
+
+            foreach (var sesion in sesionesInactivas)
+            {
+                sesion.CerrarSesion("Inactividad");
+            }
+
+            if (sesionesInactivas.Any())
+            {
+                await SaveChangesAsync();
+            }
+
+            return sesionesInactivas.Count;
+        }
+
+        /// <summary>
+        /// Crea el usuario administrador por defecto si no existe
+        /// </summary>
+        public async Task CrearUsuarioAdminPorDefectoAsync()
+        {
+            try
+            {
+                var existeAdmin = await Users.AnyAsync(u => u.Rol == "Administrador");
+                if (!existeAdmin)
+                {
+                    var adminUser = new User
+                    {
+                        NombreUsuario = "admin",
+                        NombreCompleto = "Administrador del Sistema",
+                        Email = "admin@costbenefi.com",
+                        PasswordHash = User.GenerarHashPassword("admin123"), // Cambiar en producción
+                        Rol = "Administrador",
+                        Activo = true,
+                        UsuarioCreador = "Sistema"
+                    };
+
+                    Users.Add(adminUser);
+                    await SaveChangesAsync();
+                }
+            }
+            catch
+            {
+                // Silencioso - no es crítico si falla
+            }
+        }
+
     }
 }

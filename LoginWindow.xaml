@@ -1,0 +1,180 @@
+﻿<Window x:Class="costbenefi.Views.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CostBenefi - Iniciar Sesión"
+        Height="650" Width="550"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#F0F2F5">
+    
+    <Grid>
+        <!-- Contenedor principal -->
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="400">
+            
+            <!-- Header -->
+            <TextBlock Text="🏪 CostBenefi" 
+                       FontSize="40" 
+                       FontWeight="Bold" 
+                       HorizontalAlignment="Center"
+                       Foreground="#1877F2"
+                       Margin="0,0,0,10"/>
+            
+            <TextBlock Text="Sistema POS Integral" 
+                       FontSize="20" 
+                       HorizontalAlignment="Center"
+                       Foreground="#65676B"
+                       Margin="0,0,0,40"/>
+            
+            <!-- Formulario -->
+            <Border Background="White" 
+                    CornerRadius="12" 
+                    Padding="30"
+                    Margin="0,0,0,20">
+                <Border.Effect>
+                    <DropShadowEffect Color="Gray" BlurRadius="15" ShadowDepth="3" Opacity="0.3"/>
+                </Border.Effect>
+                
+                <StackPanel>
+                    <!-- Campo Usuario -->
+                    <TextBlock Text="Nombre de Usuario" 
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="#333333"
+                               Margin="0,0,0,8"/>
+                    
+                    <TextBox x:Name="TxtUsuario" 
+                             Height="50"
+                             Padding="15"
+                             FontSize="16"
+                             BorderBrush="#DADDE1"
+                             BorderThickness="2"
+                             Background="White"
+                             Foreground="#333333"
+                             Margin="0,0,0,20">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Style.Triggers>
+                                    <Trigger Property="IsFocused" Value="True">
+                                        <Setter Property="BorderBrush" Value="#1877F2"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                    
+                    <!-- Campo Contraseña -->
+                    <TextBlock Text="Contraseña" 
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="#333333"
+                               Margin="0,0,0,8"/>
+                    
+                    <PasswordBox x:Name="PwdPassword" 
+                                 Height="50"
+                                 Padding="15"
+                                 FontSize="16"
+                                 BorderBrush="#DADDE1"
+                                 BorderThickness="2"
+                                 Background="White"
+                                 Foreground="#333333"
+                                 Margin="0,0,0,25">
+                        <PasswordBox.Style>
+                            <Style TargetType="PasswordBox">
+                                <Style.Triggers>
+                                    <Trigger Property="IsFocused" Value="True">
+                                        <Setter Property="BorderBrush" Value="#1877F2"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </PasswordBox.Style>
+                    </PasswordBox>
+                    
+                    <!-- Botón Login -->
+                    <Button x:Name="BtnLogin" 
+                            Content="Iniciar Sesión"
+                            Height="55"
+                            FontSize="18"
+                            FontWeight="Bold"
+                            Background="#42B883"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Click="BtnLogin_Click"
+                            IsDefault="True"
+                            Margin="0,0,0,15">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    CornerRadius="8"
+                                                    BorderThickness="0">
+                                                <ContentPresenter HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#369870"/>
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter Property="Background" Value="#2F855A"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+            </Border>
+            
+            <!-- Status Message -->
+            <TextBlock x:Name="TxtStatus" 
+                       Text="Ingrese sus credenciales para acceder al sistema"
+                       FontSize="14" 
+                       Foreground="#65676B" 
+                       HorizontalAlignment="Center"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       Margin="0,0,0,20"/>
+            
+            <!-- Botón Salir -->
+            <Button x:Name="BtnSalir" 
+                    Content="Salir del Sistema"
+                    Height="40"
+                    FontSize="14"
+                    Background="Transparent"
+                    Foreground="#65676B"
+                    BorderThickness="1"
+                    BorderBrush="#DADDE1"
+                    Cursor="Hand"
+                    Click="BtnSalir_Click">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="6">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#F0F2F5"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Button.Style>
+            </Button>
+            
+        </StackPanel>
+    </Grid>
+</Window>

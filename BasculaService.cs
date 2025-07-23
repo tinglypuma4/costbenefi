@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.IO.Ports;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -12,8 +12,8 @@ using costbenefi.Models;
 namespace costbenefi.Services
 {
     /// <summary>
-    /// Servicio principal para manejo de b·scula digital
-    /// Compatible con m˙ltiples marcas y protocolos
+    /// Servicio principal para manejo de b√°scula digital
+    /// Compatible con m√∫ltiples marcas y protocolos
     /// </summary>
     public class BasculaService : IDisposable
     {
@@ -45,7 +45,7 @@ namespace costbenefi.Services
         }
 
         /// <summary>
-        /// Conecta autom·ticamente usando la configuraciÛn activa
+        /// Conecta autom√°ticamente usando la configuraci√≥n activa
         /// </summary>
         public bool Conectar()
         {
@@ -61,24 +61,24 @@ namespace costbenefi.Services
         }
 
         /// <summary>
-        /// Conecta con la b·scula usando configuraciÛn autom·tica
+        /// Conecta con la b√°scula usando configuraci√≥n autom√°tica
         /// </summary>
         public async Task<bool> ConectarAsync()
         {
             try
             {
-                // Cargar configuraciÛn activa desde base de datos
+                // Cargar configuraci√≥n activa desde base de datos
                 await CargarConfiguracionActivaAsync();
 
                 if (_configuracion == null)
                 {
-                    // Crear configuraciÛn predeterminada si no existe
+                    // Crear configuraci√≥n predeterminada si no existe
                     await CrearConfiguracionPredeterminadaAsync();
                 }
 
                 if (_configuracion == null)
                 {
-                    ErrorOcurrido?.Invoke(this, "No se pudo cargar configuraciÛn de b·scula");
+                    ErrorOcurrido?.Invoke(this, "No se pudo cargar configuraci√≥n de b√°scula");
                     return false;
                 }
 
@@ -86,14 +86,14 @@ namespace costbenefi.Services
             }
             catch (Exception ex)
             {
-                ErrorOcurrido?.Invoke(this, $"Error al conectar b·scula: {ex.Message}");
+                ErrorOcurrido?.Invoke(this, $"Error al conectar b√°scula: {ex.Message}");
                 EstadoConexionCambiado?.Invoke(this, false);
                 return false;
             }
         }
 
         /// <summary>
-        /// Conecta usando una configuraciÛn especÌfica
+        /// Conecta usando una configuraci√≥n espec√≠fica
         /// </summary>
         public async Task<bool> ConectarConConfiguracionAsync(ConfiguracionBascula config)
         {
@@ -127,13 +127,13 @@ namespace costbenefi.Services
                 _serialPort.Open();
                 _isConnected = true;
 
-                // Comando de inicializaciÛn
+                // Comando de inicializaci√≥n
                 if (!string.IsNullOrEmpty(config.ComandoInicializacion))
                 {
                     await EnviarComandoAsync(config.ComandoInicializacion);
                 }
 
-                // Iniciar lectura autom·tica si no requiere solicitud
+                // Iniciar lectura autom√°tica si no requiere solicitud
                 if (!config.RequiereSolicitudPeso)
                 {
                     await IniciarLecturaAutomaticaAsync();
@@ -152,7 +152,7 @@ namespace costbenefi.Services
         }
 
         /// <summary>
-        /// Desconecta de la b·scula
+        /// Desconecta de la b√°scula
         /// </summary>
         public async Task DesconectarAsync()
         {
@@ -184,7 +184,7 @@ namespace costbenefi.Services
         {
             if (!_isConnected || _configuracion == null)
             {
-                throw new InvalidOperationException("B·scula no conectada");
+                throw new InvalidOperationException("B√°scula no conectada");
             }
 
             try
@@ -194,7 +194,7 @@ namespace costbenefi.Services
                     await EnviarComandoAsync(_configuracion.ComandoSolicitarPeso);
                 }
 
-                // Esperar respuesta (m·ximo 3 segundos)
+                // Esperar respuesta (m√°ximo 3 segundos)
                 var timeout = DateTime.Now.AddSeconds(3);
                 decimal pesoRecibido = 0;
                 bool pesoObtenido = false;
@@ -231,7 +231,7 @@ namespace costbenefi.Services
         }
 
         /// <summary>
-        /// Tarar la b·scula
+        /// Tarar la b√°scula
         /// </summary>
         public async Task<bool> TararAsync()
         {
@@ -241,7 +241,7 @@ namespace costbenefi.Services
             try
             {
                 await EnviarComandoAsync(_configuracion.ComandoTara);
-                await Task.Delay(1000); // Esperar que la b·scula procese
+                await Task.Delay(1000); // Esperar que la b√°scula procese
                 return true;
             }
             catch (Exception ex)
@@ -252,7 +252,7 @@ namespace costbenefi.Services
         }
 
         /// <summary>
-        /// Inicia lectura autom·tica continua
+        /// Inicia lectura autom√°tica continua
         /// </summary>
         private async Task IniciarLecturaAutomaticaAsync()
         {
@@ -263,7 +263,7 @@ namespace costbenefi.Services
 
             if (_configuracion.RequiereSolicitudPeso)
             {
-                // Modo por solicitud - enviar comando periÛdicamente
+                // Modo por solicitud - enviar comando peri√≥dicamente
                 _ = Task.Run(async () =>
                 {
                     try
@@ -276,19 +276,19 @@ namespace costbenefi.Services
                     }
                     catch (OperationCanceledException)
                     {
-                        // CancelaciÛn normal
+                        // Cancelaci√≥n normal
                     }
                     catch (Exception ex)
                     {
-                        ErrorOcurrido?.Invoke(this, $"Error en lectura autom·tica: {ex.Message}");
+                        ErrorOcurrido?.Invoke(this, $"Error en lectura autom√°tica: {ex.Message}");
                     }
                 }, _cancellationTokenSource.Token);
             }
-            // Si no requiere solicitud, los datos llegan autom·ticamente vÌa DataReceived
+            // Si no requiere solicitud, los datos llegan autom√°ticamente v√≠a DataReceived
         }
 
         /// <summary>
-        /// Detiene la lectura autom·tica
+        /// Detiene la lectura autom√°tica
         /// </summary>
         private async Task DetenerLecturaAsync()
         {
@@ -301,7 +301,7 @@ namespace costbenefi.Services
         }
 
         /// <summary>
-        /// EnvÌa comando a la b·scula
+        /// Env√≠a comando a la b√°scula
         /// </summary>
         private async Task EnviarComandoAsync(string comando)
         {
@@ -371,7 +371,7 @@ namespace costbenefi.Services
             {
                 datos = datos.Trim();
 
-                // Usar patrÛn personalizado si est· configurado
+                // Usar patr√≥n personalizado si est√° configurado
                 if (_configuracion != null && !string.IsNullOrEmpty(_configuracion.PatronExtraccion))
                 {
                     var match = Regex.Match(datos, _configuracion.PatronExtraccion);
@@ -387,17 +387,17 @@ namespace costbenefi.Services
                     }
                 }
 
-                // Patrones est·ndar para b·sculas comunes
+                // Patrones est√°ndar para b√°sculas comunes
                 var patronesEstandar = new[]
                 {
-                    @"ST,GS,\+?\s*(\d+\.?\d*)",    // Protocolo est·ndar
+                    @"ST,GS,\+?\s*(\d+\.?\d*)",    // Protocolo est√°ndar
                     @"(\d+\.?\d*)\s*kg",           // Formato: "1.5 kg"
                     @"(\d+\.?\d*)\s*g",            // Formato: "1500 g"
                     @"(\d+\.?\d*)\s*lb",           // Formato: "3.3 lb"
                     @"W:\s*(\d+\.?\d*)",           // Formato: "W: 1.5"
                     @"WT\s*(\d+\.?\d*)",           // Formato: "WT 1.5"
                     @"NET\s*(\d+\.?\d*)",          // Formato: "NET 1.5"
-                    @"[+-]?\s*(\d+\.?\d*)",        // Solo n˙meros con signo
+                    @"[+-]?\s*(\d+\.?\d*)",        // Solo n√∫meros con signo
                 };
 
                 foreach (var patron in patronesEstandar)
@@ -424,7 +424,7 @@ namespace costbenefi.Services
         }
 
         /// <summary>
-        /// Carga configuraciÛn activa desde base de datos
+        /// Carga configuraci√≥n activa desde base de datos
         /// </summary>
         private async Task CargarConfiguracionActivaAsync()
         {
@@ -435,12 +435,12 @@ namespace costbenefi.Services
             }
             catch (Exception ex)
             {
-                ErrorOcurrido?.Invoke(this, $"Error al cargar configuraciÛn: {ex.Message}");
+                ErrorOcurrido?.Invoke(this, $"Error al cargar configuraci√≥n: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Crea configuraciÛn predeterminada si no existe
+        /// Crea configuraci√≥n predeterminada si no existe
         /// </summary>
         private async Task CrearConfiguracionPredeterminadaAsync()
         {
@@ -464,7 +464,7 @@ namespace costbenefi.Services
             }
             catch (Exception ex)
             {
-                ErrorOcurrido?.Invoke(this, $"Error al crear configuraciÛn predeterminada: {ex.Message}");
+                ErrorOcurrido?.Invoke(this, $"Error al crear configuraci√≥n predeterminada: {ex.Message}");
             }
         }
 
@@ -501,7 +501,7 @@ namespace costbenefi.Services
         }
 
         /// <summary>
-        /// Prueba conexiÛn con configuraciÛn especÌfica
+        /// Prueba conexi√≥n con configuraci√≥n espec√≠fica
         /// </summary>
         public async Task<bool> ProbarConexionAsync(ConfiguracionBascula config)
         {
@@ -513,7 +513,7 @@ namespace costbenefi.Services
                 {
                     await Task.Delay(1000); // Esperar 1 segundo
                     var peso = await servicioTemporal.LeerPesoAsync();
-                    return peso >= 0; // Peso v·lido (incluso 0)
+                    return peso >= 0; // Peso v√°lido (incluso 0)
                 }
                 return false;
             }

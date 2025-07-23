@@ -20,24 +20,40 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{46
 		StockExelServices.cs = StockExelServices.cs
 		StockPDFService.cs = StockPDFService.cs
 		TicketPrinter.cs = TicketPrinter.cs
+		UserService.cs = UserService.cs
 		VentasExcelService.cs = VentasExcelService.cs
 		VentasPDFService.cs = VentasPDFService.cs
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9-E21E-492B-83DD-6A5046CA4BA3}"
+	ProjectSection(SolutionItems) = preProject
+		CrearEditarUsuarioWindow.xaml = CrearEditarUsuarioWindow.xaml
+		CrearEditarUsuarioWindow.xaml.cs = CrearEditarUsuarioWindow.xaml.cs
+		FirstTimeSetupWindow.xaml = FirstTimeSetupWindow.xaml
+		FirstTimeSetupWindow.xaml.cs = FirstTimeSetupWindow.xaml.cs
+		GestionUsuariosWindow.xaml = GestionUsuariosWindow.xaml
+		GestionUsuariosWindow.xaml.cs = GestionUsuariosWindow.xaml.cs
+		HistorialSesionesWindow.xaml = HistorialSesionesWindow.xaml
+		HistorialSesionesWindow.xaml.cs = HistorialSesionesWindow.xaml.cs
+		LoginWindow.xaml = LoginWindow.xaml
+		LoginWindow.xaml.cs = LoginWindow.xaml.cs
+		SelectorUsuarioWindow.xaml = SelectorUsuarioWindow.xaml
+		SelectorUsuarioWindow.xaml.cs = SelectorUsuarioWindow.xaml.cs
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{CB0EA23B-7609-429B-AE5F-878D7E0ED6A5}"
 	ProjectSection(SolutionItems) = preProject
 		ConfiguracionBascula.cs = ConfiguracionBascula.cs
 		Converters.cs = Converters.cs
 		CorteCaja.cs = CorteCaja.cs
-		CorteStock.cs = CorteStock.cs
-		DetalleCorteStock.cs = DetalleCorteStock.cs
 		DetalleVenta.cs = DetalleVenta.cs
 		MaterialCalculator.cs = MaterialCalculator.cs
 		Movimiento.cs = Movimiento.cs
 		ProductoSeleccionable.cs = ProductoSeleccionable.cs
 		RawMaterial.cs = RawMaterial.cs
+		StartupManager.cs = StartupManager.cs
+		User.cs = User.cs
+		UserSession.cs = UserSession.cs
 		Venta.cs = Venta.cs
 	EndProjectSection
 EndProject
@@ -51,7 +67,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Helpers", "Helpers", "{243C
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reportes", "Reportes", "{2AE6F244-01B2-450B-9D25-F26A473C3F77}"
 	ProjectSection(SolutionItems) = preProject
-		ReporteCaja.cs = ReporteCaja.cs
 		ReporteMovimientos.cs = ReporteMovimientos.cs
 		ReporteStock.cs = ReporteStock.cs
 		ReporteVentas.cs = ReporteVentas.cs

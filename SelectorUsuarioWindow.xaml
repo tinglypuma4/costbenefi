@@ -1,0 +1,186 @@
+﻿<Window x:Class="costbenefi.Views.SelectorUsuarioWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Seleccionar Usuario - Historial de Sesiones" Height="500" Width="600"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        MinHeight="450" MinWidth="550"
+        Background="#F8F9FA">
+
+    <Grid Margin="25">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#8B5CF6" Padding="20,15" Margin="0,0,0,20" CornerRadius="8,8,0,0">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="👤 SELECCIONAR USUARIO" 
+                           FontSize="18" FontWeight="Bold" 
+                           Foreground="White" HorizontalAlignment="Center"/>
+                <TextBlock Text="Seleccione un usuario para ver su historial de sesiones" 
+                           FontSize="12" Foreground="#D8B4FE" 
+                           HorizontalAlignment="Center" Margin="0,5,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Búsqueda -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" 
+                CornerRadius="5" Padding="10" Margin="0,0,0,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="🔍 Buscar:" VerticalAlignment="Center" 
+                           FontWeight="SemiBold" Margin="0,0,10,0" Foreground="#374151"/>
+                
+                <TextBox x:Name="TxtBuscar" Grid.Column="1" 
+                         Padding="8" FontSize="14" 
+                         BorderBrush="#D1D5DB" BorderThickness="1"
+                         TextChanged="TxtBuscar_TextChanged"/>
+                
+                <TextBlock Grid.Column="2" x:Name="TxtContador" Text="0 usuarios" 
+                           VerticalAlignment="Center" Margin="15,0,0,0" 
+                           FontSize="12" Foreground="#6B7280"/>
+            </Grid>
+        </Border>
+
+        <!-- Lista de usuarios -->
+        <Border Grid.Row="2" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" 
+                CornerRadius="5">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header de la lista -->
+                <Border Grid.Row="0" Background="#F9FAFB" BorderBrush="#E5E7EB" 
+                        BorderThickness="0,0,0,1" Padding="15,10">
+                    <TextBlock Text="📋 Usuarios Disponibles" FontWeight="Bold" 
+                               FontSize="14" Foreground="#374151"/>
+                </Border>
+
+                <!-- Lista -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10">
+                    <ListBox x:Name="LstUsuarios" 
+                             BorderThickness="0" 
+                             Background="Transparent"
+                             SelectionChanged="LstUsuarios_SelectionChanged"
+                             MouseDoubleClick="LstUsuarios_MouseDoubleClick">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="White" Margin="2" CornerRadius="5"
+                                        BorderThickness="1" BorderBrush="#E5E7EB" Padding="15">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Icono del rol -->
+                                        <Border Grid.Row="0" Grid.Column="0" Grid.RowSpan="3"
+                                                Background="#F3E8FF" CornerRadius="25" 
+                                                Width="50" Height="50" Margin="0,0,15,0">
+                                            <TextBlock Text="{Binding RolIcon}" FontSize="24" 
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+
+                                        <!-- Información principal -->
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding NombreCompleto}" 
+                                                   FontWeight="Bold" FontSize="14" Foreground="#111827"/>
+                                        
+                                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,3,0,0">
+                                            <TextBlock Text="👤 " FontSize="10" Foreground="#8B5CF6"/>
+                                            <TextBlock Text="{Binding NombreUsuario}" FontSize="12" Foreground="#6B7280"/>
+                                            <TextBlock Text=" • " FontSize="12" Foreground="#D1D5DB" Margin="5,0"/>
+                                            <TextBlock Text="📧 " FontSize="10" Foreground="#8B5CF6"/>
+                                            <TextBlock Text="{Binding Email}" FontSize="12" Foreground="#6B7280"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,5,0,0">
+                                            <Border Background="{Binding RolColor}" CornerRadius="3" Padding="6,2" Margin="0,0,8,0">
+                                                <TextBlock Text="{Binding Rol}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                            </Border>
+                                            <Border Background="{Binding EstadoColor}" CornerRadius="3" Padding="6,2">
+                                                <TextBlock Text="{Binding EstadoTexto}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- Información adicional -->
+                                        <StackPanel Grid.Row="0" Grid.Column="2" Grid.RowSpan="3" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding UltimoAccesoTexto}" FontSize="10" 
+                                                       Foreground="#6B7280" TextAlignment="Right" Margin="0,0,0,3"/>
+                                            <TextBlock Text="{Binding CantidadSesionesTexto}" FontSize="10" 
+                                                       Foreground="#8B5CF6" TextAlignment="Right" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border Background="Transparent">
+                                                <ContentPresenter/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#F3F4F6"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background" Value="#EBF8FF"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Botones -->
+        <Grid Grid.Row="3" Margin="0,20,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Info del usuario seleccionado -->
+            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock x:Name="TxtUsuarioSeleccionado" Text="Seleccione un usuario de la lista" 
+                           FontSize="12" Foreground="#6B7280"/>
+            </StackPanel>
+
+            <!-- Botones de acción -->
+            <Button Grid.Column="1" x:Name="BtnVerHistorial" Content="🕐 Ver Historial" 
+                    Width="130" Height="40" Margin="0,0,15,0"
+                    Background="#8B5CF6" Foreground="White" FontWeight="Bold" FontSize="14"
+                    BorderThickness="0" IsEnabled="False" Click="BtnVerHistorial_Click"/>
+
+            <Button Grid.Column="2" x:Name="BtnCancelar" Content="❌ Cancelar" 
+                    Width="100" Height="40"
+                    Background="#6C757D" Foreground="White" FontSize="14"
+                    BorderThickness="0" Click="BtnCancelar_Click"/>
+        </Grid>
+    </Grid>
+</Window>

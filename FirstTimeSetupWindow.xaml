@@ -1,0 +1,178 @@
+﻿<Window x:Class="costbenefi.Views.FirstTimeSetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Configuración Inicial del Sistema"
+        Height="600" Width="500"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#F8F9FA">
+    
+    <Window.Resources>
+        <Style x:Key="TitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,20,0,10"/>
+        </Style>
+        
+        <Style x:Key="SubtitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="#6C757D"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="20,0,20,20"/>
+        </Style>
+        
+        <Style x:Key="LabelStyle" TargetType="Label">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#495057"/>
+            <Setter Property="Margin" Value="0,8,0,4"/>
+        </Style>
+        
+        <Style x:Key="TextBoxStyle" TargetType="TextBox">
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderBrush" Value="#CED4DA"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+        
+        <Style x:Key="PasswordBoxStyle" TargetType="PasswordBox">
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderBrush" Value="#CED4DA"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+        
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#007BFF"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#0056B3"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#6C757D"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#6C757D"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#545B62"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="🎉 ¡Bienvenido a CostBenefi!" Style="{StaticResource TitleStyle}"/>
+            <TextBlock Style="{StaticResource SubtitleStyle}">
+                <Run Text="Esta es la primera vez que se ejecuta el sistema."/>
+                <LineBreak/>
+                <Run Text="Para comenzar, debe crear un usuario propietario (Dueño) que será el administrador principal del negocio."/>
+            </TextBlock>
+        </StackPanel>
+        
+        <!-- Form -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,10,0,20">
+            <StackPanel>
+                <Label Content="👤 Nombre Completo:" Style="{StaticResource LabelStyle}"/>
+                <TextBox x:Name="TxtNombreCompleto" Style="{StaticResource TextBoxStyle}" 
+                         ToolTip="Nombre completo del propietario del negocio"/>
+                
+                <Label Content="🏷️ Nombre de Usuario:" Style="{StaticResource LabelStyle}"/>
+                <TextBox x:Name="TxtNombreUsuario" Style="{StaticResource TextBoxStyle}"
+                         ToolTip="Nombre de usuario para iniciar sesión (sin espacios)"/>
+                
+                <Label Content="📧 Correo Electrónico:" Style="{StaticResource LabelStyle}"/>
+                <TextBox x:Name="TxtEmail" Style="{StaticResource TextBoxStyle}"
+                         ToolTip="Correo electrónico válido"/>
+                
+                <Label Content="📱 Teléfono (Opcional):" Style="{StaticResource LabelStyle}"/>
+                <TextBox x:Name="TxtTelefono" Style="{StaticResource TextBoxStyle}"
+                         ToolTip="Número de teléfono de contacto"/>
+                
+                <Label Content="🔒 Contraseña:" Style="{StaticResource LabelStyle}"/>
+                <PasswordBox x:Name="PwdPassword" Style="{StaticResource PasswordBoxStyle}"
+                             ToolTip="Contraseña segura (mínimo 6 caracteres)"/>
+                
+                <Label Content="🔒 Confirmar Contraseña:" Style="{StaticResource LabelStyle}"/>
+                <PasswordBox x:Name="PwdConfirmarPassword" Style="{StaticResource PasswordBoxStyle}"
+                             ToolTip="Repita la contraseña anterior"/>
+                
+                <Border Background="#E7F3FF" BorderBrush="#007BFF" BorderThickness="1" 
+                        CornerRadius="6" Padding="15" Margin="0,20,0,0">
+                    <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#004085">
+                        <Run FontWeight="SemiBold" Text="🔑 Importante sobre el usuario Dueño:"/>
+                        <LineBreak/><LineBreak/>
+                        <Run Text="• Tendrá acceso completo a todas las funciones del sistema"/>
+                        <LineBreak/>
+                        <Run Text="• Podrá crear y gestionar otros usuarios (Encargados y Cajeros)"/>
+                        <LineBreak/>
+                        <Run Text="• Será el único con permisos para eliminar productos y ver reportes completos"/>
+                        <LineBreak/>
+                        <Run Text="• Puede cambiar configuraciones críticas del sistema"/>
+                        <LineBreak/><LineBreak/>
+                        <Run FontWeight="SemiBold" Text="💡 Consejo de seguridad:"/>
+                        <LineBreak/>
+                        <Run Text="Use una contraseña fuerte y guárdela en un lugar seguro."/>
+                    </TextBlock>
+                </Border>
+                
+                <!-- Status -->
+                <TextBlock x:Name="TxtStatus" 
+                           FontSize="12" 
+                           Foreground="#6C757D" 
+                           Margin="0,15,0,0" 
+                           HorizontalAlignment="Center"
+                           Text="Complete todos los campos para continuar"/>
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Buttons -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="15"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <Button x:Name="BtnCancelar" Grid.Column="0"
+                    Content="❌ Salir del Sistema" 
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Click="BtnCancelar_Click"/>
+            
+            <Button x:Name="BtnCrearPropietario" Grid.Column="2"
+                    Content="✅ Crear Usuario Propietario" 
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Click="BtnCrearPropietario_Click"/>
+        </Grid>
+    </Grid>
+</Window>

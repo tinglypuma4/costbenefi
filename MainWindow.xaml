@@ -882,7 +882,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- Pestaña 2: Reportes -->
+            <!-- Pestaña 2: Reportes - ACTUALIZADA -->
             <TabItem Header="📊 Reportes" Style="{StaticResource TabItemStyle}">
                 <Grid Background="White">
                     <Border Margin="30" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
@@ -898,154 +898,205 @@
                                     <TextBlock Text="📊" FontSize="40" HorizontalAlignment="Center" Foreground="White" Margin="0,0,0,10"/>
                                     <TextBlock Text="Módulo de Reportes" FontSize="24" FontWeight="Bold" 
                                   HorizontalAlignment="Center" Foreground="White" Margin="0,0,0,5"/>
-                                    <TextBlock Text="Genere reportes detallados de inventario, ventas y análisis financiero" 
+                                    <TextBlock Text="Genere reportes detallados de inventario, ventas, sesiones y análisis financiero" 
                                   FontSize="14" HorizontalAlignment="Center" Foreground="White" Opacity="0.9"/>
                                 </StackPanel>
                             </Border>
 
-                            <!-- Botones de reportes -->
-                            <Grid Grid.Row="1" Margin="40">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="20"/>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="40"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+                            <!-- Contenido -->
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40">
+                                <StackPanel>
 
-                                <Border Background="#F8F9FA" CornerRadius="8" Padding="20" Margin="0,0,0,15">
-                                    <StackPanel>
-                                        <TextBlock Text="💰 Reportes de Corte de Caja" Style="{StaticResource HeaderTextStyle}"/>
-                                        <TextBlock Text="Consulta y análisis de cortes de caja diarios" 
-                                                   Style="{StaticResource SubHeaderTextStyle}" Margin="0,0,0,15"/>
+                                    <!-- Reportes de Corte de Caja -->
+                                    <Border Background="#F8F9FA" CornerRadius="8" Padding="20" Margin="0,0,0,20">
+                                        <StackPanel>
+                                            <TextBlock Text="💰 Reportes de Corte de Caja" Style="{StaticResource HeaderTextStyle}"/>
+                                            <TextBlock Text="Consulta y análisis de cortes de caja diarios" 
+                                           Style="{StaticResource SubHeaderTextStyle}" Margin="0,0,0,15"/>
 
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
 
-                                            <Button Grid.Column="0" x:Name="BtnReporteCortesCompleto" 
-                    Click="BtnReporteCortes_Click" Margin="0,0,10,0"
-                    Style="{StaticResource MaterialDesignRaisedButton}" Height="60">
-                                                <StackPanel>
-                                                    <TextBlock Text="📊" FontSize="24" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Historial de Cortes" FontWeight="Bold" Margin="0,5,0,0"/>
-                                                    <TextBlock Text="Ver todos los cortes realizados" FontSize="11"/>
-                                                </StackPanel>
+                                                <Button Grid.Column="0" x:Name="BtnReporteCortesCompleto" 
+                                            Click="BtnReporteCortes_Click" Margin="0,0,10,0"
+                                            Style="{StaticResource MaterialDesignRaisedButton}" Height="60">
+                                                    <StackPanel>
+                                                        <TextBlock Text="📊" FontSize="24" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Historial de Cortes" FontWeight="Bold" Margin="0,5,0,0"/>
+                                                        <TextBlock Text="Ver todos los cortes realizados" FontSize="11"/>
+                                                    </StackPanel>
+                                                </Button>
+
+                                                <Button Grid.Column="1" x:Name="BtnAnalisisCortes" 
+                                            Click="BtnEstadisticasCortes_Click" Margin="10,0,0,0"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}" Height="60">
+                                                    <StackPanel>
+                                                        <TextBlock Text="📈" FontSize="24" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Análisis Financiero" FontWeight="Bold" Margin="0,5,0,0"/>
+                                                        <TextBlock Text="Estadísticas y métricas" FontSize="11"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Grid para los 3 reportes principales -->
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="20"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="20"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="40"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Reporte de Ventas -->
+                                        <Border Grid.Row="0" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1"
+                                    Cursor="Hand" MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave">
+                                            <Button Background="Transparent" BorderThickness="0" Click="BtnReporteVentas_Click"
+                                        Cursor="Hand" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Icono -->
+                                                    <Border Grid.Column="0" Background="#059669" CornerRadius="50" 
+                                                Width="80" Height="80" Margin="20">
+                                                        <TextBlock Text="🎯" FontSize="36" HorizontalAlignment="Center" 
+                                                       VerticalAlignment="Center" Foreground="White"/>
+                                                    </Border>
+
+                                                    <!-- Contenido -->
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="20,0">
+                                                        <TextBlock Text="📊 Reporte de Ventas" FontSize="20" FontWeight="Bold" 
+                                                       Foreground="#059669" Margin="0,0,0,8"/>
+                                                        <TextBlock Text="Análisis completo de ventas, clientes, productos vendidos y rentabilidad" 
+                                                       FontSize="14" Foreground="#6B7280" TextWrapping="Wrap"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                            <Border Background="#ECFDF5" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                                <TextBlock Text="📈 Rentabilidad" FontSize="11" FontWeight="Bold" Foreground="#059669"/>
+                                                            </Border>
+                                                            <Border Background="#ECFDF5" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                                <TextBlock Text="👥 Clientes" FontSize="11" FontWeight="Bold" Foreground="#059669"/>
+                                                            </Border>
+                                                            <Border Background="#ECFDF5" CornerRadius="4" Padding="8,4">
+                                                                <TextBlock Text="📦 Productos" FontSize="11" FontWeight="Bold" Foreground="#059669"/>
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </StackPanel>
+
+                                                    <!-- Flecha -->
+                                                    <TextBlock Grid.Column="2" Text="➤" FontSize="24" Foreground="#059669" 
+                                                   VerticalAlignment="Center" Margin="20"/>
+                                                </Grid>
                                             </Button>
+                                        </Border>
 
-                                            <Button Grid.Column="1" x:Name="BtnAnalisisCortes" 
-                    Click="BtnEstadisticasCortes_Click" Margin="10,0,0,0"
-                    Style="{StaticResource MaterialDesignOutlinedButton}" Height="60">
-                                                <StackPanel>
-                                                    <TextBlock Text="📈" FontSize="24" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Análisis Financiero" FontWeight="Bold" Margin="0,5,0,0"/>
-                                                    <TextBlock Text="Estadísticas y métricas" FontSize="11"/>
-                                                </StackPanel>
+                                        <!-- Reporte de Stock -->
+                                        <Border Grid.Row="2" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1"
+                                    Cursor="Hand" MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave">
+                                            <Button Background="Transparent" BorderThickness="0" Click="BtnReporteStock_Click"
+                                        Cursor="Hand" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Icono -->
+                                                    <Border Grid.Column="0" Background="#3B82F6" CornerRadius="50" 
+                                                Width="80" Height="80" Margin="20">
+                                                        <TextBlock Text="📦" FontSize="36" HorizontalAlignment="Center" 
+                                                       VerticalAlignment="Center" Foreground="White"/>
+                                                    </Border>
+
+                                                    <!-- Contenido -->
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="20,0">
+                                                        <TextBlock Text="📋 Reporte de Stock" FontSize="20" FontWeight="Bold" 
+                                                       Foreground="#3B82F6" Margin="0,0,0,8"/>
+                                                        <TextBlock Text="Análisis de inventario, movimientos, alertas de stock y valorización" 
+                                                       FontSize="14" Foreground="#6B7280" TextWrapping="Wrap"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                            <Border Background="#EFF6FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                                <TextBlock Text="⚠️ Alertas" FontSize="11" FontWeight="Bold" Foreground="#3B82F6"/>
+                                                            </Border>
+                                                            <Border Background="#EFF6FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                                <TextBlock Text="📊 Valorización" FontSize="11" FontWeight="Bold" Foreground="#3B82F6"/>
+                                                            </Border>
+                                                            <Border Background="#EFF6FF" CornerRadius="4" Padding="8,4">
+                                                                <TextBlock Text="🔄 Movimientos" FontSize="11" FontWeight="Bold" Foreground="#3B82F6"/>
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </StackPanel>
+
+                                                    <!-- Flecha -->
+                                                    <TextBlock Grid.Column="2" Text="➤" FontSize="24" Foreground="#3B82F6" 
+                                                   VerticalAlignment="Center" Margin="20"/>
+                                                </Grid>
                                             </Button>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
+                                        </Border>
 
-                                <!-- Reporte de Ventas -->
-                                <Border Grid.Row="0" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1"
-                            Cursor="Hand" MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave">
-                                    <Border.InputBindings>
-                                        <MouseBinding MouseAction="LeftClick" Command="{Binding AbrirReporteVentasCommand}"/>
-                                    </Border.InputBindings>
-                                    <Button Background="Transparent" BorderThickness="0" Click="BtnReporteVentas_Click"
-                                Cursor="Hand" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
+                                        <!-- NUEVO: Historial de Sesiones -->
+                                        <Border Grid.Row="4" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1"
+                                    Cursor="Hand" MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave">
+                                            <Button Background="Transparent" BorderThickness="0" Click="BtnHistorialSesiones_Click"
+                                        Cursor="Hand" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
 
-                                            <!-- Icono -->
-                                            <Border Grid.Column="0" Background="#059669" CornerRadius="50" 
-                                        Width="80" Height="80" Margin="20">
-                                                <TextBlock Text="🎯" FontSize="36" HorizontalAlignment="Center" 
-                                               VerticalAlignment="Center" Foreground="White"/>
-                                            </Border>
-
-                                            <!-- Contenido -->
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="20,0">
-                                                <TextBlock Text="📊 Reporte de Ventas" FontSize="20" FontWeight="Bold" 
-                                               Foreground="#059669" Margin="0,0,0,8"/>
-                                                <TextBlock Text="Análisis completo de ventas, clientes, productos vendidos y rentabilidad" 
-                                               FontSize="14" Foreground="#6B7280" TextWrapping="Wrap"/>
-                                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                                    <Border Background="#ECFDF5" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
-                                                        <TextBlock Text="📈 Rentabilidad" FontSize="11" FontWeight="Bold" Foreground="#059669"/>
+                                                    <!-- Icono -->
+                                                    <Border Grid.Column="0" Background="#8B5CF6" CornerRadius="50" 
+                                                Width="80" Height="80" Margin="20">
+                                                        <TextBlock Text="🕐" FontSize="36" HorizontalAlignment="Center" 
+                                                       VerticalAlignment="Center" Foreground="White"/>
                                                     </Border>
-                                                    <Border Background="#ECFDF5" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
-                                                        <TextBlock Text="👥 Clientes" FontSize="11" FontWeight="Bold" Foreground="#059669"/>
-                                                    </Border>
-                                                    <Border Background="#ECFDF5" CornerRadius="4" Padding="8,4">
-                                                        <TextBlock Text="📦 Productos" FontSize="11" FontWeight="Bold" Foreground="#059669"/>
-                                                    </Border>
-                                                </StackPanel>
-                                            </StackPanel>
 
-                                            <!-- Flecha -->
-                                            <TextBlock Grid.Column="2" Text="➤" FontSize="24" Foreground="#059669" 
-                                           VerticalAlignment="Center" Margin="20"/>
-                                        </Grid>
-                                    </Button>
-                                </Border>
+                                                    <!-- Contenido -->
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="20,0">
+                                                        <TextBlock Text="🕐 Historial de Sesiones" FontSize="20" FontWeight="Bold" 
+                                                       Foreground="#8B5CF6" Margin="0,0,0,8"/>
+                                                        <TextBlock Text="Consulte el historial de conexiones, actividad y estadísticas de usuarios" 
+                                                       FontSize="14" Foreground="#6B7280" TextWrapping="Wrap"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                            <Border Background="#F3E8FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                                <TextBlock Text="👤 Por Usuario" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                                            </Border>
+                                                            <Border Background="#F3E8FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                                <TextBlock Text="📊 Estadísticas" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                                            </Border>
+                                                            <Border Background="#F3E8FF" CornerRadius="4" Padding="8,4">
+                                                                <TextBlock Text="⏱️ Tiempo Conexión" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </StackPanel>
 
-                                <!-- Reporte de Stock -->
-                                <Border Grid.Row="2" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1"
-                            Cursor="Hand" MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave">
-                                    <Button Background="Transparent" BorderThickness="0" Click="BtnReporteStock_Click"
-                                Cursor="Hand" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
+                                                    <!-- Flecha -->
+                                                    <TextBlock Grid.Column="2" Text="➤" FontSize="24" Foreground="#8B5CF6" 
+                                                   VerticalAlignment="Center" Margin="20"/>
+                                                </Grid>
+                                            </Button>
+                                        </Border>
 
-                                            <!-- Icono -->
-                                            <Border Grid.Column="0" Background="#3B82F6" CornerRadius="50" 
-                                        Width="80" Height="80" Margin="20">
-                                                <TextBlock Text="📦" FontSize="36" HorizontalAlignment="Center" 
-                                               VerticalAlignment="Center" Foreground="White"/>
-                                            </Border>
-
-                                            <!-- Contenido -->
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="20,0">
-                                                <TextBlock Text="📋 Reporte de Stock" FontSize="20" FontWeight="Bold" 
-                                               Foreground="#3B82F6" Margin="0,0,0,8"/>
-                                                <TextBlock Text="Análisis de inventario, movimientos, alertas de stock y valorización" 
-                                               FontSize="14" Foreground="#6B7280" TextWrapping="Wrap"/>
-                                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                                    <Border Background="#EFF6FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
-                                                        <TextBlock Text="⚠️ Alertas" FontSize="11" FontWeight="Bold" Foreground="#3B82F6"/>
-                                                    </Border>
-                                                    <Border Background="#EFF6FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
-                                                        <TextBlock Text="📊 Valorización" FontSize="11" FontWeight="Bold" Foreground="#3B82F6"/>
-                                                    </Border>
-                                                    <Border Background="#EFF6FF" CornerRadius="4" Padding="8,4">
-                                                        <TextBlock Text="🔄 Movimientos" FontSize="11" FontWeight="Bold" Foreground="#3B82F6"/>
-                                                    </Border>
-                                                </StackPanel>
-                                            </StackPanel>
-
-                                            <!-- Flecha -->
-                                            <TextBlock Grid.Column="2" Text="➤" FontSize="24" Foreground="#3B82F6" 
-                                           VerticalAlignment="Center" Margin="20"/>
-                                        </Grid>
-                                    </Button>
-                                </Border>
-
-                                <!-- Info adicional -->
-                                <TextBlock Grid.Row="4" Text="💡 Tip: Los reportes se pueden exportar a PDF y Excel con análisis detallados" 
-                               FontSize="12" Foreground="#6B7280" HorizontalAlignment="Center" 
-                               FontStyle="Italic" Margin="0,20,0,0"/>
-                            </Grid>
+                                        <!-- Info adicional -->
+                                        <TextBlock Grid.Row="6" Text="💡 Tip: Los reportes se pueden exportar a PDF y Excel con análisis detallados" 
+                                       FontSize="12" Foreground="#6B7280" HorizontalAlignment="Center" 
+                                       FontStyle="Italic" Margin="0,20,0,0"/>
+                                    </Grid>
+                                </StackPanel>
+                            </ScrollViewer>
                         </Grid>
                     </Border>
                 </Grid>
@@ -1087,20 +1138,133 @@
                 </Grid>
             </TabItem>
 
-            <!-- Pestaña 5: Configuración -->
+            <!-- Pestaña 5: Configuración - ACTUALIZADA -->
             <TabItem Header="⚙️ Configuración" Style="{StaticResource TabItemStyle}">
                 <Grid Background="White">
-                    <Border Margin="50" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="⚙️" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,20"/>
-                            <TextBlock Text="Configuración del Sistema" FontSize="24" FontWeight="Bold" 
-                                      HorizontalAlignment="Center" Foreground="#374151" Margin="0,0,0,10"/>
-                            <TextBlock Text="Configure parámetros del sistema, usuarios y preferencias" 
-                                      FontSize="14" HorizontalAlignment="Center" Foreground="#6B7280" Margin="0,0,0,30"/>
-                            <Button Content="🔧 Abrir Configuración" Width="200" Height="40" 
-                                   Background="#F59E0B" Foreground="White" FontSize="14" FontWeight="Bold"
-                                   BorderThickness="0" Click="BtnAbrirConfiguracion_Click"/>
-                        </StackPanel>
+                    <Border Margin="30" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Header -->
+                            <Border Grid.Row="0" Background="#F59E0B" CornerRadius="10,10,0,0" Padding="20">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="⚙️" FontSize="40" HorizontalAlignment="Center" Foreground="White" Margin="0,0,0,10"/>
+                                    <TextBlock Text="Configuración del Sistema" FontSize="24" FontWeight="Bold" 
+                                  HorizontalAlignment="Center" Foreground="White" Margin="0,0,0,5"/>
+                                    <TextBlock Text="Configure usuarios, permisos y parámetros del sistema" 
+                                  FontSize="14" HorizontalAlignment="Center" Foreground="White" Opacity="0.9"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Contenido -->
+                            <Grid Grid.Row="1" Margin="40">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="20"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="40"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Gestión de Usuarios -->
+                                <Border Grid.Row="0" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1"
+                            Cursor="Hand" MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave">
+                                    <Button Background="Transparent" BorderThickness="0" Click="BtnGestionUsuarios_Click"
+                                Cursor="Hand" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Icono -->
+                                            <Border Grid.Column="0" Background="#8B5CF6" CornerRadius="50" 
+                                        Width="80" Height="80" Margin="20">
+                                                <TextBlock Text="👥" FontSize="36" HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center" Foreground="White"/>
+                                            </Border>
+
+                                            <!-- Contenido -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="20,0">
+                                                <TextBlock Text="👥 Gestión de Usuarios" FontSize="20" FontWeight="Bold" 
+                                               Foreground="#8B5CF6" Margin="0,0,0,8"/>
+                                                <TextBlock Text="Administre usuarios del sistema, roles, permisos y sesiones activas" 
+                                               FontSize="14" Foreground="#6B7280" TextWrapping="Wrap"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                    <Border Background="#F3E8FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                        <TextBlock Text="👤 Usuarios" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                                    </Border>
+                                                    <Border Background="#F3E8FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                        <TextBlock Text="🎯 Roles" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                                    </Border>
+                                                    <Border Background="#F3E8FF" CornerRadius="4" Padding="8,4">
+                                                        <TextBlock Text="🔐 Permisos" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <!-- Flecha -->
+                                            <TextBlock Grid.Column="2" Text="➤" FontSize="24" Foreground="#8B5CF6" 
+                                           VerticalAlignment="Center" Margin="20"/>
+                                        </Grid>
+                                    </Button>
+                                </Border>
+
+                                <!-- Configuración del Sistema -->
+                                <Border Grid.Row="2" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1"
+                            Cursor="Hand" MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave">
+                                    <Button Background="Transparent" BorderThickness="0" Click="BtnConfiguracionSistema_Click"
+                                Cursor="Hand" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Icono -->
+                                            <Border Grid.Column="0" Background="#6366F1" CornerRadius="50" 
+                                        Width="80" Height="80" Margin="20">
+                                                <TextBlock Text="🔧" FontSize="36" HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center" Foreground="White"/>
+                                            </Border>
+
+                                            <!-- Contenido -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="20,0">
+                                                <TextBlock Text="🔧 Parámetros del Sistema" FontSize="20" FontWeight="Bold" 
+                                               Foreground="#6366F1" Margin="0,0,0,8"/>
+                                                <TextBlock Text="Configure empresa, impresoras, base de datos y preferencias generales" 
+                                               FontSize="14" Foreground="#6B7280" TextWrapping="Wrap"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                    <Border Background="#EEF2FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                        <TextBlock Text="🏢 Empresa" FontSize="11" FontWeight="Bold" Foreground="#6366F1"/>
+                                                    </Border>
+                                                    <Border Background="#EEF2FF" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                                                        <TextBlock Text="🖨️ Dispositivos" FontSize="11" FontWeight="Bold" Foreground="#6366F1"/>
+                                                    </Border>
+                                                    <Border Background="#EEF2FF" CornerRadius="4" Padding="8,4">
+                                                        <TextBlock Text="💾 Base de Datos" FontSize="11" FontWeight="Bold" Foreground="#6366F1"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <!-- Flecha -->
+                                            <TextBlock Grid.Column="2" Text="➤" FontSize="24" Foreground="#6366F1" 
+                                           VerticalAlignment="Center" Margin="20"/>
+                                        </Grid>
+                                    </Button>
+                                </Border>
+
+                                <!-- Info adicional -->
+                                <TextBlock Grid.Row="4" Text="🔐 Nota: Solo usuarios con rol de Dueño pueden acceder a la gestión de usuarios" 
+                               FontSize="12" Foreground="#6B7280" HorizontalAlignment="Center" 
+                               FontStyle="Italic" Margin="0,20,0,0"/>
+                            </Grid>
+                        </Grid>
                     </Border>
                 </Grid>
             </TabItem>

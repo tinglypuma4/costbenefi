@@ -19,7 +19,7 @@ namespace costbenefi
 {
     public partial class MainWindow : Window
     {
-        private readonly AppDbContext _context;
+        private AppDbContext _context;
         private List<RawMaterial> _allMaterials = new();
         private List<RawMaterial> _filteredMaterials = new();
 
@@ -42,109 +42,187 @@ namespace costbenefi
 
         public MainWindow()
         {
-            InitializeComponent();
-            _context = new AppDbContext();
+            try
+            {
+                // Inicializar componentes de UI
+                InitializeComponent();
 
-            // Asegurar que la base de datos existe
-            _context.Database.EnsureCreated();
+                // Inicializar colecciones básicas
+                _allMaterials = new List<RawMaterial>();
+                _filteredMaterials = new List<RawMaterial>();
+                _productosParaVenta = new List<RawMaterial>();
+                _productosParaVentaFiltrados = new List<RawMaterial>();
+                _carritoItems = new ObservableCollection<DetalleVenta>();
 
-            // Inicializar servicios POS
-            InitializePOSServices();
+                // Configurar carrito
+                LstCarrito.ItemsSource = _carritoItems;
 
-            // Configurar carrito
-            LstCarrito.ItemsSource = _carritoItems;
+                // Configurar timer para actualización de fecha/hora
+                var timer = new System.Windows.Threading.DispatcherTimer();
+                timer.Interval = TimeSpan.FromMinutes(1);
+                timer.Tick += (s, e) => UpdateDateTime();
+                timer.Start();
 
-            // Cargar datos iniciales
-            LoadData();
+                // Configurar carga diferida
+                this.Loaded += MainWindow_Loaded;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"❌ ERROR CRÍTICO en constructor de MainWindow:\n\n" +
+                    $"Mensaje: {ex.Message}\n\n" +
+                    $"El sistema se cerrará. Por favor reporte este error.",
+                    "Error Fatal - MainWindow",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
 
-            // Configurar timer para actualizar fecha/hora
-            var timer = new System.Windows.Threading.DispatcherTimer();
-            timer.Interval = TimeSpan.FromMinutes(1);
-            timer.Tick += (s, e) => UpdateDateTime();
-            timer.Start();
-            ConfigurarActualizacionAutomatica();
+                Application.Current.Shutdown(1);
+            }
         }
+
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Mostrar mensaje de carga
+                if (TxtStatus != null)
+                {
+                    TxtStatus.Text = "⏳ Inicializando sistema...";
+                }
+
+                // Inicializar contexto de base de datos
+                _context = new AppDbContext();
+                await _context.Database.EnsureCreatedAsync();
+
+                // Cargar datos
+                await LoadDataSafe();
+
+                // Inicializar servicios POS
+                await Task.Run(() => InitializePOSServicesSafe());
+
+                // Configurar actualización automática
+                ConfigurarActualizacionAutomatica();
+
+                // Actualizar status final
+                if (TxtStatus != null)
+                {
+                    TxtStatus.Text = "✅ Sistema listo";
+                }
+            }
+            catch (Exception ex)
+            {
+                if (TxtStatus != null)
+                {
+                    TxtStatus.Text = "❌ Error al cargar sistema";
+                }
+
+                MessageBox.Show(
+                    $"⚠️ Error al cargar algunos componentes:\n\n" +
+                    $"{ex.Message}\n\n" +
+                    $"El sistema funcionará con funcionalidad limitada.",
+                    "Advertencia de Carga",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
 
         // ========== INICIALIZACIÓN POS ==========
         // ✅ CORREGIR - Inicialización con báscula real
-        private void InitializePOSServices()
+        private void InitializePOSServicesSafe()
         {
             try
             {
                 // Inicializar servicios básicos primero
                 _ticketPrinter = new TicketPrinter();
-                _basculaService = new BasculaService(_context); // ✅ CORREGIDO: Pasar contexto
-                _scannerService = new ScannerPOSService();
                 _corteCajaService = new CorteCajaService(_context);
+                _scannerService = new ScannerPOSService();
 
-                // Configurar eventos de báscula
-                _basculaService.PesoRecibido += (sender, e) =>
+                // Inicializar báscula de forma segura
+                try
                 {
-                    Dispatcher.BeginInvoke(new Action(async () => await OnPesoRecibido(e.Peso)));
-                };
+                    _basculaService = new BasculaService(_context);
 
-                _basculaService.ErrorOcurrido += (sender, error) =>
-                {
-                    Dispatcher.BeginInvoke(new Action(() =>
+                    // Configurar eventos de báscula
+                    _basculaService.PesoRecibido += (sender, e) =>
                     {
-                        TxtStatusPOS.Text = $"❌ Error báscula: {error}";
-                        TxtEstadoBascula.Text = "⚖️ ERROR";
-                        TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
-                            new SolidColorBrush(Color.FromRgb(239, 68, 68)));
-                    }));
-                };
+                        Dispatcher.BeginInvoke(new Action(async () => await OnPesoRecibido(e.Peso)));
+                    };
 
-                _basculaService.EstadoConexionCambiado += (sender, conectada) =>
-                {
-                    Dispatcher.BeginInvoke(new Action(() =>
+                    _basculaService.ErrorOcurrido += (sender, error) =>
                     {
-                        if (conectada)
+                        Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            TxtEstadoBascula.Text = "⚖️ OK";
-                            TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
-                                new SolidColorBrush(Color.FromRgb(34, 197, 94)));
+                            if (TxtStatusPOS != null)
+                                TxtStatusPOS.Text = $"❌ Error báscula: {error}";
+                        }));
+                    };
+
+                    // Intentar conectar báscula (no crítico si falla)
+                    try
+                    {
+                        if (_basculaService.Conectar())
+                        {
+                            System.Diagnostics.Debug.WriteLine("✅ Báscula conectada");
                         }
                         else
                         {
-                            TxtEstadoBascula.Text = "⚖️ DESC";
-                            TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
-                                new SolidColorBrush(Color.FromRgb(249, 115, 22)));
+                            System.Diagnostics.Debug.WriteLine("⚠️ Báscula no conectada");
                         }
-                    }));
-                };
-
-                // Conectar dispositivos
-                var conectados = 0;
-
-                // Intentar conectar báscula
-                if (_basculaService.Conectar())
-                {
-                    conectados++;
-                    TxtEstadoBascula.Text = "⚖️ OK";
-                    TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
-                        new SolidColorBrush(Color.FromRgb(34, 197, 94)));
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"⚠️ Error al conectar báscula: {ex.Message}");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    TxtEstadoBascula.Text = "⚖️ DESC";
-                    TxtEstadoBascula.Parent.SetValue(Border.BackgroundProperty,
-                        new SolidColorBrush(Color.FromRgb(249, 115, 22)));
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Error al inicializar báscula: {ex.Message}");
+                    _basculaService = null; // Continuar sin báscula
                 }
 
-                // Contar otros servicios
-                if (_scannerService != null) conectados++;
-                if (_ticketPrinter != null) conectados++;
-
-                TxtStatusPOS.Text = $"✅ POS inicializado - {conectados}/3 dispositivos";
+                System.Diagnostics.Debug.WriteLine("✅ Servicios POS inicializados (con o sin báscula)");
             }
             catch (Exception ex)
             {
-                TxtStatusPOS.Text = "❌ Error al inicializar POS";
-                MessageBox.Show($"Error al inicializar servicios POS: {ex.Message}",
-                              "Error POS", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Diagnostics.Debug.WriteLine($"⚠️ Error en InitializePOSServicesSafe: {ex.Message}");
+                // Continuar sin algunos servicios POS
             }
         }
+        private async Task LoadDataSafe()
+        {
+            try
+            {
+                // Cargar materiales de forma segura
+                _allMaterials = await _context.RawMaterials
+                    .OrderBy(m => m.NombreArticulo)
+                    .ToListAsync();
 
+                _filteredMaterials = new List<RawMaterial>(_allMaterials);
+
+                // Actualizar UI en el hilo principal
+                Dispatcher.Invoke(() =>
+                {
+                    UpdateDataGrid();
+                    UpdateStatusBar();
+                });
+
+                System.Diagnostics.Debug.WriteLine($"✅ Cargados {_allMaterials.Count} materiales");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Error al cargar datos: {ex.Message}");
+
+                // Inicializar con listas vacías para evitar errores
+                _allMaterials = new List<RawMaterial>();
+                _filteredMaterials = new List<RawMaterial>();
+
+                Dispatcher.Invoke(() =>
+                {
+                    if (TxtStatus != null)
+                        TxtStatus.Text = "⚠️ Error al cargar datos - Sistema en modo limitado";
+                });
+            }
+        }
         private void UpdateDateTime()
         {
             // El binding automático debería manejar esto, pero podemos forzar actualización si es necesario
@@ -1465,6 +1543,127 @@ namespace costbenefi
                 }
             }
         }
+        // ========== MÉTODOS PARA GESTIÓN DE USUARIOS Y SESIONES ==========
+
+        private async void BtnGestionUsuarios_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // ✅ CORRECCIÓN: No pasar contexto, que GestionUsuariosWindow cree el suyo
+                var gestionUsuariosWindow = new GestionUsuariosWindow()
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                var resultado = gestionUsuariosWindow.ShowDialog();
+
+                if (resultado == true)
+                {
+                    TxtStatus.Text = "✅ Gestión de usuarios completada";
+                }
+                else
+                {
+                    TxtStatus.Text = "📊 Gestión de usuarios cerrada";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir gestión de usuarios:\n\n{ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatus.Text = "❌ Error al abrir gestión de usuarios";
+            }
+        }
+
+        /// <summary>
+        /// Abre la configuración del sistema
+        /// </summary>
+        private void BtnConfiguracionSistema_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // TODO: Crear ventana de configuración del sistema
+                MessageBox.Show("🔧 Configuración del Sistema\n\n" +
+                              "Esta funcionalidad estará disponible en una próxima versión.\n\n" +
+                              "Incluirá:\n" +
+                              "• Configuración de empresa\n" +
+                              "• Parámetros de sistema\n" +
+                              "• Configuración de dispositivos\n" +
+                              "• Backup y restauración",
+                              "Próximamente", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                TxtStatus.Text = "🔧 Configuración del sistema (próximamente)";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir configuración: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatus.Text = "❌ Error al abrir configuración";
+            }
+        }
+
+        /// <summary>
+        /// Abre el selector de usuario para historial de sesiones
+        /// </summary>
+
+        private async void BtnHistorialSesiones_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // ✅ USAR CONTEXTO TEMPORAL PARA VERIFICACIÓN INICIAL
+                using var tempContext = new AppDbContext();
+                var cantidadUsuarios = await tempContext.Users.CountAsync(u => !u.Eliminado);
+
+                if (cantidadUsuarios == 0)
+                {
+                    MessageBox.Show("No hay usuarios registrados en el sistema.",
+                                  "Sin Usuarios", MessageBoxButton.OK, MessageBoxImage.Information);
+                    TxtStatus.Text = "📊 Sin usuarios para mostrar historial";
+                    return;
+                }
+
+                // ✅ CORRECCIÓN: No pasar contexto
+                var selectorWindow = new SelectorUsuarioWindow()
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                if (selectorWindow.ShowDialog() == true)
+                {
+                    var usuarioSeleccionado = selectorWindow.UsuarioSeleccionado;
+
+                    if (usuarioSeleccionado != null)
+                    {
+                        // ✅ CREAR NUEVO CONTEXTO PARA CARGAR SESIONES
+                        using var contextSesiones = new AppDbContext();
+                        var sesiones = await contextSesiones.UserSessions
+                            .Where(s => s.UserId == usuarioSeleccionado.Id)
+                            .OrderByDescending(s => s.FechaInicio)
+                            .ToListAsync();
+
+                        var historialWindow = new HistorialSesionesWindow(usuarioSeleccionado, sesiones)
+                        {
+                            Owner = this,
+                            WindowStartupLocation = WindowStartupLocation.CenterOwner
+                        };
+
+                        historialWindow.Show();
+                        TxtStatus.Text = $"🕐 Historial de sesiones abierto para: {usuarioSeleccionado.NombreCompleto}";
+                    }
+                }
+                else
+                {
+                    TxtStatus.Text = "📊 Selección de usuario cancelada";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir historial de sesiones:\n\n{ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatus.Text = "❌ Error al abrir historial de sesiones";
+            }
+        }
 
         private void BtnReporteVentas_Click(object sender, RoutedEventArgs e)
         {
@@ -1575,7 +1774,7 @@ namespace costbenefi
 
     public class ManualBarcodeInputWindow : Window
     {
-        private readonly AppDbContext _context;
+        private AppDbContext _context;
         public string CodigoIngresado { get; private set; } = "";
 
         public ManualBarcodeInputWindow(AppDbContext context)
@@ -1746,5 +1945,9 @@ namespace costbenefi
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+
+
+
     }
 }
