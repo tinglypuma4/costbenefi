@@ -34,22 +34,8 @@ namespace costbenefi.Views
         {
             try
             {
-                // 🔍 DIAGNÓSTICO TEMPORAL - AGREGAR ESTAS LÍNEAS
-                System.Diagnostics.Debug.WriteLine("🔍 === VENTANA CREAR USUARIO INICIADA ===");
-                System.Diagnostics.Debug.WriteLine($"🔍 UserService.UsuarioActual es null: {UserService.UsuarioActual == null}");
-                if (UserService.UsuarioActual != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"🔍 UserService.UsuarioActual.NombreCompleto: {UserService.UsuarioActual.NombreCompleto}");
-                    System.Diagnostics.Debug.WriteLine($"🔍 UserService.UsuarioActual.Rol: {UserService.UsuarioActual.Rol}");
-                }
-                System.Diagnostics.Debug.WriteLine($"🔍 UserService.SesionActual es null: {UserService.SesionActual == null}");
-                System.Diagnostics.Debug.WriteLine("🔍 =======================================");
-                // FIN DEL DIAGNÓSTICO
-
                 _context = new AppDbContext();
                 _userService = new UserService(_context);
-                // 🔍 DIAGNÓSTICO TEMPORAL - AGREGAR ESTA LÍNEA
-                System.Diagnostics.Debug.WriteLine($"🔍 VENTANA CREAR USUARIO - UsuarioActual es null: {UserService.UsuarioActual == null}");
 
                 // Configurar header según el modo
                 if (_esNuevo)
@@ -57,9 +43,6 @@ namespace costbenefi.Views
                     TxtTitulo.Text = "👤 NUEVO USUARIO";
                     TxtSubtitulo.Text = "Complete la información del nuevo empleado";
                     Title = "Nuevo Usuario - Sistema POS";
-
-                    System.Diagnostics.Debug.WriteLine($"🔍 VENTANA - UsuarioActual.Rol: {UserService.UsuarioActual.Rol}");
-
                 }
                 else
                 {
@@ -95,6 +78,7 @@ namespace costbenefi.Views
                 Close();
             }
         }
+
         private void CargarDatosUsuario()
         {
             if (_usuarioOriginal == null) return;
@@ -436,7 +420,6 @@ namespace costbenefi.Views
         #endregion
 
         #region GUARDAR Y CANCELAR
-
 
         private async void BtnGuardar_Click(object sender, RoutedEventArgs e)
         {

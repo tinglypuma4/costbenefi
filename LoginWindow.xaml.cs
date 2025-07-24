@@ -10,7 +10,7 @@ using costbenefi.Services;
 namespace costbenefi.Views
 {
     /// <summary>
-    /// Ventana de inicio de sesión
+    /// Ventana de inicio de sesión con detección automática de usuarios soporte
     /// </summary>
     public partial class LoginWindow : Window
     {
@@ -39,9 +39,12 @@ namespace costbenefi.Views
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
-          
+            if (result == MessageBoxResult.Yes)
+            {
+                DialogResult = false;
+                Close();
+            }
         }
-
 
         private async Task RealizarLogin()
         {
@@ -79,7 +82,7 @@ namespace costbenefi.Views
 
                 System.Diagnostics.Debug.WriteLine("🔐 Interfaz deshabilitada, iniciando autenticación...");
 
-                // ===== AUTENTICACIÓN =====
+                // ===== AUTENTICACIÓN CON DETECCIÓN AUTOMÁTICA DE SOPORTE =====
                 using var context = new AppDbContext();
                 using var userService = new UserService(context);
 
@@ -93,10 +96,39 @@ namespace costbenefi.Views
                 {
                     // ===== LOGIN EXITOSO =====
                     System.Diagnostics.Debug.WriteLine("✅ Login exitoso, actualizando interfaz...");
-                    TxtStatus.Text = $"✅ ¡Bienvenido, {usuarioAutenticado.NombreCompleto}!";
 
-                    // Mensaje simple de bienvenida (sin MessageBox que puede causar problemas)
-                    System.Diagnostics.Debug.WriteLine($"✅ Bienvenido: {usuarioAutenticado.NombreCompleto} ({usuarioAutenticado.Rol})");
+                    // ===== 🔧 DETECTAR SI ES USUARIO SOPORTE =====
+                    bool esSoporte = SoporteSystem.UsuarioActualEsSoporte();
+                    string tipoUsuario = esSoporte ? "Soporte Técnico 🔧" : usuarioAutenticado.Rol;
+                    string colorStatus = esSoporte ? "#FF6B35" : "#28A745"; // Naranja para soporte, verde para normal
+
+                    TxtStatus.Text = $"✅ ¡Bienvenido, {usuarioAutenticado.NombreCompleto}! ({tipoUsuario})";
+                    TxtStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorStatus));
+
+                    // ===== 🔧 MENSAJE ESPECIAL PARA SOPORTE =====
+                    if (esSoporte)
+                    {
+                        System.Diagnostics.Debug.WriteLine("🔧 ACCESO DE SOPORTE DETECTADO");
+
+                        // Mostrar mensaje discreto para soporte
+                        MessageBox.Show($"🔧 ACCESO DE SOPORTE CONCEDIDO\n\n" +
+                                       $"Usuario: {usuarioAutenticado.NombreCompleto}\n" +
+                                       $"Nivel: {SoporteSystem.ObtenerUsuarioSoporteActual()?.Nivel ?? NivelSoporte.Basico}\n" +
+                                       $"Permisos: TOTAL\n\n" +
+                                       $"• Acceso invisible al sistema\n" +
+                                       $"• No aparece en estadísticas\n" +
+                                       $"• Puede gestionar todo sin restricciones",
+                            "🔧 Acceso Soporte - CostBenefi",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        // Mensaje normal para usuarios regulares
+                        System.Diagnostics.Debug.WriteLine($"✅ Bienvenido: {usuarioAutenticado.NombreCompleto} ({usuarioAutenticado.Rol})");
+                    }
+
+                    // Breve pausa para mostrar el mensaje de bienvenida
+                    await Task.Delay(800);
 
                     // CRÍTICO: Establecer DialogResult = true
                     System.Diagnostics.Debug.WriteLine("✅ Estableciendo DialogResult = true...");
@@ -134,6 +166,10 @@ namespace costbenefi.Views
                 BtnLogin.Content = "🚀 Iniciar Sesión";
                 TxtUsuario.IsEnabled = true;
                 PwdPassword.IsEnabled = true;
+
+                // Restaurar color normal del status
+                TxtStatus.Foreground = new SolidColorBrush(Color.FromRgb(108, 117, 125));
+
                 System.Diagnostics.Debug.WriteLine("✅ Interfaz restaurada");
             }
         }
@@ -149,7 +185,6 @@ namespace costbenefi.Views
             MessageBox.Show($"❌ {mensaje}", "Error de Acceso",
                            MessageBoxButton.OK, MessageBoxImage.Warning);
         }
-
 
         /// <summary>
         /// Maneja el evento de cierre de ventana
@@ -173,6 +208,38 @@ namespace costbenefi.Views
             }
 
             base.OnClosing(e);
+        }
+
+        // ===== 🔧 MÉTODOS ADICIONALES PARA SOPORTE (OPCIONALES) =====
+
+        /// <summary>
+        /// Método para mostrar información de usuarios soporte (para desarrollo)
+        /// Activar con Ctrl + Shift + I
+        /// </summary>
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            // Easter egg para mostrar info de soporte en desarrollo
+            if (e.Key == Key.I &&
+                Keyboard.IsKeyDown(Key.LeftCtrl) &&
+                Keyboard.IsKeyDown(Key.LeftShift))
+            {
+                var info = "🔧 INFORMACIÓN DE SOPORTE\n\n" +
+                          "Usuarios disponibles:\n" +
+                          "• soporte_admin (Super Admin)\n" +
+                          "• dev_access (Desarrollo)\n\n" +
+                          "Funciones especiales:\n" +
+                          "• Acceso total sin restricciones\n" +
+                          "• Invisible para sistema normal\n" +
+                          "• No afecta validaciones de negocio\n\n" +
+                          "Uso: Simplemente login normal con credenciales soporte";
+
+                MessageBox.Show(info, "🔧 Info Soporte - CostBenefi",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+
+                e.Handled = true;
+            }
+
+            base.OnKeyDown(e);
         }
     }
 }

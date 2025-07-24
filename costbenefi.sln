@@ -17,6 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{46
 		CorteRobustoService.cs = CorteRobustoService.cs
 		POSIntegrationService.cs = POSIntegrationService.cs
 		ScannerPOSService.cs = ScannerPOSService.cs
+		SoporteSystem.cs = SoporteSystem.cs
 		StockExelServices.cs = StockExelServices.cs
 		StockPDFService.cs = StockPDFService.cs
 		TicketPrinter.cs = TicketPrinter.cs

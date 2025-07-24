@@ -35,7 +35,6 @@ namespace costbenefi.Views
             {
                 TxtStatus.Text = "⏳ Inicializando sistema de usuarios...";
 
-                // ✅ CORRECCIÓN: Crear propios contextos
                 _context = new AppDbContext();
                 _userService = new UserService(_context);
 
@@ -252,7 +251,6 @@ namespace costbenefi.Views
         {
             try
             {
-                // ✅ CORRECCIÓN: Constructor sin parámetros
                 var crearUsuarioWindow = new CrearEditarUsuarioWindow()
                 {
                     Owner = this,
@@ -276,7 +274,6 @@ namespace costbenefi.Views
             }
         }
 
-        // ✅ MÉTODO DEL BOTÓN PRINCIPAL EDITAR
         private async void BtnEditarUsuario_Click(object sender, RoutedEventArgs e)
         {
             if (DgUsuarios.SelectedItem is UsuarioExtendido usuarioSeleccionado)
@@ -290,7 +287,6 @@ namespace costbenefi.Views
             }
         }
 
-        // ✅ MÉTODO DEL BOTÓN RÁPIDO EN EL DATAGRID
         private async void BtnEditarUsuarioRapido_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is UsuarioExtendido usuarioExtendido)
@@ -299,12 +295,10 @@ namespace costbenefi.Views
             }
         }
 
-        // ✅ MÉTODO ÚNICO PARA EDITAR USUARIO (sin duplicación)
         private async Task EditarUsuarioAsync(User usuario)
         {
             try
             {
-                // ✅ CORRECCIÓN: Constructor solo con User, sin contexto
                 var editarUsuarioWindow = new CrearEditarUsuarioWindow(usuario)
                 {
                     Owner = this,
@@ -485,7 +479,18 @@ namespace costbenefi.Views
         public DateTime? UltimaSesion { get; set; }
         public TimeSpan TiempoTotalConectado { get; set; }
 
-        // Propiedades para binding XAML
+        // ===== PROPIEDADES PARA BINDING DIRECTO (delegación al objeto Usuario) =====
+        public bool EstaBloqueado => Usuario?.EstaBloqueado ?? false;
+        public bool Activo => Usuario?.Activo ?? false;
+        public string Rol => Usuario?.Rol ?? "";
+        public string NombreUsuario => Usuario?.NombreUsuario ?? "";
+        public string NombreCompleto => Usuario?.NombreCompleto ?? "";
+        public string Email => Usuario?.Email ?? "";
+        public string Telefono => Usuario?.Telefono ?? "";
+        public string EstadoUsuario => Usuario?.EstadoUsuario ?? "";
+        public DateTime FechaCreacion => Usuario?.FechaCreacion ?? DateTime.MinValue;
+
+        // ===== PROPIEDADES ADICIONALES PARA UI =====
         public string RolIcon => Usuario?.Rol switch
         {
             "Dueño" => "👑",

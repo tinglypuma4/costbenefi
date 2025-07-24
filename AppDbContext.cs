@@ -1076,11 +1076,67 @@ namespace costbenefi.Data
         /// <summary>
         /// Obtiene un usuario por nombre de usuario
         /// </summary>
-        public async Task<User?> GetUserByUsernameAsync(string nombreUsuario)
+       
+        public async Task<dynamic> GetEstadisticasUsuariosRealesAsync()
         {
-            return await Users
-                .FirstOrDefaultAsync(u => u.NombreUsuario == nombreUsuario && u.Activo);
+            var totalUsuarios = await Users.Where(u => u.Id > 0 && !u.Eliminado).CountAsync();
+            var usuariosActivos = await Users.Where(u => u.Id > 0 && !u.Eliminado && u.Activo).CountAsync();
+            var usuariosBloqueados = await Users.Where(u => u.Id > 0 && !u.Eliminado && u.EstaBloqueado).CountAsync();
+            var sesionesActivas = await UserSessions.CountAsync(s => s.FechaCierre == null && s.UserId > 0);
+
+            var usuariosPorRol = await Users
+                .Where(u => u.Id > 0 && !u.Eliminado && u.Activo)
+                .GroupBy(u => u.Rol)
+                .Select(g => new { Rol = g.Key, Cantidad = g.Count() })
+                .ToListAsync();
+
+            return new
+            {
+                TotalUsuarios = totalUsuarios,
+                UsuariosActivos = usuariosActivos,
+                UsuariosInactivos = totalUsuarios - usuariosActivos,
+                UsuariosBloqueados = usuariosBloqueados,
+                SesionesActivas = sesionesActivas,
+                UsuariosPorRol = usuariosPorRol
+            };
         }
+        public async Task CrearUsuarioDuenoPorDefectoAsync()
+        {
+            try
+            {
+                var existeDuenoReal = await ExisteDuenoRealAsync();
+                if (!existeDuenoReal)
+                {
+                    var dueno = new User
+                    {
+                        NombreUsuario = "dueno",
+                        NombreCompleto = "Dueño del Negocio",
+                        Email = "dueno@negocio.com",
+                        PasswordHash = User.GenerarHashPassword("dueno123"), // Cambiar en producción
+                        Rol = "Dueño",
+                        Activo = true,
+                        UsuarioCreador = "Sistema"
+                    };
+
+                    Users.Add(dueno);
+                    await SaveChangesAsync();
+                }
+            }
+            catch
+            {
+                // Silencioso - no es crítico si falla
+            }
+        }
+
+        public async Task<List<UserSession>> GetSesionesActivasRealesAsync()
+        {
+            return await UserSessions
+                .Include(s => s.User)
+                .Where(s => s.FechaCierre == null && s.UserId > 0) // Solo usuarios reales
+                .OrderByDescending(s => s.UltimaActividad)
+                .ToListAsync();
+        }
+
 
         /// <summary>
         /// Obtiene usuarios por rol
@@ -1088,7 +1144,7 @@ namespace costbenefi.Data
         public async Task<List<User>> GetUsersByRoleAsync(string rol)
         {
             return await Users
-                .Where(u => u.Rol == rol && u.Activo)
+                .Where(u => !u.Eliminado && u.Rol == rol && u.Activo)
                 .OrderBy(u => u.NombreCompleto)
                 .ToListAsync();
         }
@@ -1098,9 +1154,12 @@ namespace costbenefi.Data
         /// </summary>
         public async Task<bool> ExisteNombreUsuarioAsync(string nombreUsuario, int? excludeUserId = null)
         {
-            return await Users
-                .AnyAsync(u => u.NombreUsuario == nombreUsuario &&
-                              (excludeUserId == null || u.Id != excludeUserId));
+            var query = Users.Where(u => !u.Eliminado && u.NombreUsuario.ToLower() == nombreUsuario.ToLower());
+
+            if (excludeUserId.HasValue)
+                query = query.Where(u => u.Id != excludeUserId.Value);
+
+            return await query.AnyAsync();
         }
 
         /// <summary>
@@ -1108,11 +1167,13 @@ namespace costbenefi.Data
         /// </summary>
         public async Task<bool> ExisteEmailAsync(string email, int? excludeUserId = null)
         {
-            return await Users
-                .AnyAsync(u => u.Email == email &&
-                              (excludeUserId == null || u.Id != excludeUserId));
-        }
+            var query = Users.Where(u => !u.Eliminado && u.Email.ToLower() == email.ToLower());
 
+            if (excludeUserId.HasValue)
+                query = query.Where(u => u.Id != excludeUserId.Value);
+
+            return await query.AnyAsync();
+        }
         /// <summary>
         /// Obtiene la sesión activa de un usuario
         /// </summary>
@@ -1123,7 +1184,21 @@ namespace costbenefi.Data
                 .OrderByDescending(s => s.FechaInicio)
                 .FirstOrDefaultAsync();
         }
+        public async Task<bool> ExisteDuenoRealAsync()
+        {
+            return await Users
+                .Where(u => u.Id > 0 && !u.Eliminado) // Solo usuarios reales
+                .AnyAsync(u => u.Rol == "Dueño" && u.Activo);
+        }
+        public async Task<int> ContarDuenosRealesActivosAsync(int? excludeUserId = null)
+        {
+            var query = Users.Where(u => u.Id > 0 && !u.Eliminado && u.Rol == "Dueño" && u.Activo);
 
+            if (excludeUserId.HasValue)
+                query = query.Where(u => u.Id != excludeUserId.Value);
+
+            return await query.CountAsync();
+        }
         /// <summary>
         /// Obtiene sesiones activas en el sistema
         /// </summary>
@@ -1135,7 +1210,18 @@ namespace costbenefi.Data
                 .OrderByDescending(s => s.UltimaActividad)
                 .ToListAsync();
         }
+        public async Task<List<User>> GetUsuariosRealesAsync(bool incluirInactivos = false)
+        {
+            var query = Users.Where(u => u.Id > 0 && !u.Eliminado); // Solo usuarios reales
 
+            if (!incluirInactivos)
+                query = query.Where(u => u.Activo);
+
+            return await query
+                .OrderBy(u => u.Rol == "Dueño" ? 0 : u.Rol == "Encargado" ? 1 : 2) // Dueño primero
+                .ThenBy(u => u.NombreCompleto)
+                .ToListAsync();
+        }
         /// <summary>
         /// Cierra sesiones inactivas automáticamente
         /// </summary>
@@ -1158,6 +1244,33 @@ namespace costbenefi.Data
             }
 
             return sesionesInactivas.Count;
+        }
+        public async Task<User?> GetUserByUsernameAsync(string nombreUsuario)
+        {
+            System.Diagnostics.Debug.WriteLine($"🔍 GetUserByUsernameAsync: Buscando usuario '{nombreUsuario}'");
+
+            try
+            {
+                var usuario = await Users
+                    .Where(u => u.Id > 0 && !u.Eliminado) // Solo usuarios reales, no eliminados
+                    .FirstOrDefaultAsync(u => u.NombreUsuario.ToLower() == nombreUsuario.ToLower());
+
+                if (usuario != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"✅ Usuario encontrado en BD: {usuario .NombreCompleto} ({usuario.Rol})");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Usuario '{nombreUsuario}' NO encontrado en BD");
+                }
+
+                return usuario;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"💥 ERROR en GetUserByUsernameAsync: {ex.Message}");
+                return null;
+            }
         }
 
         /// <summary>

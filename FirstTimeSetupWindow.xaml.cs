@@ -7,11 +7,13 @@ using System.Windows.Controls;
 using Microsoft.EntityFrameworkCore;
 using costbenefi.Data;
 using costbenefi.Models;
+using costbenefi.Services;
 
 namespace costbenefi.Views
 {
     /// <summary>
     /// Ventana para configuración inicial del sistema - Crear primer usuario Dueño
+    /// (Ignora usuarios soporte para validaciones)
     /// </summary>
     public partial class FirstTimeSetupWindow : Window
     {
@@ -60,11 +62,13 @@ namespace costbenefi.Views
                 // ===== CREAR USUARIO EN BASE DE DATOS =====
                 using var context = new AppDbContext();
 
-                // Verificar nuevamente que no exista ningún Dueño (seguridad)
-                var existeDueno = await context.Users
+                // ===== 🔧 VERIFICAR DUEÑO IGNORANDO USUARIOS SOPORTE =====
+                // Solo verificar usuarios REALES de la base de datos (no soporte)
+                var existeDuenoReal = await context.Users
+                    .Where(u => u.Id > 0) // Excluir usuarios soporte (ID = -1)
                     .AnyAsync(u => u.Rol == "Dueño" && u.Activo && !u.Eliminado);
 
-                if (existeDueno)
+                if (existeDuenoReal)
                 {
                     MessageBox.Show(
                         "⚠️ Ya existe un usuario Dueño en el sistema.\n\n" +
@@ -79,8 +83,10 @@ namespace costbenefi.Views
                     return;
                 }
 
-                // Verificar duplicados
+                // ===== 🔧 VERIFICAR DUPLICADOS IGNORANDO SOPORTE =====
+                // Solo verificar usuarios reales de la BD
                 var nombreUsuarioExiste = await context.Users
+                    .Where(u => u.Id > 0) // Excluir usuarios soporte
                     .AnyAsync(u => u.NombreUsuario.ToLower() == TxtNombreUsuario.Text.Trim().ToLower());
 
                 if (nombreUsuarioExiste)
@@ -96,6 +102,7 @@ namespace costbenefi.Views
                 }
 
                 var emailExiste = await context.Users
+                    .Where(u => u.Id > 0) // Excluir usuarios soporte
                     .AnyAsync(u => u.Email.ToLower() == TxtEmail.Text.Trim().ToLower());
 
                 if (emailExiste)
@@ -165,6 +172,15 @@ namespace costbenefi.Views
 
         private bool ValidarFormulario()
         {
+            // ===== 🔧 VALIDACIÓN ESPECIAL PARA USUARIOS SOPORTE =====
+            // Si el nombre de usuario es de soporte, mostrar advertencia
+            var nombreUsuario = TxtNombreUsuario.Text?.Trim() ?? "";
+            if (SoporteSystem.EsUsuarioSoporte(nombreUsuario))
+            {
+                MostrarError("Este nombre de usuario está reservado para soporte técnico.\nPor favor elija otro nombre.", TxtNombreUsuario);
+                return false;
+            }
+
             // Validar nombre completo
             if (string.IsNullOrWhiteSpace(TxtNombreCompleto.Text))
             {
@@ -185,7 +201,6 @@ namespace costbenefi.Views
                 return false;
             }
 
-            var nombreUsuario = TxtNombreUsuario.Text.Trim();
             if (nombreUsuario.Length < 3 || nombreUsuario.Length > 20)
             {
                 MostrarError("El nombre de usuario debe tener entre 3 y 20 caracteres.", TxtNombreUsuario);
