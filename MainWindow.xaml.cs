@@ -14,6 +14,9 @@ using costbenefi.Views;
 using costbenefi.Services;
 using System.ComponentModel;
 using System.Globalization;
+using costbenefi.Managers;
+using costbenefi.Managers;
+using System.ComponentModel;
 
 namespace costbenefi
 {
@@ -65,6 +68,7 @@ namespace costbenefi
 
                 // Configurar carga diferida
                 this.Loaded += MainWindow_Loaded;
+               
             }
             catch (Exception ex)
             {
@@ -77,9 +81,28 @@ namespace costbenefi
 
                 Application.Current.Shutdown(1);
             }
+            this.Loaded += async (s, e) =>
+            {
+                await Task.Delay(500); // Dar tiempo a que se renderice
+
+                // Forzar actualización completa
+                this.UpdateLayout();
+                this.InvalidateVisual();
+
+                // Si tienes un TabControl, forzar su actualización
+                var tabControl = this.FindName("MainTabControl") as TabControl;
+                if (tabControl != null)
+                {
+                    var currentTab = tabControl.SelectedIndex;
+                    tabControl.SelectedIndex = -1;
+                    tabControl.UpdateLayout();
+                    tabControl.SelectedIndex = currentTab >= 0 ? currentTab : 0;
+                }
+
+                System.Diagnostics.Debug.WriteLine("🎉 UI refrescada después de logout");
+            };
         }
-
-
+       
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             try
@@ -874,6 +897,83 @@ namespace costbenefi
             UpdateContadoresPOS();
         }
 
+        private async void BtnCerrarSesion_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("🚪 Botón cerrar sesión presionado");
+
+                // ===== MOSTRAR INDICADOR DE PROCESO =====
+                if (TxtStatusPOS != null)
+                    TxtStatusPOS.Text = "🚪 Cerrando sesión...";
+
+                if (TxtStatus != null)
+                    TxtStatus.Text = "🚪 Cerrando sesión...";
+
+                // ===== DESHABILITAR BOTÓN PARA EVITAR DOBLE-CLICK =====
+                BtnCerrarSesionPOS.IsEnabled = false;
+
+                // ===== LIMPIAR DATOS SENSIBLES LOCALES =====
+                try
+                {
+                    if (_carritoItems != null)
+                    {
+                        _carritoItems.Clear();
+                        System.Diagnostics.Debug.WriteLine("🛒 Carrito limpiado");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Error limpiando datos locales: {ex.Message}");
+                }
+
+                // ===== 🎯 USAR EL NUEVO MÉTODO DE REINICIO =====
+                System.Diagnostics.Debug.WriteLine("🔄 Llamando SessionManager.CerrarSesionYReiniciar...");
+
+                bool exitoso = await SessionManager.CerrarSesionYReiniciar(
+                    razon: "Cierre manual desde POS",
+                    mostrarConfirmacion: true
+                );
+
+                if (!exitoso)
+                {
+                    // Usuario canceló - restaurar interfaz
+                    System.Diagnostics.Debug.WriteLine("❌ Cierre de sesión cancelado");
+
+                    if (TxtStatusPOS != null)
+                        TxtStatusPOS.Text = "✅ Sistema POS listo";
+
+                    if (TxtStatus != null)
+                        TxtStatus.Text = "✅ Sistema listo";
+
+                    BtnCerrarSesionPOS.IsEnabled = true;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("🔄 Proceso de reinicio iniciado - Esta instancia se cerrará");
+                    // No necesitamos hacer nada más - la aplicación se reiniciará
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"💥 ERROR en BtnCerrarSesion_Click: {ex}");
+
+                // Restaurar interfaz en caso de error
+                if (TxtStatusPOS != null)
+                    TxtStatusPOS.Text = "❌ Error al cerrar sesión";
+
+                if (TxtStatus != null)
+                    TxtStatus.Text = "❌ Error al cerrar sesión";
+
+                BtnCerrarSesionPOS.IsEnabled = true;
+
+                MessageBox.Show(
+                    $"❌ Error al procesar cierre de sesión:\n\n{ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
         private void BtnConfigComisiones_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1103,7 +1203,67 @@ namespace costbenefi
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+    
+        protected override async void OnClosing(CancelEventArgs e)
+{
+    try
+    {
+        System.Diagnostics.Debug.WriteLine("🚪 Usuario intentó cerrar ventana principal");
 
+        // ===== CANCELAR EL CIERRE AUTOMÁTICO =====
+        e.Cancel = true;
+
+        // ===== MOSTRAR INDICADOR DE PROCESO =====
+        if (TxtStatusPOS != null)
+            TxtStatusPOS.Text = "💾 Cerrando sistema...";
+            
+        if (TxtStatus != null)
+            TxtStatus.Text = "💾 Cerrando sistema...";
+
+        // ===== DESHABILITAR CONTROLES PARA EVITAR ACCIONES ADICIONALES =====
+        this.IsEnabled = false;
+
+        // ===== USAR SessionManager PARA SALIR COMPLETAMENTE =====
+        System.Diagnostics.Debug.WriteLine("🛑 Llamando SessionManager.SalirCompletamente...");
+        
+        bool exitoso = await SessionManager.SalirCompletamente(
+            razon: "Cierre desde botón X de ventana",
+            mostrarConfirmacion: true
+        );
+
+        if (!exitoso)
+        {
+            // Usuario canceló - restaurar ventana
+            System.Diagnostics.Debug.WriteLine("❌ Cierre cancelado - restaurando ventana");
+            
+            this.IsEnabled = true;
+            
+            if (TxtStatusPOS != null)
+                TxtStatusPOS.Text = "✅ Sistema POS listo";
+                
+            if (TxtStatus != null)
+                TxtStatus.Text = "✅ Sistema listo";
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("✅ Proceso de cierre iniciado");
+            // No necesitamos hacer nada más - la aplicación se cerrará completamente
+        }
+    }
+    catch (Exception ex)
+    {
+        System.Diagnostics.Debug.WriteLine($"💥 ERROR en OnClosing: {ex}");
+        
+        // En caso de error, permitir cierre normal
+        e.Cancel = false;
+        
+        MessageBox.Show(
+            $"❌ Error al procesar cierre:\n\n{ex.Message}\n\nEl sistema se cerrará.",
+            "Error",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+    }
+}
         private void BtnEscanerPOS_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1116,6 +1276,96 @@ namespace costbenefi
                               "Error Escáner", MessageBoxButton.OK, MessageBoxImage.Error);
                 TxtEstadoEscaner.Text = "📱 ERROR";
                 TxtEstadoEscaner.Parent.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(239, 68, 68)));
+            }
+        }
+
+        private async void BtnSalirSistema_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("🛑 Botón salir sistema presionado");
+
+                // ===== MOSTRAR INDICADOR DE PROCESO =====
+                if (TxtStatusPOS != null)
+                    TxtStatusPOS.Text = "🛑 Saliendo del sistema...";
+
+                if (TxtStatus != null)
+                    TxtStatus.Text = "🛑 Saliendo del sistema...";
+
+                // ===== DESHABILITAR BOTÓN PARA EVITAR DOBLE-CLICK =====
+                var button = sender as Button;
+                if (button != null)
+                    button.IsEnabled = false;
+
+                // ===== DESHABILITAR VENTANA PARA EVITAR OTRAS ACCIONES =====
+                this.IsEnabled = false;
+
+                // ===== LIMPIAR DATOS SENSIBLES LOCALES =====
+                try
+                {
+                    if (_carritoItems != null)
+                    {
+                        _carritoItems.Clear();
+                        System.Diagnostics.Debug.WriteLine("🛒 Carrito limpiado antes de salir");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Error limpiando datos locales: {ex.Message}");
+                }
+
+                // ===== 🛑 USAR SessionManager PARA SALIR COMPLETAMENTE =====
+                System.Diagnostics.Debug.WriteLine("🛑 Llamando SessionManager.SalirCompletamente...");
+
+                bool exitoso = await SessionManager.SalirCompletamente(
+                    razon: "Salida manual desde botón Salir",
+                    mostrarConfirmacion: true
+                );
+
+                if (!exitoso)
+                {
+                    // Usuario canceló - restaurar interfaz
+                    System.Diagnostics.Debug.WriteLine("❌ Salida cancelada");
+
+                    this.IsEnabled = true;
+
+                    if (button != null)
+                        button.IsEnabled = true;
+
+                    if (TxtStatusPOS != null)
+                        TxtStatusPOS.Text = "✅ Sistema POS listo";
+
+                    if (TxtStatus != null)
+                        TxtStatus.Text = "✅ Sistema listo";
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("🛑 Proceso de salida iniciado - Sistema se cerrará");
+                    // No necesitamos hacer nada más - la aplicación se cerrará completamente
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"💥 ERROR en BtnSalirSistema_Click: {ex}");
+
+                // Restaurar interfaz en caso de error
+                this.IsEnabled = true;
+
+                var button = sender as Button;
+                if (button != null)
+                    button.IsEnabled = true;
+
+                if (TxtStatusPOS != null)
+                    TxtStatusPOS.Text = "❌ Error al salir";
+
+                if (TxtStatus != null)
+                    TxtStatus.Text = "❌ Error al salir";
+
+                MessageBox.Show(
+                    $"❌ Error al salir del sistema:\n\n{ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 

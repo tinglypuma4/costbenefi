@@ -21,13 +21,12 @@ namespace costbenefi
 
             // 🔧 SOLUCIÓN: Prevenir cierre por SessionEnding
             this.SessionEnding += (s, e) => e.Cancel = true;
+
+            System.Diagnostics.Debug.WriteLine("✅ App inicializada - Método de reinicio simple");
         }
 
         protected override async void OnStartup(StartupEventArgs e)
         {
-            // 🔧 SOLUCIÓN: NO llamar base.OnStartup(e) para evitar que WPF cierre automáticamente
-            // base.OnStartup(e);
-
             try
             {
                 System.Diagnostics.Debug.WriteLine("🚀 Iniciando aplicación...");
@@ -119,16 +118,29 @@ namespace costbenefi
 
         private void MostrarLogin()
         {
-            var loginWindow = new LoginWindow();
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("🔐 Creando y mostrando LoginWindow");
 
-            if (loginWindow.ShowDialog() == true)
-            {
-                // Login exitoso, mostrar ventana principal
-                MostrarVentanaPrincipal();
+                var loginWindow = new LoginWindow();
+
+                if (loginWindow.ShowDialog() == true)
+                {
+                    // Login exitoso, mostrar ventana principal
+                    MostrarVentanaPrincipal();
+                }
+                else
+                {
+                    // Usuario canceló login o falló
+                    System.Diagnostics.Debug.WriteLine("❌ Login cancelado o falló - Cerrando aplicación");
+                    Application.Current.Shutdown();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // Usuario canceló login o falló
+                System.Diagnostics.Debug.WriteLine($"💥 ERROR en MostrarLogin: {ex}");
+                MessageBox.Show($"Error al mostrar login:\n\n{ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Application.Current.Shutdown();
             }
         }

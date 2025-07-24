@@ -547,23 +547,39 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <!-- NUEVA COLUMNA PARA CERRAR SESIÓN -->
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0" Text="💰 Sistema Punto de Venta" 
-                                       FontSize="18" Style="{StaticResource HeaderTextPOSStyle}"/>
+                   FontSize="18" Style="{StaticResource HeaderTextPOSStyle}"/>
 
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,30,0">
                                 <TextBlock x:Name="TxtVentasHoy" Text="Ventas hoy: 0" 
-                                           FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
-                                           Margin="0,0,15,0" Opacity="0.9"/>
+                       FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
+                       Margin="0,0,15,0" Opacity="0.9"/>
                                 <TextBlock x:Name="TxtTotalVentasHoy" Text="Total: $0.00" 
-                                           FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
-                                           Opacity="0.9"/>
+                       FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
+                       Opacity="0.9"/>
                             </StackPanel>
 
                             <TextBlock Grid.Column="2" x:Name="TxtFechaHoraPOS" 
-                                       Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='dd/MM/yyyy HH:mm'}" 
-                                       FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" Opacity="0.9"/>
+                   Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='dd/MM/yyyy HH:mm'}" 
+                   FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
+                   Opacity="0.9" Margin="0,0,20,0"/>
+
+                            <!-- 🚪 BOTÓN DE CERRAR SESIÓN NUEVO -->
+                            <Button Grid.Column="3" x:Name="BtnCerrarSesionPOS" 
+        Background="#DC2626" Foreground="White" 
+        Width="120" Height="35" 
+        FontSize="12" FontWeight="Bold"
+        Click="BtnCerrarSesion_Click"
+        Style="{StaticResource POSButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🚪" FontSize="14" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Cerrar Sesión"/>
+                                </StackPanel>
+                            </Button>
                         </Grid>
                     </Border>
 
@@ -1286,7 +1302,36 @@
                     </Border>
                 </Grid>
             </TabItem>
+            <TabItem Header="🔧 Sistema" Style="{StaticResource TabItemStyle}">
+                <Grid Background="White">
+                    <Border Margin="50" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="🔧" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                            <TextBlock Text="Configuración del Sistema" FontSize="24" FontWeight="Bold" 
+                          HorizontalAlignment="Center" Foreground="#374151" Margin="0,0,0,10"/>
+                            <TextBlock Text="Opciones avanzadas y control del sistema" 
+                          FontSize="14" HorizontalAlignment="Center" Foreground="#6B7280" Margin="0,0,0,30"/>
 
+                            <!-- Botones de sistema -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button x:Name="BtnCerrarSesionSistema" Content="🚪 Cerrar Sesión" 
+                           Width="150" Height="50" Margin="0,0,20,0"
+                           Background="#F59E0B" Foreground="White" FontSize="14" FontWeight="Bold"
+                           BorderThickness="0" Click="BtnCerrarSesion_Click"/>
+
+                                <Button x:Name="BtnSalirSistemaTab" Content="🛑 Salir del Sistema" 
+                           Width="150" Height="50"
+                           Background="#DC2626" Foreground="White" FontSize="14" FontWeight="Bold"
+                           BorderThickness="0" Click="BtnSalirSistema_Click"/>
+                            </StackPanel>
+
+                            <TextBlock Text="💡 Tip: Al salir se guardarán automáticamente todos los datos" 
+                          FontSize="12" Foreground="#6B7280" HorizontalAlignment="Center" 
+                          FontStyle="Italic" Margin="0,20,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>
