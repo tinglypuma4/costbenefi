@@ -26,6 +26,7 @@ namespace costbenefi
         private List<RawMaterial> _allMaterials = new();
         private List<RawMaterial> _filteredMaterials = new();
 
+
         // ========== VARIABLES POS ==========
         private List<RawMaterial> _productosParaVenta = new();
         private List<RawMaterial> _productosParaVentaFiltrados = new();

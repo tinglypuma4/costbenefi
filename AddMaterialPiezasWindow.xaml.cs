@@ -7,7 +7,6 @@ using System.Windows.Input;
 using Microsoft.EntityFrameworkCore;
 using costbenefi.Data;
 using costbenefi.Models;
-
 namespace costbenefi.Views
 {
     public partial class AddMaterialPiezasWindow : Window
