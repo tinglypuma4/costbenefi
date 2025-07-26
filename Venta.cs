@@ -195,7 +195,15 @@ namespace costbenefi.Models
         public long GenerarNumeroTicket()
         {
             var fecha = DateTime.Now;
-            NumeroTicket = long.Parse($"{fecha:yyMMdd}{fecha.Hour:D2}{fecha.Minute:D2}");
+
+            // ✅ FORMATO ÚNICO: yyMMddHHmmss (incluye segundos)
+            // Ejemplo: 251126143045 (25/11/26 a las 14:30:45)
+            var numeroBase = long.Parse($"{fecha:yyMMdd}{fecha:HH}{fecha:mm}{fecha:ss}");
+
+            // ✅ AGREGAR MILISEGUNDOS para máxima unicidad
+            var milisegundos = fecha.Millisecond;
+            NumeroTicket = numeroBase * 1000 + milisegundos;
+
             return NumeroTicket;
         }
 

@@ -230,7 +230,7 @@ namespace costbenefi.Views
             DgMateriales.ItemsSource = _filteredMaterials;
 
             // Actualizar contadores en header
-            TxtContadorHeader.Text = $"{_filteredMateriales.Count} productos activos";
+            TxtContadorHeader.Text = $"{_filteredMaterials.Count} productos activos";
         }
 
         private void UpdateStatusBar()

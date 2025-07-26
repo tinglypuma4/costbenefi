@@ -151,7 +151,7 @@ namespace costbenefi.Services
             ws.Cell(row, 1).Value = "🕐 Generado:";
             ws.Cell(row, 2).Value = DateTime.Now.ToString("dddd, dd 'de' MMMM 'de' yyyy 'a las' HH:mm", _cultura);
             ws.Cell(row, 4).Value = "👤 Usuario:";
-            ws.Cell(row, 5).Value = Environment.UserName;
+            ws.Cell(row, 5).Value = UserService.UsuarioActual?.NombreUsuario ?? Environment.UserName;
             EstiloInformacionGeneral(ws.Range(row, 1, row, 6));
             row++;
 

@@ -573,7 +573,13 @@ namespace costbenefi.Views
                     Usuario = v.Usuario ?? "Sin usuario",
                     SubTotal = v.SubTotal,
                     Total = v.Total,
-                    FormaPago = DeterminarFormaPago(v),
+
+                    // ✅ NUEVAS PROPIEDADES PARA MÉTODOS DE PAGO DETALLADOS
+                    TipoPago = DeterminarTipoPago(v),
+                    MontoEfectivo = v.MontoEfectivo,
+                    MontoTarjeta = v.MontoTarjeta,
+                    MontoTransferencia = v.MontoTransferencia,
+
                     Ganancia = v.GananciaNeta,
                     Margen = v.MargenNeto,
                     Comision = v.ComisionTotal
@@ -593,7 +599,20 @@ namespace costbenefi.Views
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private string DeterminarTipoPago(Venta venta)
+        {
+            var metodos = new List<string>();
+            if (venta.MontoEfectivo > 0) metodos.Add("💵");
+            if (venta.MontoTarjeta > 0) metodos.Add("💳");
+            if (venta.MontoTransferencia > 0) metodos.Add("📱");
 
+            return metodos.Count switch
+            {
+                0 => "❓ Sin datos",
+                1 => metodos[0] + " Único",
+                _ => "🔄 Combinado"
+            };
+        }
         private string DeterminarFormaPago(Venta venta)
         {
             var formas = new List<string>();

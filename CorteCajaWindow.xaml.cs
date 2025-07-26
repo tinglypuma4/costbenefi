@@ -333,21 +333,24 @@ namespace costbenefi.Views
 
             if (puedeCompletar)
             {
-                IconEstado.Kind = MaterialDesignThemes.Wpf.PackIconKind.CheckCircle;
+                // ✅ CORREGIDO: Solo cambiar texto y color, sin .Kind
+                IconEstado.Text = "✅";
                 IconEstado.Foreground = new SolidColorBrush(Color.FromRgb(40, 167, 69));
                 TxtEstadoValidacion.Text = "✅ Listo para completar";
                 TxtEstadoValidacion.Foreground = new SolidColorBrush(Color.FromRgb(40, 167, 69));
             }
             else if (!_conteoCompleto)
             {
-                IconEstado.Kind = MaterialDesignThemes.Wpf.PackIconKind.ClockOutline;
+                // ✅ CORREGIDO: Solo cambiar texto y color, sin .Kind  
+                IconEstado.Text = "🕐";
                 IconEstado.Foreground = new SolidColorBrush(Color.FromRgb(255, 193, 7));
                 TxtEstadoValidacion.Text = "⏳ Complete el conteo físico";
                 TxtEstadoValidacion.Foreground = new SolidColorBrush(Color.FromRgb(255, 193, 7));
             }
             else
             {
-                IconEstado.Kind = MaterialDesignThemes.Wpf.PackIconKind.Calculator;
+                // ✅ CORREGIDO: Solo cambiar texto y color, sin .Kind
+                IconEstado.Text = "🧮";
                 IconEstado.Foreground = new SolidColorBrush(Color.FromRgb(23, 162, 184));
                 TxtEstadoValidacion.Text = "🧮 Calculando diferencias...";
                 TxtEstadoValidacion.Foreground = new SolidColorBrush(Color.FromRgb(23, 162, 184));

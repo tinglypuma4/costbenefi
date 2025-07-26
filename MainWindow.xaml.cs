@@ -728,6 +728,10 @@ namespace costbenefi
         // ✅ MÉTODO ÚNICO - PROCESAMIENTO DE VENTA (CORREGIDO)
         private async Task<bool> ProcesarVentaUnico()
         {
+            // ✅ USAR CONTEXTO SEPARADO CON TRANSACCIÓN
+            using var ventaContext = new AppDbContext();
+            using var transaction = await ventaContext.Database.BeginTransactionAsync();
+
             try
             {
                 if (!_carritoItems.Any())
@@ -737,142 +741,198 @@ namespace costbenefi
                     return false;
                 }
 
-                // Calcular total sin IVA adicional
+                // Calcular total
                 decimal subtotal = _carritoItems.Sum(i => i.SubTotal);
                 decimal total = subtotal;
 
-                // Abrir ventana de procesamiento de pagos
+                // Abrir ventana de pago
                 var pagoWindow = new ProcesarPagoWindow(total, TxtCliente.Text.Trim());
                 if (pagoWindow.ShowDialog() != true)
                 {
-                    return false; // Usuario canceló el pago
+                    return false;
                 }
 
-                // Crear la venta con información de comisiones e IVA
+                // ✅ VERIFICAR Y RESERVAR STOCK PRIMERO (sin modificar aún)
+                var productosParaActualizar = new List<(RawMaterial producto, decimal cantidad)>();
+
+                foreach (var item in _carritoItems)
+                {
+                    var producto = await ventaContext.RawMaterials.FindAsync(item.RawMaterialId);
+                    if (producto == null)
+                    {
+                        throw new InvalidOperationException($"Producto no encontrado: {item.NombreProducto}");
+                    }
+
+                    if (producto.StockTotal < item.Cantidad)
+                    {
+                        throw new InvalidOperationException($"Stock insuficiente para {item.NombreProducto}. Disponible: {producto.StockTotal:F2}");
+                    }
+
+                    productosParaActualizar.Add((producto, item.Cantidad));
+                }
+
+                // ✅ CREAR LA VENTA
                 var venta = new Venta
                 {
                     Cliente = pagoWindow.NombreCliente,
-                    Usuario = Environment.UserName,
-                    FormaPago = "Tarjeta", // Asumiendo que ProcesarPagoWindow maneja solo pagos con tarjeta
+                    Usuario = UserService.UsuarioActual?.NombreUsuario ?? Environment.UserName,
+                    FormaPago = pagoWindow.FormaPagoFinal,
                     Estado = "Completada",
-                    Observaciones = ""
+                    Observaciones = pagoWindow.DetallesPago
                 };
 
-                // Establecer formas de pago y comisiones
-                venta.EstablecerFormasPago(0, pagoWindow.Monto, 0); // Solo tarjeta
-                venta.ComisionTarjeta = pagoWindow.ComisionTarjeta;
-                venta.IVAComision = pagoWindow.IVAComision;
-                venta.ComisionTotal = pagoWindow.ComisionTarjeta + pagoWindow.IVAComision;
+                // Configurar pagos y comisiones
+                venta.EstablecerFormasPago(
+                    pagoWindow.MontoEfectivo,
+                    pagoWindow.MontoTarjeta,
+                    pagoWindow.MontoTransferencia
+                );
+
+                if (pagoWindow.ComisionTarjeta > 0)
+                {
+                    venta.CalcularComisiones(pagoWindow.PorcentajeComisionTarjeta);
+                    venta.CalcularIVAComision(pagoWindow.IVAComision > 0);
+                }
 
                 // Agregar detalles
                 foreach (var item in _carritoItems)
                 {
-                    venta.AgregarDetalle(item);
+                    var detalleVenta = new DetalleVenta
+                    {
+                        RawMaterialId = item.RawMaterialId,
+                        NombreProducto = item.NombreProducto,
+                        Cantidad = item.Cantidad,
+                        PrecioUnitario = item.PrecioUnitario,
+                        UnidadMedida = item.UnidadMedida,
+                        CostoUnitario = item.CostoUnitario,
+                        PorcentajeIVA = item.PorcentajeIVA,
+                        DescuentoAplicado = item.DescuentoAplicado
+                    };
+                    detalleVenta.CalcularSubTotal();
+                    venta.AgregarDetalle(detalleVenta);
                 }
 
-                // Calcular totales
                 venta.CalcularTotales();
-
-                // Generar número de ticket
                 venta.GenerarNumeroTicket();
 
-                // Verificar stock y actualizar
-                foreach (var detalle in venta.DetallesVenta)
+                // ✅ AGREGAR VENTA PRIMERO
+                ventaContext.Ventas.Add(venta);
+                await ventaContext.SaveChangesAsync(); // Esto genera el ID de la venta
+
+                // ✅ AHORA SÍ ACTUALIZAR STOCK Y CREAR MOVIMIENTOS
+                foreach (var (producto, cantidad) in productosParaActualizar)
                 {
-                    var producto = await _context.RawMaterials.FindAsync(detalle.RawMaterialId);
-                    if (producto == null || !producto.ReducirStock(detalle.Cantidad))
+                    // Reducir stock
+                    if (!producto.ReducirStock(cantidad))
                     {
-                        MessageBox.Show($"Error: Stock insuficiente para {detalle.NombreProducto}",
-                                      "Error de Stock", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return false;
+                        throw new InvalidOperationException($"Error al reducir stock de {producto.NombreArticulo}");
                     }
 
-                    // Crear movimiento de venta
+                    // Crear movimiento
+                    // ✅ CORRECTO - Usar método estático que ya tienes
                     var movimiento = Movimiento.CrearMovimientoVenta(
-                        detalle.RawMaterialId,
-                        detalle.Cantidad,
+                        producto.Id,
+                        cantidad,
                         $"Venta POS - Ticket #{venta.NumeroTicket}",
                         Environment.UserName,
-                        detalle.PrecioUnitario,
-                        detalle.UnidadMedida,
+                        producto.PrecioConIVA,
+                        producto.UnidadMedida,
                         venta.NumeroTicket.ToString(),
                         venta.Cliente);
 
-                    _context.Movimientos.Add(movimiento);
+                    ventaContext.Movimientos.Add(movimiento);
                 }
 
-                // Guardar en base de datos
-                _context.Ventas.Add(venta);
-                await _context.SaveChangesAsync();
+                // ✅ GUARDAR TODOS LOS CAMBIOS DE UNA VEZ
+                await ventaContext.SaveChangesAsync();
 
-                // Imprimir ticket
+                // ✅ CONFIRMAR TRANSACCIÓN
+                await transaction.CommitAsync();
+
+                // ✅ LIMPIAR INTERFAZ Y ACTUALIZAR
+                _carritoItems.Clear();
+                UpdateContadoresPOS();
+                await LoadEstadisticasDelDia();
+                await RefrescarProductosAutomatico("stock actualizado después de venta");
+
+                // Imprimir ticket (sin afectar la transacción)
                 try
                 {
                     await _ticketPrinter.ImprimirTicket(venta, "Impresora_POS");
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Venta procesada pero error al imprimir: {ex.Message}",
+                    // No fallar la venta por problemas de impresión
+                    MessageBox.Show($"Venta procesada correctamente.\nAdvertencia al imprimir: {ex.Message}",
                                   "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
 
-                // Limpiar carrito
-                _carritoItems.Clear();
-                UpdateContadoresPOS();
+                // Mostrar confirmación
+                string mensaje = $"✅ VENTA PROCESADA EXITOSAMENTE!\n\n" +
+                                $"📄 Ticket: #{venta.NumeroTicket}\n" +
+                                $"👤 Cliente: {venta.Cliente}\n" +
+                                $"💰 Total: {venta.Total:C2}\n" +
+                                $"📊 Ganancia: {venta.GananciaBruta:C2}";
 
-                // Actualizar estadísticas
-                await LoadEstadisticasDelDia();
-
-                // ✅ LÍNEA AGREGADA: Actualizar productos después de venta
-                await RefrescarProductosAutomatico("stock actualizado después de venta");
-
-                // Mostrar confirmación con análisis financiero completo
-                string mensajeConfirmacion = "✅ VENTA PROCESADA EXITOSAMENTE!\n\n";
-                mensajeConfirmacion += $"📄 Ticket: #{venta.NumeroTicket}\n";
-                mensajeConfirmacion += $"👤 Cliente: {venta.Cliente}\n";
-                mensajeConfirmacion += $"💰 Total: {venta.Total:C2}\n";
-                mensajeConfirmacion += $"💳 Forma de pago: {venta.FormaPago}\n\n";
-
-                // Desglose financiero
-                mensajeConfirmacion += "📊 ANÁLISIS FINANCIERO:\n";
-                mensajeConfirmacion += $"   • Ganancia bruta: {venta.GananciaBruta:C2}\n";
-
-                if (venta.ComisionTarjeta > 0)
-                {
-                    mensajeConfirmacion += $"   • Comisión base: {venta.ComisionTarjeta:C2} ({pagoWindow.PorcentajeComisionTarjeta:F2}%)\n";
-                    if (venta.IVAComision > 0)
-                    {
-                        mensajeConfirmacion += $"   • IVA sobre comisión: {venta.IVAComision:C2} ({pagoWindow.PorcentajeIVA:F2}%)\n";
-                        mensajeConfirmacion += $"   • Comisión total: {venta.ComisionTotal:C2}\n";
-                    }
-                    mensajeConfirmacion += $"   • Ganancia neta: {venta.GananciaNeta:C2}\n";
-                    mensajeConfirmacion += $"   • Margen neto: {venta.MargenNeto:F2}%\n";
-                    mensajeConfirmacion += $"   • Total real recibido: {venta.TotalRealRecibido:C2}\n";
-                }
-                else
-                {
-                    mensajeConfirmacion += $"   • Margen: {venta.MargenPromedio:F2}%\n";
-                }
-
-                MessageBox.Show(mensajeConfirmacion, "Venta Completada",
-                              MessageBoxButton.OK, MessageBoxImage.Information);
-
-                // Actualizar status con información de comisiones
-                string statusMsg = $"✅ Venta #{venta.NumeroTicket} completada - {venta.Total:C2}";
                 if (venta.ComisionTotal > 0)
                 {
-                    statusMsg += $" | Neto: {venta.TotalRealRecibido:C2}";
+                    mensaje += $"\n🏦 Comisión: {venta.ComisionTotal:C2}\n" +
+                              $"💵 Neto recibido: {venta.TotalRealRecibido:C2}";
                 }
-                TxtStatusPOS.Text = statusMsg;
 
+                MessageBox.Show(mensaje, "Venta Completada",
+                               MessageBoxButton.OK, MessageBoxImage.Information);
+
+                TxtStatusPOS.Text = $"✅ Venta #{venta.NumeroTicket} completada - {venta.Total:C2}";
                 return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al procesar venta: {ex.Message}",
-                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                TxtStatusPOS.Text = "❌ Error al procesar venta";
+                // ✅ ROLLBACK AUTOMÁTICO SI HAY ERROR
+                try
+                {
+                    await transaction.RollbackAsync();
+                }
+                catch (Exception rollbackEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error en rollback: {rollbackEx.Message}");
+                }
+
+                // Mostrar error específico
+                string errorMsg = ex.InnerException?.Message ?? ex.Message;
+                MessageBox.Show($"❌ Error al procesar venta:\n\n{errorMsg}\n\nTodos los cambios han sido revertidos.",
+                               "Error de Venta", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                TxtStatusPOS.Text = "❌ Error al procesar venta - Sistema restaurado";
                 return false;
+            }
+        }
+
+        private async Task LimpiarContextoPrincipal()
+        {
+            try
+            {
+                // Detectar y limpiar entidades con problemas
+                var entriesConProblemas = _context.ChangeTracker.Entries()
+                    .Where(e => e.State == EntityState.Modified || e.State == EntityState.Added)
+                    .ToList();
+
+                foreach (var entry in entriesConProblemas)
+                {
+                    entry.State = EntityState.Detached;
+                }
+
+                // Si hay muchos problemas, recrear el contexto
+                if (entriesConProblemas.Count > 10)
+                {
+                    _context?.Dispose();
+                    _context = new AppDbContext();
+                    await LoadDataSafe(); // Recargar datos básicos
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error limpiando contexto: {ex.Message}");
             }
         }
 
@@ -1615,6 +1675,7 @@ namespace costbenefi
                 }
                 catch (Exception ex)
                 {
+                    await LimpiarContextoPrincipal(); // ✅ AGREGAR ESTA LÍNEA
                     MessageBox.Show($"Error al editar material: {ex.Message}", "Error",
                                   MessageBoxButton.OK, MessageBoxImage.Error);
                     TxtStatus.Text = "❌ Error al editar material";
@@ -1695,6 +1756,7 @@ namespace costbenefi
                 }
                 catch (Exception ex)
                 {
+                    await LimpiarContextoPrincipal(); // ✅ AGREGAR ESTA LÍNEA
                     MessageBox.Show($"Error: {ex.Message}", "Error",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }

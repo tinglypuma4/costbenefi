@@ -26,7 +26,18 @@ namespace costbenefi.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=costbenefi.db");
+            if (!optionsBuilder.IsConfigured)
+            {
+                // ✅ SOLUCIÓN 4: Configuración mejorada de SQLite
+                optionsBuilder.UseSqlite("Data Source=costbenefi.db;Cache=Shared;Pooling=true;", options =>
+                {
+                    options.CommandTimeout(30); // 30 segundos timeout
+                });
+
+                // ✅ CONFIGURACIÓN PARA MEJOR MANEJO DE CONCURRENCIA
+                optionsBuilder.EnableSensitiveDataLogging(false);
+                optionsBuilder.EnableDetailedErrors(true);
+            }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

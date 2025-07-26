@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using costbenefi.Models;
+using System.Text.RegularExpressions;
 
 namespace costbenefi.Views
 {
@@ -15,14 +16,13 @@ namespace costbenefi.Views
         private decimal _pagoTarjeta = 0;
         private decimal _pagoTransferencia = 0;
         private decimal _efectivoRecibido = 0;
-
-        // Propiedades para comisiones
         private decimal _porcentajeComisionTarjeta = 0;
         private decimal _porcentajeIVA = 0;
         private decimal _comisionTarjeta = 0;
         private decimal _ivaComision = 0;
         private bool _tieneComisionTarjeta = false;
         private bool _terminalCobraIVA = false;
+        private bool _isUpdating = false;
 
         public bool PagoConfirmado { get; private set; } = false;
         public string FormaPagoFinal { get; private set; } = "";
@@ -31,7 +31,6 @@ namespace costbenefi.Views
         public string NombreCliente { get; private set; }
         public decimal Monto { get; private set; }
 
-        // Propiedades públicas para comisiones
         public decimal MontoEfectivo => _pagoEfectivo > 0 ? _pagoEfectivo : _efectivoRecibido;
         public decimal MontoTarjeta => _pagoTarjeta;
         public decimal MontoTransferencia => _pagoTransferencia;
@@ -40,7 +39,6 @@ namespace costbenefi.Views
         public decimal PorcentajeComisionTarjeta => _porcentajeComisionTarjeta;
         public decimal PorcentajeIVA => _porcentajeIVA;
 
-        // Controles
         private TextBox TxtCliente;
         private TextBlock TxtTotalVenta;
         private TextBox TxtEfectivoRecibido;
@@ -60,21 +58,26 @@ namespace costbenefi.Views
         public ProcesarPagoWindow(decimal totalVenta, string cliente)
         {
             InitializeComponent();
-            _totalVenta = totalVenta;
+
+            if (TxtCliente == null || TxtTotalVenta == null || TxtEfectivoRecibido == null ||
+                BtnPagoCompleto == null || TxtPagoEfectivo == null || TxtPagoTarjeta == null ||
+                TxtPagoTransferencia == null || TxtTotalPagado == null || TxtTotalPendiente == null ||
+                TxtCambio == null || BtnConfirmar == null || ChkComisionTarjeta == null ||
+                TxtComisionCalculada == null || TxtIVAComision == null || TxtTotalRealRecibido == null)
+            {
+                throw new InvalidOperationException("No se inicializaron correctamente todos los controles de la interfaz.");
+            }
+
+            _totalVenta = Math.Round(totalVenta, 2);
             NombreCliente = cliente?.Trim() ?? "";
 
-            // Configurar interfaz
             TxtCliente.Text = NombreCliente;
             TxtTotalVenta.Text = _totalVenta.ToString("C2");
             TxtTotalPendiente.Text = _totalVenta.ToString("C2");
 
-            // Cargar configuración de comisiones
             CargarConfiguracionComisiones();
-
-            // Enfocar en efectivo
             TxtEfectivoRecibido.Focus();
 
-            // Configurar eventos
             TxtEfectivoRecibido.TextChanged += OnPagoChanged;
             TxtEfectivoRecibido.PreviewTextInput += NumericTextBox_PreviewTextInput;
             TxtEfectivoRecibido.LostFocus += FormatMontoTextBox;
@@ -128,7 +131,6 @@ namespace costbenefi.Views
                 mainGrid.RowDefinitions.Add(i == 10 ? new RowDefinition { Height = new GridLength(1, GridUnitType.Star) } : new RowDefinition { Height = GridLength.Auto });
             }
 
-            // ===== MÉTODO CORREGIDO SIN .Last() =====
             var headerPanel = CreateHeaderPanel();
             mainGrid.Children.Add(headerPanel);
             Grid.SetRow(headerPanel, 0);
@@ -243,7 +245,7 @@ namespace costbenefi.Views
             var label = new TextBlock { Text = "Efectivo recibido:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0), FontSize = 11 };
             Grid.SetColumn(label, 0);
 
-            TxtEfectivoRecibido = new TextBox { Height = 30, FontSize = 14, Padding = new Thickness(8, 4, 8, 4), BorderBrush = new SolidColorBrush(Color.FromRgb(5, 150, 105)), BorderThickness = new Thickness(2, 2, 2, 2), Text = "0" };
+            TxtEfectivoRecibido = new TextBox { Height = 30, FontSize = 14, Padding = new Thickness(8, 4, 8, 4), BorderBrush = new SolidColorBrush(Color.FromRgb(5, 150, 105)), BorderThickness = new Thickness(2, 2, 2, 2), Text = "0.00" };
             Grid.SetColumn(TxtEfectivoRecibido, 1);
 
             BtnPagoCompleto = new Button { Content = "Exacto", Height = 30, FontSize = 11, Background = new SolidColorBrush(Color.FromRgb(99, 102, 241)), Foreground = Brushes.White, BorderThickness = new Thickness(0, 0, 0, 0), Margin = new Thickness(5, 0, 0, 0) };
@@ -288,7 +290,7 @@ namespace costbenefi.Views
             var lblText = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0), FontSize = 11 };
             Grid.SetColumn(lblText, 0);
 
-            textBox = new TextBox { Height = 26, FontSize = 12, Padding = new Thickness(6, 3, 6, 3), Text = "0" };
+            textBox = new TextBox { Height = 26, FontSize = 12, Padding = new Thickness(6, 3, 6, 3), Text = "0.00" };
             textBox.PreviewTextInput += NumericTextBox_PreviewTextInput;
             textBox.LostFocus += FormatMontoTextBox;
             Grid.SetColumn(textBox, 1);
@@ -437,47 +439,69 @@ namespace costbenefi.Views
             return panel;
         }
 
-        // Validación y formato
         private void NumericTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             var textBox = sender as TextBox;
-            var text = textBox.Text.Insert(textBox.SelectionStart, e.Text);
-            e.Handled = !IsValidDecimal(text);
+            var proposedText = textBox.Text.Insert(textBox.SelectionStart, e.Text);
+            e.Handled = !IsValidDecimal(proposedText);
         }
 
         private bool IsValidDecimal(string text)
         {
+            if (string.IsNullOrEmpty(text))
+                return true;
+
+            var regex = new Regex(@"^\d*(\.\d{0,2})?$");
+            if (!regex.IsMatch(text))
+                return false;
+
             return decimal.TryParse(text, out decimal result) && result >= 0 && result <= 1000000;
         }
 
         private void FormatMontoTextBox(object sender, RoutedEventArgs e)
         {
+            if (_isUpdating) return;
+
             var textBox = sender as TextBox;
-            if (decimal.TryParse(textBox.Text, out decimal value))
+            _isUpdating = true;
+            try
             {
-                textBox.Text = value.ToString("F2");
-                textBox.BorderBrush = new SolidColorBrush(Color.FromRgb(5, 150, 105));
+                if (decimal.TryParse(textBox.Text, out decimal value))
+                {
+                    textBox.Text = Math.Round(value, 2).ToString("F2");
+                    textBox.BorderBrush = new SolidColorBrush(Color.FromRgb(5, 150, 105));
+                }
+                else
+                {
+                    textBox.Text = "0.00";
+                    textBox.BorderBrush = Brushes.Red;
+                }
             }
-            else
+            finally
             {
-                textBox.BorderBrush = Brushes.Red;
+                _isUpdating = false;
+                UpdateCalculos();
             }
-            UpdateCalculos();
         }
 
-        // Métodos para botones de faltante
         private void BtnFaltanteEfectivo_Click()
         {
             try
             {
+                _isUpdating = true;
                 ActualizarValoresActuales();
-                decimal faltante = Math.Max(0, _totalVenta - _pagoTarjeta - _pagoTransferencia);
+                decimal faltante = Math.Round(Math.Max(0, _totalVenta - _pagoTarjeta - _pagoTransferencia), 2);
                 TxtPagoEfectivo.Text = faltante.ToString("F2");
-                TxtEfectivoRecibido.Text = "0";
+                TxtEfectivoRecibido.Text = "0.00";
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al calcular faltante: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isUpdating = false;
+                UpdateCalculos();
             }
         }
 
@@ -485,14 +509,20 @@ namespace costbenefi.Views
         {
             try
             {
+                _isUpdating = true;
                 ActualizarValoresActuales();
-                decimal faltante = Math.Max(0, _totalVenta - _pagoEfectivo - _pagoTransferencia);
+                decimal faltante = Math.Round(Math.Max(0, _totalVenta - _pagoEfectivo - _pagoTransferencia), 2);
                 TxtPagoTarjeta.Text = faltante.ToString("F2");
-                TxtEfectivoRecibido.Text = "0";
+                TxtEfectivoRecibido.Text = "0.00";
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al calcular faltante: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isUpdating = false;
+                UpdateCalculos();
             }
         }
 
@@ -500,14 +530,20 @@ namespace costbenefi.Views
         {
             try
             {
+                _isUpdating = true;
                 ActualizarValoresActuales();
-                decimal faltante = Math.Max(0, _totalVenta - _pagoEfectivo - _pagoTarjeta);
+                decimal faltante = Math.Round(Math.Max(0, _totalVenta - _pagoEfectivo - _pagoTarjeta), 2);
                 TxtPagoTransferencia.Text = faltante.ToString("F2");
-                TxtEfectivoRecibido.Text = "0";
+                TxtEfectivoRecibido.Text = "0.00";
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al calcular faltante: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isUpdating = false;
+                UpdateCalculos();
             }
         }
 
@@ -518,12 +554,11 @@ namespace costbenefi.Views
             decimal.TryParse(TxtPagoTransferencia?.Text ?? "0", out _pagoTransferencia);
             decimal.TryParse(TxtEfectivoRecibido?.Text ?? "0", out _efectivoRecibido);
 
-            // Actualizar comisiones con IVA
             _tieneComisionTarjeta = ChkComisionTarjeta?.IsChecked == true;
             if (_tieneComisionTarjeta)
             {
-                _comisionTarjeta = _pagoTarjeta * (_porcentajeComisionTarjeta / 100);
-                _ivaComision = _terminalCobraIVA ? _comisionTarjeta * (_porcentajeIVA / 100) : 0;
+                _comisionTarjeta = Math.Round(_pagoTarjeta * (_porcentajeComisionTarjeta / 100), 2);
+                _ivaComision = _terminalCobraIVA ? Math.Round(_comisionTarjeta * (_porcentajeIVA / 100), 2) : 0;
             }
             else
             {
@@ -532,9 +567,9 @@ namespace costbenefi.Views
             }
         }
 
-        // Eventos y cálculos
         private void OnPagoChanged(object sender, TextChangedEventArgs e)
         {
+            if (_isUpdating) return;
             UpdateCalculos();
         }
 
@@ -549,78 +584,79 @@ namespace costbenefi.Views
             {
                 ActualizarValoresActuales();
 
-                decimal totalPagado = Math.Max(_efectivoRecibido, _pagoEfectivo + _pagoTarjeta + _pagoTransferencia);
-                decimal pendiente = Math.Max(0, _totalVenta - totalPagado);
-                decimal cambio = Math.Max(0, totalPagado - _totalVenta);
-                decimal comisionTotal = _comisionTarjeta + _ivaComision;
-                decimal totalRealRecibido = totalPagado - comisionTotal;
-
-                // Actualizar interfaz
-                if (TxtTotalPagado != null) TxtTotalPagado.Text = totalPagado.ToString("C2");
-                if (TxtTotalPendiente != null)
+                decimal totalPagado;
+                if (_efectivoRecibido > 0 && _pagoEfectivo == 0 && _pagoTarjeta == 0 && _pagoTransferencia == 0)
                 {
-                    TxtTotalPendiente.Text = pendiente.ToString("C2");
-                    TxtTotalPendiente.Foreground = pendiente > 0 ?
-                        new SolidColorBrush(Color.FromRgb(239, 68, 68)) :
-                        new SolidColorBrush(Color.FromRgb(5, 150, 105));
+                    totalPagado = _efectivoRecibido;
                 }
-                if (TxtCambio != null)
+                else
                 {
-                    TxtCambio.Text = cambio.ToString("C2");
-                    TxtCambio.Foreground = cambio > 0 ?
-                        new SolidColorBrush(Color.FromRgb(245, 158, 11)) :
-                        new SolidColorBrush(Color.FromRgb(156, 163, 175));
+                    totalPagado = _pagoEfectivo + _pagoTarjeta + _pagoTransferencia;
                 }
 
-                if (TxtComisionCalculada != null)
-                {
-                    TxtComisionCalculada.Text = _comisionTarjeta.ToString("C2");
-                }
+                decimal pendiente = Math.Round(_totalVenta - totalPagado, 2);
+                decimal cambio = Math.Round(totalPagado - _totalVenta, 2);
+                decimal comisionTotal = Math.Round(_comisionTarjeta + _ivaComision, 2);
+                decimal totalRealRecibido = Math.Round(totalPagado - comisionTotal, 2);
 
-                if (TxtIVAComision != null)
+                TxtTotalPagado.Text = totalPagado.ToString("C2");
+                TxtTotalPendiente.Text = pendiente.ToString("C2");
+                TxtTotalPendiente.Foreground = pendiente > 0
+                    ? new SolidColorBrush(Color.FromRgb(239, 68, 68))
+                    : new SolidColorBrush(Color.FromRgb(5, 150, 105));
+
+                TxtCambio.Text = cambio.ToString("C2");
+                TxtCambio.Foreground = cambio > 0
+                    ? new SolidColorBrush(Color.FromRgb(245, 158, 11))
+                    : new SolidColorBrush(Color.FromRgb(156, 163, 175));
+
+                TxtComisionCalculada.Text = _comisionTarjeta.ToString("C2");
+                TxtIVAComision.Text = _ivaComision.ToString("C2");
+                TxtIVAComision.Visibility = _terminalCobraIVA ? Visibility.Visible : Visibility.Collapsed;
+
+                var parent = TxtIVAComision?.Parent as Grid;
+                if (parent != null)
                 {
-                    TxtIVAComision.Text = _ivaComision.ToString("C2");
-                    TxtIVAComision.Visibility = _terminalCobraIVA ? Visibility.Visible : Visibility.Collapsed;
-                    var parent = TxtIVAComision.Parent as Grid;
-                    if (parent != null)
+                    foreach (UIElement child in parent.Children)
                     {
-                        foreach (UIElement child in parent.Children)
+                        if (child is TextBlock tb && tb.Text.Contains("IVA sobre"))
                         {
-                            if (child is TextBlock tb && tb.Text.Contains("IVA sobre"))
-                            {
-                                tb.Text = $"IVA sobre comisión ({_porcentajeIVA:F2}%):";
-                                tb.Visibility = _terminalCobraIVA ? Visibility.Visible : Visibility.Collapsed;
-                                break;
-                            }
+                            tb.Text = $"IVA sobre comisión ({_porcentajeIVA:F2}%):";
+                            tb.Visibility = _terminalCobraIVA ? Visibility.Visible : Visibility.Collapsed;
+                            break;
                         }
                     }
                 }
 
-                if (TxtTotalRealRecibido != null)
-                {
-                    TxtTotalRealRecibido.Text = totalRealRecibido.ToString("C2");
-                }
+                TxtTotalRealRecibido.Text = totalRealRecibido.ToString("C2");
 
-                if (BtnConfirmar != null)
-                {
-                    BtnConfirmar.IsEnabled = totalPagado >= _totalVenta;
-                }
+                const decimal tolerance = 0.01m;
+                BtnConfirmar.IsEnabled = totalPagado >= _totalVenta - tolerance && totalPagado > 0;
 
                 CambioADar = cambio;
                 Monto = totalPagado;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Manejar errores silenciosamente
+                System.Diagnostics.Debug.WriteLine($"Error en UpdateCalculos: {ex.Message}");
             }
         }
 
         private void BtnPagoCompleto_Click(object sender, RoutedEventArgs e)
         {
-            TxtEfectivoRecibido.Text = _totalVenta.ToString("F2");
-            TxtPagoEfectivo.Text = "0";
-            TxtPagoTarjeta.Text = "0";
-            TxtPagoTransferencia.Text = "0";
+            _isUpdating = true;
+            try
+            {
+                TxtEfectivoRecibido.Text = Math.Round(_totalVenta, 2).ToString("F2");
+                TxtPagoEfectivo.Text = "0.00";
+                TxtPagoTarjeta.Text = "0.00";
+                TxtPagoTransferencia.Text = "0.00";
+            }
+            finally
+            {
+                _isUpdating = false;
+                UpdateCalculos();
+            }
         }
 
         private void BtnConfirmar_Click(object sender, RoutedEventArgs e)
@@ -628,9 +664,12 @@ namespace costbenefi.Views
             try
             {
                 ActualizarValoresActuales();
-                decimal totalPagado = Math.Max(_efectivoRecibido, _pagoEfectivo + _pagoTarjeta + _pagoTransferencia);
+                decimal totalPagado = _efectivoRecibido > 0 && _pagoEfectivo == 0 && _pagoTarjeta == 0 && _pagoTransferencia == 0
+                    ? _efectivoRecibido
+                    : _pagoEfectivo + _pagoTarjeta + _pagoTransferencia;
 
-                if (totalPagado < _totalVenta)
+                const decimal tolerance = 0.01m;
+                if (totalPagado < _totalVenta - tolerance)
                 {
                     MessageBox.Show($"El pago es insuficiente.\n\nTotal: {_totalVenta:C2}\nPagado: {totalPagado:C2}\nFaltante: {(_totalVenta - totalPagado):C2}",
                         "Pago Insuficiente", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -646,7 +685,7 @@ namespace costbenefi.Views
                 }
                 Monto = totalPagado;
 
-                if (_efectivoRecibido >= _totalVenta)
+                if (_efectivoRecibido > 0 && _pagoEfectivo == 0 && _pagoTarjeta == 0 && _pagoTransferencia == 0)
                 {
                     FormaPagoFinal = "💵 Efectivo";
                     DetallesPago = $"Efectivo recibido: {_efectivoRecibido:C2}";
@@ -655,7 +694,7 @@ namespace costbenefi.Views
                         DetallesPago += $" | Cambio: {CambioADar:C2}";
                     }
                 }
-                else if (_pagoEfectivo + _pagoTarjeta + _pagoTransferencia >= _totalVenta)
+                else
                 {
                     var metodos = new List<string>();
                     if (_pagoEfectivo > 0) metodos.Add($"Efectivo: {_pagoEfectivo:C2}");
