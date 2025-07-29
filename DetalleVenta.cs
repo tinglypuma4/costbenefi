@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace costbenefi.Models
 {
     /// <summary>
-    /// DetalleVenta CON NOTIFICACIONES - Solo se agreg� INotifyPropertyChanged
+    /// DetalleVenta CON NOTIFICACIONES - Solo se agregó INotifyPropertyChanged
     /// </summary>
     public class DetalleVenta : INotifyPropertyChanged
     {
@@ -28,11 +28,12 @@ namespace costbenefi.Models
         // ===== RELACIONES =====
         public int VentaId { get; set; }
         public virtual Venta Venta { get; set; }
-
-        public int RawMaterialId { get; set; }
+        public int? RawMaterialId { get; set; }
         public virtual RawMaterial RawMaterial { get; set; }
+        public int? ServicioVentaId { get; set; }
+        public virtual ServicioVenta ServicioVenta { get; set; }
 
-        // ===== DATOS DEL PRODUCTO VENDIDO CON NOTIFICACI�N =====
+        // ===== DATOS DEL PRODUCTO VENDIDO CON NOTIFICACIÓN =====
 
         [Column(TypeName = "decimal(18,4)")]
         public decimal Cantidad
@@ -172,7 +173,7 @@ namespace costbenefi.Models
         [NotMapped]
         public bool TieneDescuento => DescuentoAplicado > 0;
 
-        // ===== M�TODOS (IGUALES QUE ANTES) =====
+        // ===== MÉTODOS (IGUALES QUE ANTES) =====
 
         public void CalcularSubTotal()
         {
@@ -219,7 +220,7 @@ namespace costbenefi.Models
         public string ObtenerDescripcionTicket()
         {
             var descuento = TieneDescuento ? $" (Desc: {DescuentoAplicado:C2})" : "";
-            return $"{NombreProducto} - {Cantidad:F2} {UnidadMedida} � {PrecioUnitario:C2}{descuento}";
+            return $"{NombreProducto} - {Cantidad:F2} {UnidadMedida} × {PrecioUnitario:C2}{descuento}";
         }
 
         public void CopiarDatosProducto(RawMaterial producto)
@@ -232,7 +233,7 @@ namespace costbenefi.Models
             PorcentajeIVA = producto.PorcentajeIVA;
         }
 
-        // ===== IMPLEMENTACI�N DE INotifyPropertyChanged =====
+        // ===== IMPLEMENTACIÓN DE INotifyPropertyChanged =====
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -249,5 +250,45 @@ namespace costbenefi.Models
             OnPropertyChanged(propertyName);
             return true;
         }
+
+
+        /// <summary>
+        /// Indica si este detalle corresponde a un producto
+        /// </summary>
+        [NotMapped]
+        public bool EsProducto => RawMaterialId.HasValue && RawMaterialId.Value > 0;
+
+        /// <summary>
+        /// Indica si este detalle corresponde a un servicio
+        /// </summary>
+        [NotMapped]
+        public bool EsServicio => ServicioVentaId.HasValue && ServicioVentaId.Value > 0;
+
+        /// <summary>
+        /// Tipo de item para mostrar en reportes
+        /// </summary>
+        [NotMapped]
+        public string TipoItem => EsServicio ? "Servicio" : "Producto";
+
+        /// <summary>
+        /// Descripción completa del item
+        /// </summary>
+        [NotMapped]
+        public string DescripcionCompleta
+        {
+            get
+            {
+                if (EsServicio)
+                    return $"🛍️ {NombreProducto} (Servicio)";
+                else
+                    return $"📦 {NombreProducto} (Producto)";
+            }
+        }
+
+        /// <summary>
+        /// ID del item (producto o servicio)
+        /// </summary>
+        [NotMapped]
+        public int ItemId => EsServicio ? ServicioVentaId.Value : (RawMaterialId ?? 0);
     }
 }

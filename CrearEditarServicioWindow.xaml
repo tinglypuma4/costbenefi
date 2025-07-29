@@ -1,0 +1,362 @@
+﻿<Window x:Class="costbenefi.Views.CrearEditarServicioWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🛍️ Crear/Editar Servicio" Height="800" Width="1200"
+        WindowStartupLocation="CenterOwner" 
+        Background="#F5F7FA">
+
+    <Window.Resources>
+        <!-- Estilo para botones principales -->
+        <Style x:Key="MainButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#059669"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#047857"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Estilo para botones secundarios -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#6B7280"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#4B5563"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Estilo para inputs -->
+        <Style x:Key="InputStyle" TargetType="TextBox">
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <!-- Estilo para labels -->
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="5,8,5,3"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#374151"/>
+        </Style>
+
+        <!-- ✅ MOVIDO AQUÍ: Estilo para DataGrid centrado -->
+        <Style x:Key="CenterAlignedCell" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="20" Margin="0,0,0,20" 
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="🛍️ Crear Nuevo Servicio" FontSize="24" FontWeight="Bold" 
+                              Foreground="#1F2937" x:Name="TxtTituloVentana"/>
+                    <TextBlock Text="Configure los materiales necesarios y establezca precios" 
+                              FontSize="14" Foreground="#6B7280" Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="💾 Guardar" Style="{StaticResource MainButtonStyle}" 
+                           x:Name="BtnGuardar" Click="BtnGuardar_Click"/>
+                    <Button Content="❌ Cancelar" Style="{StaticResource SecondaryButtonStyle}" 
+                           x:Name="BtnCancelar" Click="BtnCancelar_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Contenido Principal -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="400"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Panel Izquierdo - Información del Servicio -->
+            <Border Grid.Column="0" Background="White" CornerRadius="10" Padding="20" 
+                    BorderBrush="#E5E7EB" BorderThickness="1">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="📋 Información del Servicio" FontSize="18" FontWeight="Bold" 
+                                  Foreground="#1F2937" Margin="0,0,0,20"/>
+
+                        <!-- Información básica -->
+                        <TextBlock Text="Nombre del Servicio *" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtNombreServicio" Style="{StaticResource InputStyle}"/>
+
+                        <TextBlock Text="Descripción" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtDescripcion" Style="{StaticResource InputStyle}" 
+                                TextWrapping="Wrap" Height="80" AcceptsReturn="True"/>
+
+                        <TextBlock Text="Categoría *" Style="{StaticResource LabelStyle}"/>
+                        <ComboBox x:Name="CmbCategoriaServicio" Margin="5" Padding="10" FontSize="14">
+                            <ComboBoxItem Content="Spa"/>
+                            <ComboBoxItem Content="Estética"/>
+                            <ComboBoxItem Content="Automotriz"/>
+                            <ComboBoxItem Content="Reparaciones"/>
+                            <ComboBoxItem Content="Limpieza"/>
+                            <ComboBoxItem Content="Otros"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Observaciones" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtObservaciones" Style="{StaticResource InputStyle}" 
+                                TextWrapping="Wrap" Height="60" AcceptsReturn="True"/>
+
+                        <!-- Precios y costos -->
+                        <TextBlock Text="💰 Precios y Costos" FontSize="16" FontWeight="Bold" 
+                                  Foreground="#1F2937" Margin="0,20,0,15"/>
+
+                        <TextBlock Text="Costo de Mano de Obra" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtCostoManoObra" Style="{StaticResource InputStyle}" 
+                                TextChanged="CalcularTotales"/>
+
+                        <TextBlock Text="Margen Objetivo (%)" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtMargenObjetivo" Style="{StaticResource InputStyle}" 
+                                Text="40" TextChanged="CalcularTotales"/>
+
+                        <TextBlock Text="Precio Base Sugerido" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtPrecioBaseSugerido" Style="{StaticResource InputStyle}" 
+                                IsReadOnly="True" Background="#F9FAFB"/>
+
+                        <TextBlock Text="Precio Final del Servicio *" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtPrecioServicio" Style="{StaticResource InputStyle}"/>
+
+                        <!-- Configuración adicional -->
+                        <TextBlock Text="⚙️ Configuración" FontSize="16" FontWeight="Bold" 
+                                  Foreground="#1F2937" Margin="0,20,0,15"/>
+
+                        <CheckBox x:Name="ChkActivoParaVenta" Content="Activo para venta" 
+                                 Margin="5,10" IsChecked="True" FontSize="14"/>
+
+                        <CheckBox x:Name="ChkIntegrarPOS" Content="Integrar con punto de venta" 
+                                 Margin="5,5" IsChecked="True" FontSize="14"/>
+
+                        <CheckBox x:Name="ChkRequiereConfirmacion" Content="Requiere confirmación especial" 
+                                 Margin="5,5" IsChecked="False" FontSize="14"/>
+
+                        <!-- Resumen de costos -->
+                        <Border Background="#F0F9FF" CornerRadius="8" Padding="15" Margin="0,20,0,0">
+                            <StackPanel>
+                                <TextBlock Text="📊 Resumen de Costos" FontWeight="Bold" FontSize="14" 
+                                          Foreground="#0369A1" Margin="0,0,0,10"/>
+                                
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="2"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Costo Materiales:" FontSize="12"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" x:Name="TxtResumenMateriales" 
+                                              Text="$0.00" FontSize="12" FontWeight="Bold"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Costo Mano de Obra:" FontSize="12"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TxtResumenManoObra" 
+                                              Text="$0.00" FontSize="12" FontWeight="Bold"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Costo Total:" FontSize="12"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" x:Name="TxtResumenCostoTotal" 
+                                              Text="$0.00" FontSize="12" FontWeight="Bold"/>
+
+                                    <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" 
+                                           Height="1" Background="#BFDBFE" Margin="0,5"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Precio Servicio:" FontSize="12"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" x:Name="TxtResumenPrecio" 
+                                              Text="$0.00" FontSize="12" FontWeight="Bold" Foreground="#059669"/>
+
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Margen Real:" FontSize="12"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="1" x:Name="TxtResumenMargen" 
+                                              Text="0%" FontSize="12" FontWeight="Bold" Foreground="#059669"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Panel Derecho - Materiales -->
+            <Border Grid.Column="2" Background="White" CornerRadius="10" Padding="20" 
+                    BorderBrush="#E5E7EB" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="20"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Materiales Disponibles -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="📦 Materiales Disponibles en Inventario" 
+                                  FontSize="16" FontWeight="Bold" Foreground="#1F2937"/>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <TextBox x:Name="TxtBuscarMaterial" Width="200" Padding="8" 
+                                    TextChanged="TxtBuscarMaterial_TextChanged"/>
+                            <Button Content="🔍" Style="{StaticResource SecondaryButtonStyle}" 
+                                   Width="40" Margin="5,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <DataGrid Grid.Row="1" x:Name="DgMaterialesDisponibles" 
+                             AutoGenerateColumns="False" 
+                             CanUserAddRows="False" 
+                             CanUserDeleteRows="False"
+                             SelectionMode="Single"
+                             GridLinesVisibility="Horizontal"
+                             HeadersVisibility="Column"
+                             Background="White"
+                             Margin="0,10,0,0"
+                             MouseDoubleClick="DgMaterialesDisponibles_MouseDoubleClick">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Material" Binding="{Binding NombreArticulo}" Width="*"/>
+                            <DataGridTextColumn Header="Stock" Binding="{Binding StockTotal, StringFormat='{}{0:F2}'}" 
+                                               Width="80" ElementStyle="{StaticResource CenterAlignedCell}"/>
+                            <DataGridTextColumn Header="Unidad" Binding="{Binding UnidadMedida}" Width="80"/>
+                            <DataGridTextColumn Header="Costo" Binding="{Binding PrecioConIVA, StringFormat='{}{0:C2}'}" 
+                                               Width="80" ElementStyle="{StaticResource CenterAlignedCell}"/>
+                            <DataGridTemplateColumn Header="Acción" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="➕" FontSize="12" Padding="5" 
+                                               Background="#059669" Foreground="White" BorderThickness="0"
+                                               Click="BtnAgregarMaterial_Click" 
+                                               Tag="{Binding}" Cursor="Hand"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Separador -->
+                    <Border Grid.Row="2" Height="1" Background="#E5E7EB" Margin="0,10"/>
+
+                    <!-- Materiales Seleccionados -->
+                    <Grid Grid.Row="3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="✅ Materiales Seleccionados para el Servicio" 
+                                  FontSize="16" FontWeight="Bold" Foreground="#1F2937"/>
+
+                        <TextBlock Grid.Column="1" x:Name="TxtCountMateriales" 
+                                  Text="0 materiales" FontSize="12" Foreground="#6B7280"/>
+                    </Grid>
+
+                    <DataGrid Grid.Row="4" x:Name="DgMaterialesSeleccionados" 
+                             AutoGenerateColumns="False" 
+                             CanUserAddRows="False" 
+                             CanUserDeleteRows="False"
+                             SelectionMode="Single"
+                             GridLinesVisibility="Horizontal"
+                             HeadersVisibility="Column"
+                             Background="White"
+                             Margin="0,10,0,0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Material" Binding="{Binding NombreMaterial}" Width="*"/>
+                            
+                            <DataGridTemplateColumn Header="Cantidad" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding CantidadNecesaria, StringFormat='{}{0:F2}', UpdateSourceTrigger=PropertyChanged}" 
+                                                Padding="5" TextAlignment="Center" 
+                                                TextChanged="CantidadMaterial_TextChanged"
+                                                GotFocus="CantidadTextBox_GotFocus"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            
+                            <DataGridTextColumn Header="Unidad" Binding="{Binding UnidadMedida}" Width="80"/>
+                            <DataGridTextColumn Header="Costo Unit." Binding="{Binding CostoUnitario, StringFormat='{}{0:C2}'}" 
+                                               Width="80" ElementStyle="{StaticResource CenterAlignedCell}"/>
+                            <DataGridTextColumn Header="Costo Total" Binding="{Binding CostoTotal, StringFormat='{}{0:C2}'}" 
+                                               Width="90" ElementStyle="{StaticResource CenterAlignedCell}"/>
+                            
+                            <DataGridTemplateColumn Header="Acción" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="🗑️" FontSize="12" Padding="5" 
+                                               Background="#DC2626" Foreground="White" BorderThickness="0"
+                                               Click="BtnQuitarMaterial_Click" 
+                                               Tag="{Binding}" Cursor="Hand"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="White" CornerRadius="10" Padding="15" Margin="0,20,0,0" 
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" x:Name="TxtEstadoFormulario" 
+                          Text="✅ Listo para configurar servicio" 
+                          FontSize="14" VerticalAlignment="Center" Foreground="#059669"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="🔄 Calcular Precio Sugerido" Style="{StaticResource SecondaryButtonStyle}" 
+                           x:Name="BtnCalcularPrecio" Click="BtnCalcularPrecio_Click"/>
+                    <Button Content="👁️ Vista Previa" Style="{StaticResource SecondaryButtonStyle}" 
+                           x:Name="BtnVistaPrevia" Click="BtnVistaPrevia_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

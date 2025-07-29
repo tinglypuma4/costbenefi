@@ -249,7 +249,7 @@ namespace costbenefi.Models
                 .GroupBy(d => new { d.RawMaterialId, d.NombreProducto })
                 .Select(g => new AnalisisProductoVendido
                 {
-                    ProductoId = g.Key.RawMaterialId,
+                    ProductoId = g.Key.RawMaterialId ?? 0,
                     NombreProducto = g.Key.NombreProducto,
                     CantidadVendida = g.Sum(d => d.Cantidad),
                     VentasRealizadas = g.Count(),

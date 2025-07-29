@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using costbenefi.Data;
 
@@ -10,9 +11,10 @@ using costbenefi.Data;
 namespace costbenefi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250726214024_AgregarModuloServicios")]
+    partial class AgregarModuloServicios
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.25");
@@ -331,10 +333,7 @@ namespace costbenefi.Migrations
                     b.Property<decimal>("PrecioUnitario")
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<int?>("RawMaterialId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("ServicioVentaId")
+                    b.Property<int>("RawMaterialId")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("SubTotal")
@@ -351,8 +350,6 @@ namespace costbenefi.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("RawMaterialId");
-
-                    b.HasIndex("ServicioVentaId");
 
                     b.HasIndex("VentaId");
 
@@ -1321,12 +1318,8 @@ namespace costbenefi.Migrations
                     b.HasOne("costbenefi.Models.RawMaterial", "RawMaterial")
                         .WithMany()
                         .HasForeignKey("RawMaterialId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("costbenefi.Models.ServicioVenta", "ServicioVenta")
-                        .WithMany()
-                        .HasForeignKey("ServicioVentaId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("costbenefi.Models.Venta", "Venta")
                         .WithMany("DetallesVenta")
@@ -1335,8 +1328,6 @@ namespace costbenefi.Migrations
                         .IsRequired();
 
                     b.Navigation("RawMaterial");
-
-                    b.Navigation("ServicioVenta");
 
                     b.Navigation("Venta");
                 });

@@ -13,10 +13,11 @@ using costbenefi.Models;
 using costbenefi.Views;
 using costbenefi.Services;
 using System.ComponentModel;
+using costbenefi.Managers;
 using System.Globalization;
-using costbenefi.Managers;
-using costbenefi.Managers;
-using System.ComponentModel;
+using System.Windows.Data;
+
+
 
 namespace costbenefi
 {
@@ -25,6 +26,9 @@ namespace costbenefi
         private AppDbContext _context;
         private List<RawMaterial> _allMaterials = new();
         private List<RawMaterial> _filteredMaterials = new();
+        private List<ServicioVenta> _serviciosParaVenta = new();
+        private List<object> _itemsPOS = new(); // Lista mixta para productos Y servicios
+
 
 
         // ========== VARIABLES POS ==========
@@ -290,14 +294,27 @@ namespace costbenefi
         {
             try
             {
-                TxtStatusPOS.Text = "⏳ Cargando productos para venta...";
+                TxtStatusPOS.Text = "⏳ Cargando productos y servicios para venta...";
 
-                // Cargar productos disponibles para venta
+                // ✅ CARGAR PRODUCTOS (existente)
                 _productosParaVenta = await _context.GetProductosDisponiblesParaVenta().ToListAsync();
-                _productosParaVentaFiltrados = new List<RawMaterial>(_productosParaVenta);
 
-                // Actualizar lista
-                LstProductosPOS.ItemsSource = _productosParaVentaFiltrados;
+                // ✅ NUEVO: CARGAR SERVICIOS INTEGRADOS AL POS
+                _serviciosParaVenta = await _context.ServiciosVenta
+      .Include(s => s.MaterialesNecesarios)
+          .ThenInclude(m => m.RawMaterial)
+      .Where(s => s.IntegradoPOS && s.Activo)
+      .OrderBy(s => s.PrioridadPOS)
+      .ThenBy(s => s.NombreServicio)
+      .ToListAsync();
+
+                // ✅ COMBINAR PRODUCTOS Y SERVICIOS EN UNA LISTA MIXTA
+                _itemsPOS = new List<object>();
+                _itemsPOS.AddRange(_productosParaVenta.Cast<object>());
+                _itemsPOS.AddRange(_serviciosParaVenta.Cast<object>());
+
+                // ✅ APLICAR FILTRO ACTUAL
+                FiltrarItemsPOS();
 
                 // Cargar estadísticas del día
                 await LoadEstadisticasDelDia();
@@ -305,7 +322,7 @@ namespace costbenefi
                 // Actualizar contadores
                 UpdateContadoresPOS();
 
-                TxtStatusPOS.Text = "✅ Sistema POS listo";
+                TxtStatusPOS.Text = $"✅ Sistema POS listo - {_productosParaVenta.Count} productos, {_serviciosParaVenta.Count} servicios";
                 _posLoaded = true;
             }
             catch (Exception ex)
@@ -313,6 +330,46 @@ namespace costbenefi
                 MessageBox.Show($"Error al cargar datos POS: {ex.Message}",
                               "Error POS", MessageBoxButton.OK, MessageBoxImage.Error);
                 TxtStatusPOS.Text = "❌ Error al cargar datos POS";
+            }
+        }
+
+        private void FiltrarItemsPOS()
+        {
+            try
+            {
+                string textoBusqueda = TxtBuscarPOS?.Text?.ToLower()?.Trim() ?? "";
+
+                if (string.IsNullOrEmpty(textoBusqueda))
+                {
+                    // Mostrar todos los items
+                    LstProductosPOS.ItemsSource = _itemsPOS;
+                }
+                else
+                {
+                    // Filtrar productos y servicios
+                    var itemsFiltrados = _itemsPOS.Where(item =>
+                    {
+                        if (item is RawMaterial producto)
+                        {
+                            return producto.NombreArticulo.ToLower().Contains(textoBusqueda) ||
+                                   producto.Categoria.ToLower().Contains(textoBusqueda) ||
+                                   producto.CodigoBarras.ToLower().Contains(textoBusqueda);
+                        }
+                        else if (item is ServicioVenta servicio)
+                        {
+                            return servicio.NombreServicio.ToLower().Contains(textoBusqueda) ||
+                                   servicio.CategoriaServicio.ToLower().Contains(textoBusqueda) ||
+                                   servicio.CodigoServicio.ToLower().Contains(textoBusqueda);
+                        }
+                        return false;
+                    }).ToList();
+
+                    LstProductosPOS.ItemsSource = itemsFiltrados;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error en FiltrarItemsPOS: {ex.Message}");
             }
         }
         private async Task LoadEstadisticasDelDia()
@@ -394,15 +451,29 @@ namespace costbenefi
 
         private void UpdateContadoresPOS()
         {
-            // Actualizar contador productos
-            TxtCountProductos.Text = $"{_productosParaVentaFiltrados.Count} productos";
-            TxtProductosDisponibles.Text = $"Productos: {_productosParaVenta.Count}";
+            try
+            {
+                // Actualizar contador de items disponibles (productos + servicios)
+                var totalItems = (_productosParaVenta?.Count ?? 0) + (_serviciosParaVenta?.Count ?? 0);
+                TxtCountProductos.Text = $"{totalItems} items";
+                TxtProductosDisponibles.Text = $"Productos: {_productosParaVenta?.Count ?? 0}";
 
-            // Actualizar contador carrito
-            TxtCountCarrito.Text = $"{_carritoItems.Count} artículos";
+                // ✅ NUEVO: Contador de servicios en status bar
+                if (TxtServiciosDisponibles != null)
+                {
+                    TxtServiciosDisponibles.Text = $"Servicios: {_serviciosParaVenta?.Count ?? 0}";
+                }
 
-            // Calcular totales del carrito
-            ActualizarTotalesCarrito();
+                // Actualizar contador carrito
+                TxtCountCarrito.Text = $"{_carritoItems.Count} artículos";
+
+                // Calcular totales del carrito (funcionalidad existente)
+                ActualizarTotalesCarrito();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error en UpdateContadoresPOS: {ex.Message}");
+            }
         }
 
         private void UpdateDataGrid()
@@ -728,7 +799,6 @@ namespace costbenefi
         // ✅ MÉTODO ÚNICO - PROCESAMIENTO DE VENTA (CORREGIDO)
         private async Task<bool> ProcesarVentaUnico()
         {
-            // ✅ USAR CONTEXTO SEPARADO CON TRANSACCIÓN
             using var ventaContext = new AppDbContext();
             using var transaction = await ventaContext.Database.BeginTransactionAsync();
 
@@ -752,23 +822,56 @@ namespace costbenefi
                     return false;
                 }
 
-                // ✅ VERIFICAR Y RESERVAR STOCK PRIMERO (sin modificar aún)
+                // ✅ VERIFICAR STOCK - productos y servicios por separado
                 var productosParaActualizar = new List<(RawMaterial producto, decimal cantidad)>();
+                var serviciosParaActualizar = new List<(ServicioVenta servicio, decimal cantidad)>();
 
                 foreach (var item in _carritoItems)
                 {
-                    var producto = await ventaContext.RawMaterials.FindAsync(item.RawMaterialId);
-                    if (producto == null)
+                    if (item.EsProducto)
                     {
-                        throw new InvalidOperationException($"Producto no encontrado: {item.NombreProducto}");
-                    }
+                        // Es un producto
+                        var producto = await ventaContext.RawMaterials.FindAsync(item.RawMaterialId);
+                        if (producto == null)
+                        {
+                            throw new InvalidOperationException($"Producto no encontrado: {item.NombreProducto}");
+                        }
 
-                    if (producto.StockTotal < item.Cantidad)
+                        if (producto.StockTotal < item.Cantidad)
+                        {
+                            throw new InvalidOperationException($"Stock insuficiente para {item.NombreProducto}. Disponible: {producto.StockTotal:F2}");
+                        }
+
+                        productosParaActualizar.Add((producto, item.Cantidad));
+                    }
+                    else if (item.EsServicio)
                     {
-                        throw new InvalidOperationException($"Stock insuficiente para {item.NombreProducto}. Disponible: {producto.StockTotal:F2}");
-                    }
+                        // Es un servicio
+                        var servicio = await ventaContext.ServiciosVenta
+                            .Include(s => s.MaterialesNecesarios)
+                                .ThenInclude(m => m.RawMaterial)
+                            .FirstOrDefaultAsync(s => s.Id == item.ServicioVentaId);
 
-                    productosParaActualizar.Add((producto, item.Cantidad));
+                        if (servicio == null)
+                        {
+                            throw new InvalidOperationException($"Servicio no encontrado: {item.NombreProducto}");
+                        }
+
+                        // ✅ TEMPORAL: DEBUG para verificar materiales (DESPUÉS de verificar que no es null)
+                        System.Diagnostics.Debug.WriteLine($"🔍 SERVICIO: {servicio.NombreServicio}");
+                        System.Diagnostics.Debug.WriteLine($"🔍 MATERIALES ENCONTRADOS: {servicio.MaterialesNecesarios?.Count ?? 0}");
+                        foreach (var mat in servicio.MaterialesNecesarios ?? new List<MaterialServicio>())
+                        {
+                            System.Diagnostics.Debug.WriteLine($"   - {mat.RawMaterial?.NombreArticulo}: {mat.CantidadNecesaria} {mat.UnidadMedida}");
+                        }
+
+                        if (!servicio.DisponibleParaVenta)
+                        {
+                            throw new InvalidOperationException($"Servicio no disponible: {servicio.NombreServicio}");
+                        }
+
+                        serviciosParaActualizar.Add((servicio, item.Cantidad));
+                    }
                 }
 
                 // ✅ CREAR LA VENTA
@@ -794,12 +897,13 @@ namespace costbenefi
                     venta.CalcularIVAComision(pagoWindow.IVAComision > 0);
                 }
 
-                // Agregar detalles
+                // ✅ AGREGAR DETALLES (los campos ya están correctos)
                 foreach (var item in _carritoItems)
                 {
                     var detalleVenta = new DetalleVenta
                     {
-                        RawMaterialId = item.RawMaterialId,
+                        RawMaterialId = item.RawMaterialId, // Ya es nullable
+                        ServicioVentaId = item.ServicioVentaId, // Ya contiene el ID correcto
                         NombreProducto = item.NombreProducto,
                         Cantidad = item.Cantidad,
                         PrecioUnitario = item.PrecioUnitario,
@@ -808,6 +912,7 @@ namespace costbenefi
                         PorcentajeIVA = item.PorcentajeIVA,
                         DescuentoAplicado = item.DescuentoAplicado
                     };
+
                     detalleVenta.CalcularSubTotal();
                     venta.AgregarDetalle(detalleVenta);
                 }
@@ -817,19 +922,16 @@ namespace costbenefi
 
                 // ✅ AGREGAR VENTA PRIMERO
                 ventaContext.Ventas.Add(venta);
-                await ventaContext.SaveChangesAsync(); // Esto genera el ID de la venta
+                await ventaContext.SaveChangesAsync();
 
-                // ✅ AHORA SÍ ACTUALIZAR STOCK Y CREAR MOVIMIENTOS
+                // ✅ ACTUALIZAR STOCK PRODUCTOS
                 foreach (var (producto, cantidad) in productosParaActualizar)
                 {
-                    // Reducir stock
                     if (!producto.ReducirStock(cantidad))
                     {
                         throw new InvalidOperationException($"Error al reducir stock de {producto.NombreArticulo}");
                     }
 
-                    // Crear movimiento
-                    // ✅ CORRECTO - Usar método estático que ya tienes
                     var movimiento = Movimiento.CrearMovimientoVenta(
                         producto.Id,
                         cantidad,
@@ -843,26 +945,68 @@ namespace costbenefi
                     ventaContext.Movimientos.Add(movimiento);
                 }
 
-                // ✅ GUARDAR TODOS LOS CAMBIOS DE UNA VEZ
-                await ventaContext.SaveChangesAsync();
+                // ✅ ACTUALIZAR STOCK SERVICIOS Y CONSUMIR MATERIALES
+                foreach (var (servicio, cantidad) in serviciosParaActualizar)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🔄 PROCESANDO SERVICIO: {servicio.NombreServicio} x{cantidad}");
+                    System.Diagnostics.Debug.WriteLine($"🔄 MATERIALES A CONSUMIR: {servicio.MaterialesNecesarios?.Count ?? 0}");
 
-                // ✅ CONFIRMAR TRANSACCIÓN
+                    if (!servicio.ReducirStock(cantidad))
+                    {
+                        throw new InvalidOperationException($"Error al reducir stock de servicio {servicio.NombreServicio}");
+                    }
+
+                    // Consumir materiales del servicio
+                    foreach (var materialServicio in servicio.MaterialesNecesarios)
+                    {
+                        var cantidadNecesaria = materialServicio.CantidadNecesaria * cantidad;
+                        // ✅ NUEVO DEBUG
+                        System.Diagnostics.Debug.WriteLine($"  🔹 Consumiendo: {materialServicio.RawMaterial?.NombreArticulo} - {cantidadNecesaria:F2} {materialServicio.UnidadMedida}");
+                        System.Diagnostics.Debug.WriteLine($"  🔹 Stock actual: {materialServicio.RawMaterial?.StockTotal:F2}");
+                        if (materialServicio.RawMaterial.StockTotal < cantidadNecesaria)
+                        {
+                            throw new InvalidOperationException(
+                                $"Stock insuficiente del material '{materialServicio.RawMaterial.NombreArticulo}' " +
+                                $"para el servicio '{servicio.NombreServicio}'. " +
+                                $"Necesario: {cantidadNecesaria:F2}, Disponible: {materialServicio.RawMaterial.StockTotal:F2}");
+                        }
+
+                        if (!materialServicio.RawMaterial.ReducirStock(cantidadNecesaria))
+                        {
+                            throw new InvalidOperationException($"Error al reducir stock del material {materialServicio.RawMaterial.NombreArticulo}");
+                        }
+
+                        var movimientoMaterial = Movimiento.CrearMovimientoVenta(
+                            materialServicio.RawMaterial.Id,
+                            cantidadNecesaria,
+                            $"Servicio: {servicio.NombreServicio} - Ticket #{venta.NumeroTicket}",
+                            Environment.UserName,
+                            materialServicio.RawMaterial.PrecioConIVA,
+                            materialServicio.RawMaterial.UnidadMedida,
+                            venta.NumeroTicket.ToString(),
+                            venta.Cliente);
+
+                        ventaContext.Movimientos.Add(movimientoMaterial);
+                    }
+                }
+
+                // ✅ GUARDAR TODOS LOS CAMBIOS
+                await ventaContext.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // ✅ LIMPIAR INTERFAZ Y ACTUALIZAR
+                // ✅ LIMPIAR INTERFAZ
                 _carritoItems.Clear();
                 UpdateContadoresPOS();
                 await LoadEstadisticasDelDia();
                 await RefrescarProductosAutomatico("stock actualizado después de venta");
 
-                // Imprimir ticket (sin afectar la transacción)
+                // Imprimir ticket
                 try
                 {
                     await _ticketPrinter.ImprimirTicket(venta, "Impresora_POS");
                 }
                 catch (Exception ex)
                 {
-                    // No fallar la venta por problemas de impresión
                     MessageBox.Show($"Venta procesada correctamente.\nAdvertencia al imprimir: {ex.Message}",
                                   "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
@@ -888,7 +1032,6 @@ namespace costbenefi
             }
             catch (Exception ex)
             {
-                // ✅ ROLLBACK AUTOMÁTICO SI HAY ERROR
                 try
                 {
                     await transaction.RollbackAsync();
@@ -898,7 +1041,6 @@ namespace costbenefi
                     System.Diagnostics.Debug.WriteLine($"Error en rollback: {rollbackEx.Message}");
                 }
 
-                // Mostrar error específico
                 string errorMsg = ex.InnerException?.Message ?? ex.Message;
                 MessageBox.Show($"❌ Error al procesar venta:\n\n{errorMsg}\n\nTodos los cambios han sido revertidos.",
                                "Error de Venta", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -907,7 +1049,6 @@ namespace costbenefi
                 return false;
             }
         }
-
         private async Task LimpiarContextoPrincipal()
         {
             try
@@ -937,26 +1078,14 @@ namespace costbenefi
         }
 
         // ========== EVENT HANDLERS POS ==========
-        private void TxtBuscarPOS_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            string searchText = TxtBuscarPOS.Text.ToLower().Trim();
-
-            if (string.IsNullOrEmpty(searchText))
+       
+            private void TxtBuscarPOS_TextChanged(object sender, TextChangedEventArgs e)
             {
-                _productosParaVentaFiltrados = new List<RawMaterial>(_productosParaVenta);
+                // ✅ CORRECCIÓN FINAL: Usar el método que maneja productos Y servicios
+                FiltrarItemsPOS();
+                UpdateContadoresPOS();
             }
-            else
-            {
-                _productosParaVentaFiltrados = _productosParaVenta.Where(p =>
-                    p.NombreArticulo.ToLower().Contains(searchText) ||
-                    p.Categoria.ToLower().Contains(searchText) ||
-                    p.CodigoBarras.ToLower().Contains(searchText)
-                ).ToList();
-            }
-
-            LstProductosPOS.ItemsSource = _productosParaVentaFiltrados;
-            UpdateContadoresPOS();
-        }
+        
 
         private async void BtnCerrarSesion_Click(object sender, RoutedEventArgs e)
         {
@@ -1068,54 +1197,96 @@ namespace costbenefi
         {
             try
             {
-                if (!_posLoaded) return; // Solo si POS está cargado
+                System.Diagnostics.Debug.WriteLine($"🔄 INICIANDO RefrescarProductosAutomatico: {motivo}");
 
-                // Recargar productos desde base de datos
-                _productosParaVenta = await _context.GetProductosDisponiblesParaVenta().ToListAsync();
-
-                // Aplicar filtro actual si existe
-                string filtroActual = TxtBuscarPOS.Text.ToLower().Trim();
-                if (string.IsNullOrEmpty(filtroActual))
+                if (!_posLoaded)
                 {
-                    _productosParaVentaFiltrados = new List<RawMaterial>(_productosParaVenta);
+                    System.Diagnostics.Debug.WriteLine($"🔄 SALIENDO porque _posLoaded = false");
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"🔄 PASO 1: Creando contexto fresco...");
+
+                // ✅ SOLO USAR CONTEXTO FRESCO - SIN TOCAR EL PRINCIPAL
+                using var freshContext = new AppDbContext();
+                _allMaterials = await freshContext.RawMaterials
+                    .OrderBy(m => m.NombreArticulo)
+                    .ToListAsync();
+
+                System.Diagnostics.Debug.WriteLine($"🔄 PASO 2: RECARGADOS: {_allMaterials.Count} materiales");
+
+                // ✅ RECREAR LISTA FILTRADA
+                string searchText = TxtBuscar?.Text?.ToLower()?.Trim() ?? "";
+                if (string.IsNullOrEmpty(searchText))
+                {
+                    _filteredMaterials = new List<RawMaterial>(_allMaterials);
                 }
                 else
                 {
-                    _productosParaVentaFiltrados = _productosParaVenta.Where(p =>
-                        p.NombreArticulo.ToLower().Contains(filtroActual) ||
-                        p.Categoria.ToLower().Contains(filtroActual) ||
-                        p.CodigoBarras.ToLower().Contains(filtroActual)
+                    _filteredMaterials = _allMaterials.Where(m =>
+                        m.NombreArticulo.ToLower().Contains(searchText) ||
+                        m.Categoria.ToLower().Contains(searchText) ||
+                        m.Proveedor.ToLower().Contains(searchText) ||
+                        m.CodigoBarras.ToLower().Contains(searchText)
                     ).ToList();
                 }
 
-                // Actualizar lista sin perder selección
-                var seleccionActual = LstProductosPOS.SelectedItem;
-                LstProductosPOS.ItemsSource = null;
-                LstProductosPOS.ItemsSource = _productosParaVentaFiltrados;
+                System.Diagnostics.Debug.WriteLine($"🔄 PASO 3: Filtrados: {_filteredMaterials.Count} materiales");
 
-                // Restaurar selección si el producto sigue disponible
-                if (seleccionActual is RawMaterial productoSeleccionado)
+                // ✅ ACTUALIZAR INTERFAZ
+                Dispatcher.Invoke(() =>
                 {
-                    var productoActualizado = _productosParaVentaFiltrados
-                        .FirstOrDefault(p => p.Id == productoSeleccionado.Id);
-                    if (productoActualizado != null)
-                    {
-                        LstProductosPOS.SelectedItem = productoActualizado;
-                    }
-                }
+                    System.Diagnostics.Debug.WriteLine($"🔄 PASO 4: Actualizando DataGrid...");
 
-                // Actualizar contadores
-                UpdateContadoresPOS();
+                    DgMateriales.ItemsSource = null;
+                    DgMateriales.ItemsSource = _filteredMaterials;
+                    DgMateriales.Items.Refresh();
 
-                // Mostrar mensaje discreto si hay motivo
-                if (!string.IsNullOrEmpty(motivo))
+                    UpdateStatusBar();
+
+                    System.Diagnostics.Debug.WriteLine($"🔄 PASO 5: DataGrid actualizado con {_filteredMaterials.Count} items");
+                });
+
+                // ✅ ACTUALIZAR POS
+                // ✅ ACTUALIZAR POS COMPLETO
+                System.Diagnostics.Debug.WriteLine($"🔄 PASO 6: Actualizando POS...");
+
+                // Recargar productos Y servicios
+                // ✅ CARGAR TODOS LOS PRODUCTOS (con y sin stock) para el buscador
+                _productosParaVenta = await freshContext.RawMaterials
+                    .Where(m => !m.Eliminado && m.ActivoParaVenta) // Solo activos, pero CON o SIN stock
+                    .OrderBy(m => m.NombreArticulo)
+                    .ToListAsync();
+                _serviciosParaVenta = await freshContext.ServiciosVenta
+                    .Include(s => s.MaterialesNecesarios)
+                        .ThenInclude(m => m.RawMaterial)
+                    .Where(s => s.IntegradoPOS && s.Activo)
+                    .OrderBy(s => s.PrioridadPOS)
+                    .ThenBy(s => s.NombreServicio)
+                    .ToListAsync();
+
+                // ✅ RECREAR LISTA MIXTA COMPLETA
+                _itemsPOS = new List<object>();
+                _itemsPOS.AddRange(_productosParaVenta.Cast<object>());
+                _itemsPOS.AddRange(_serviciosParaVenta.Cast<object>());
+
+                System.Diagnostics.Debug.WriteLine($"🔄 PASO 7: Items POS: {_productosParaVenta.Count} productos + {_serviciosParaVenta.Count} servicios = {_itemsPOS.Count} total");
+
+                // ✅ ACTUALIZAR INTERFAZ POS
+                Dispatcher.Invoke(() =>
                 {
-                    TxtStatusPOS.Text = $"✅ Productos actualizados ({motivo})";
-                }
+                    // Aplicar filtro actual si existe
+                    FiltrarItemsPOS();
+                    UpdateContadoresPOS();
+                    System.Diagnostics.Debug.WriteLine($"🔄 PASO 8: Interfaz POS actualizada");
+                });
+
+                System.Diagnostics.Debug.WriteLine($"🔄 COMPLETADO: RefrescarProductosAutomatico");
+
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[AUTO-REFRESH] Error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ ERROR en RefrescarProductosAutomatico: {ex.Message}");
             }
         }
 
@@ -1176,31 +1347,60 @@ namespace costbenefi
 
         private void LstProductosPOS_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Solo para feedback visual
+            // Solo para feedback visual - mantener funcionalidad original
+            if (LstProductosPOS.SelectedItem != null)
+            {
+                if (LstProductosPOS.SelectedItem is RawMaterial producto)
+                {
+                    TxtStatusPOS.Text = $"📦 Producto seleccionado: {producto.NombreArticulo} - Stock: {producto.StockTotal:F2}";
+                }
+                else if (LstProductosPOS.SelectedItem is ServicioVenta servicio)
+                {
+                    TxtStatusPOS.Text = $"🛍️ Servicio seleccionado: {servicio.NombreServicio} - Precio: {servicio.PrecioServicio:C2}";
+                }
+            }
         }
 
         private async void LstProductosPOS_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (LstProductosPOS.SelectedItem is RawMaterial producto)
+            try
             {
-                // Verificar si es producto por peso
-                if (producto.UnidadMedida.ToLower().Contains("kg") ||
-                    producto.UnidadMedida.ToLower().Contains("gr"))
+                if (LstProductosPOS.SelectedItem == null) return;
+
+                // ✅ MANEJAR PRODUCTOS (funcionalidad original)
+                if (LstProductosPOS.SelectedItem is RawMaterial producto)
                 {
-                    // Abrir ventana para ingresar peso con los parámetros requeridos
-                    var pesoWindow = new IngresarPesoWindow(_context, producto, _basculaService);
-                    if (pesoWindow.ShowDialog() == true)
+                    // Verificar si es producto por peso (funcionalidad original)
+                    if (producto.UnidadMedida.ToLower().Contains("kg") ||
+                        producto.UnidadMedida.ToLower().Contains("gr"))
                     {
-                        await AgregarProductoAlCarrito(producto, pesoWindow.PesoIngresado);
+                        // Abrir ventana para ingresar peso
+                        var pesoWindow = new IngresarPesoWindow(_context, producto, _basculaService);
+                        if (pesoWindow.ShowDialog() == true)
+                        {
+                            await AgregarProductoAlCarrito(producto, pesoWindow.PesoIngresado);
+                        }
+                    }
+                    else
+                    {
+                        // Agregar cantidad fija (funcionalidad original)
+                        await AgregarProductoAlCarrito(producto, 1);
                     }
                 }
-                else
+                // ✅ NUEVO: MANEJAR SERVICIOS
+                else if (LstProductosPOS.SelectedItem is ServicioVenta servicio)
                 {
-                    // Agregar cantidad fija
-                    await AgregarProductoAlCarrito(producto, 1);
+                    await AgregarServicioAlCarrito(servicio, 1);
                 }
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al procesar selección: {ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatusPOS.Text = "❌ Error al procesar selección";
+            }
         }
+
 
         private void BtnEliminarDelCarrito_Click(object sender, RoutedEventArgs e)
         {
@@ -1817,6 +2017,75 @@ namespace costbenefi
             };
             timerActualizacion.Start();
         }
+
+        private async Task AgregarServicioAlCarrito(ServicioVenta servicio, decimal cantidad = 1)
+        {
+            try
+            {
+                // Verificar disponibilidad del servicio
+                if (!servicio.DisponibleParaVenta)
+                {
+                    MessageBox.Show($"El servicio '{servicio.NombreServicio}' no está disponible para venta.",
+                                   "Servicio No Disponible", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Verificar stock del servicio (si aplica)
+                if (servicio.StockDisponible < cantidad)
+                {
+                    MessageBox.Show($"Stock insuficiente del servicio. Disponible: {servicio.StockDisponible}",
+                                   "Stock Insuficiente", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Buscar si ya existe en el carrito
+                var itemExistente = _carritoItems.FirstOrDefault(i =>
+                    i.ServicioVentaId == servicio.Id && i.EsServicio);
+
+                if (itemExistente != null)
+                {
+                    // Verificar que no exceda el stock disponible
+                    if (itemExistente.Cantidad + cantidad > servicio.StockDisponible)
+                    {
+                        MessageBox.Show($"Cantidad total excede el stock disponible del servicio. Disponible: {servicio.StockDisponible}",
+                                       "Stock Insuficiente", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    // Actualizar cantidad existente
+                    itemExistente.ActualizarCantidad(itemExistente.Cantidad + cantidad);
+                }
+                else
+                {
+                    // ✅ CORRECCIÓN: Crear item del carrito para servicio usando campos correctos
+                    var nuevoItem = new DetalleVenta
+                    {
+                        RawMaterialId = null, // ✅ NULL para servicios
+                        ServicioVentaId = servicio.Id, // ✅ ID del servicio
+                        NombreProducto = $"🛍️ {servicio.NombreServicio}",
+                        Cantidad = cantidad,
+                        PrecioUnitario = servicio.PrecioServicio,
+                        UnidadMedida = "servicio",
+                        CostoUnitario = servicio.CostoTotal,
+                        PorcentajeIVA = servicio.PorcentajeIVA,
+                        DescuentoAplicado = 0
+                    };
+
+                    nuevoItem.CalcularSubTotal();
+                    _carritoItems.Add(nuevoItem);
+                }
+
+                // Actualizar interfaz
+                UpdateContadoresPOS();
+                TxtStatusPOS.Text = $"✅ Servicio agregado: {servicio.NombreServicio} x{cantidad}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al agregar servicio: {ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatusPOS.Text = "❌ Error al agregar servicio";
+            }
+        }
         private async void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.Source is TabControl tabControl)
@@ -1834,15 +2103,14 @@ namespace costbenefi
                         }
                         else
                         {
-                            // Si ya está cargado, verificar estado de corte
                             await VerificarEstadoCorteCaja();
                         }
                         break;
                     case 2: // Reportes
                         TxtStatus.Text = "📊 Módulo de Reportes disponible";
                         break;
-                    case 3: // Procesos
-                        TxtStatus.Text = "⚙️ Módulo de Procesos (próximamente)";
+                    case 3: // Procesos - ✅ ACTUALIZAR ESTE CASO
+                        TxtStatus.Text = "⚙️ Módulo de Procesos activo";
                         break;
                     case 4: // Análisis
                         TxtStatus.Text = "📈 Módulo de Análisis (próximamente)";
@@ -2039,13 +2307,7 @@ namespace costbenefi
                 border.BorderThickness = new Thickness(1);
             }
         }
-        private void BtnConfigurarProcesos_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("🔧 Módulo de Procesos\n\n" +
-                          "Esta funcionalidad estará disponible en una próxima versión.\n" +
-                          "Permitirá configurar y gestionar procesos de producción.",
-                          "Próximamente", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
+       
 
         private void BtnVerDashboard_Click(object sender, RoutedEventArgs e)
         {
@@ -2202,6 +2464,25 @@ namespace costbenefi
                     await ProcesarCodigo(txtCodigo.Text);
                 }
             };
+        }
+        public class TypeConverter : IValueConverter
+        {
+            public static TypeConverter Instance { get; } = new TypeConverter();
+
+            public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            {
+                if (value == null || parameter == null) return false;
+
+                string targetTypeName = parameter.ToString();
+                string actualTypeName = value.GetType().Name;
+
+                return actualTypeName == targetTypeName;
+            }
+
+            public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private async Task ProcesarCodigo(string codigo)

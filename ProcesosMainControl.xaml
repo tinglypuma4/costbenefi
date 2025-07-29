@@ -1,0 +1,265 @@
+﻿<UserControl x:Class="costbenefi.Views.ProcesosMainControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#F8FAFC">
+
+    <UserControl.Resources>
+        <!-- Estilo para botones principales -->
+        <Style x:Key="ProcessButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="120"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="15"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="15"
+                                BorderThickness="1"
+                                BorderBrush="#E5E7EB">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{Binding Background, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Estilo para cards informativos -->
+        <Style x:Key="InfoCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="10"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#6366F1" CornerRadius="10,10,0,0" Padding="30,20">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="⚙️" FontSize="48" HorizontalAlignment="Center" 
+                          Foreground="White" Margin="0,0,0,15"/>
+                <TextBlock Text="Gestión de Procesos" FontSize="28" FontWeight="Bold" 
+                          HorizontalAlignment="Center" Foreground="White" Margin="0,0,0,8"/>
+                <TextBlock Text="Configure procesos de fabricación y servicios que utilizan su inventario" 
+                          FontSize="16" HorizontalAlignment="Center" Foreground="White" 
+                          Opacity="0.9" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Contenido Principal -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40">
+            <StackPanel MaxWidth="1000">
+
+                <!-- Descripción general -->
+                <Border Style="{StaticResource InfoCardStyle}" Background="#F0F9FF" BorderBrush="#3B82F6" Margin="0,0,0,30">
+                    <StackPanel>
+                        <TextBlock Text="💡 ¿Qué son los Procesos?" FontSize="18" FontWeight="Bold" 
+                                  Foreground="#1E40AF" Margin="0,0,0,10"/>
+                        <TextBlock TextWrapping="Wrap" Foreground="#374151" FontSize="14" LineHeight="22">
+                            <Run Text="Los procesos le permiten automatizar transformaciones y servicios que utilizan productos de su inventario. "/>
+                            <Run Text="Puede crear recetas de fabricación para producir nuevos productos, o configurar servicios que consumen materiales específicos."/>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Opciones principales -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Fabricación -->
+                    <Button Grid.Column="0" x:Name="BtnFabricacion" 
+                            Background="#059669" Foreground="White"
+                            Style="{StaticResource ProcessButtonStyle}"
+                            Click="BtnFabricacion_Click">
+                        <StackPanel>
+                            <TextBlock Text="🏭" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                            <TextBlock Text="Procesos de Fabricación" FontSize="18" FontWeight="Bold" 
+                                      HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                            <TextBlock Text="Crear productos nuevos" FontSize="12" 
+                                      HorizontalAlignment="Center" Opacity="0.8"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Servicios de Venta -->
+                    <Button Grid.Column="1" x:Name="BtnServicios" 
+                            Background="#8B5CF6" Foreground="White"
+                            Style="{StaticResource ProcessButtonStyle}"
+                            Click="BtnServicios_Click">
+                        <StackPanel>
+                            <TextBlock Text="🛍️" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                            <TextBlock Text="Servicios de Venta" FontSize="18" FontWeight="Bold" 
+                                      HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                            <TextBlock Text="Promociones y combos" FontSize="12" 
+                                      HorizontalAlignment="Center" Opacity="0.8"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <!-- Cards explicativos -->
+                <Grid Margin="0,30,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Card Fabricación -->
+                    <Border Grid.Column="0" Style="{StaticResource InfoCardStyle}" Background="#ECFDF5" BorderBrush="#059669">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                <TextBlock Text="🏭" FontSize="24" Margin="0,0,10,0"/>
+                                <TextBlock Text="Fabricación" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#059669" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <TextBlock Text="Ejemplos de uso:" FontSize="12" FontWeight="Bold" 
+                                      Foreground="#374151" Margin="0,0,0,8"/>
+                            
+                            <StackPanel>
+                                <TextBlock Text="• Panadería: Harina + Agua → Panes" FontSize="11" 
+                                          Foreground="#6B7280" Margin="0,2"/>
+                                <TextBlock Text="• Carpintería: Madera → Muebles" FontSize="11" 
+                                          Foreground="#6B7280" Margin="0,2"/>
+                                <TextBlock Text="• Cocina: Ingredientes → Platillos" FontSize="11" 
+                                          Foreground="#6B7280" Margin="0,2"/>
+                                <TextBlock Text="• Farmacia: Componentes → Medicamentos" FontSize="11" 
+                                          Foreground="#6B7280" Margin="0,2"/>
+                            </StackPanel>
+
+                            <Border Background="#10B981" CornerRadius="5" Padding="8" Margin="0,15,0,0">
+                                <TextBlock Text="✅ Descuenta automáticamente del inventario" 
+                                          FontSize="10" FontWeight="Bold" Foreground="White" 
+                                          TextAlignment="Center"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Card Servicios -->
+                    <Border Grid.Column="1" Style="{StaticResource InfoCardStyle}" Background="#F3E8FF" BorderBrush="#8B5CF6">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                <TextBlock Text="🛍️" FontSize="24" Margin="0,0,10,0"/>
+                                <TextBlock Text="Servicios" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#8B5CF6" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <TextBlock Text="Ejemplos de uso:" FontSize="12" FontWeight="Bold" 
+                                      Foreground="#374151" Margin="0,0,0,8"/>
+                            
+                            <StackPanel>
+                                <TextBlock Text="• Spa: Cremas + Tiempo → Facial" FontSize="11" 
+                                          Foreground="#6B7280" Margin="0,2"/>
+                                <TextBlock Text="• Taller: Aceite + Filtros → Servicio" FontSize="11" 
+                                          Foreground="#6B7280" Margin="0,2"/>
+                                <TextBlock Text="• Combo: 3 productos → Descuento 20%" FontSize="11" 
+                                          Foreground="#6B7280" Margin="0,2"/>
+                                <TextBlock Text="• Promoción: Compra X → Lleva Y gratis" FontSize="11" 
+                                          Foreground="#6B7280" Margin="0,2"/>
+                            </StackPanel>
+
+                            <Border Background="#8B5CF6" CornerRadius="5" Padding="8" Margin="0,15,0,0">
+                                <TextBlock Text="💰 Se integra directo al punto de venta" 
+                                          FontSize="10" FontWeight="Bold" Foreground="White" 
+                                          TextAlignment="Center"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Estadísticas rápidas -->
+                <Border Style="{StaticResource InfoCardStyle}" Background="#FEF3C7" BorderBrush="#F59E0B" Margin="0,30,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                            <TextBlock x:Name="TxtTotalProcesos" Text="0" FontSize="24" FontWeight="Bold" 
+                                      Foreground="#92400E" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Procesos Creados" FontSize="11" Foreground="#92400E" 
+                                      HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                            <TextBlock x:Name="TxtProcesosActivos" Text="0" FontSize="24" FontWeight="Bold" 
+                                      Foreground="#92400E" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Activos" FontSize="11" Foreground="#92400E" 
+                                      HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                            <TextBlock x:Name="TxtProcesamientosHoy" Text="0" FontSize="24" FontWeight="Bold" 
+                                      Foreground="#92400E" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Ejecutados Hoy" FontSize="11" Foreground="#92400E" 
+                                      HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="3" HorizontalAlignment="Center">
+                            <TextBlock x:Name="TxtAhorroEstimado" Text="$0" FontSize="24" FontWeight="Bold" 
+                                      Foreground="#92400E" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Ahorro Estimado" FontSize="11" Foreground="#92400E" 
+                                      HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer con acciones rápidas -->
+        <Border Grid.Row="2" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="20,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="TxtStatusProcesos" Grid.Column="0" 
+                          Text="⚙️ Módulo de Procesos - Seleccione una opción para comenzar" 
+                          FontSize="12" VerticalAlignment="Center" Foreground="#6B7280"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="BtnRefrescarProcesos" Content="🔄 Actualizar" 
+                            Width="100" Height="32" Margin="0,0,10,0"
+                            Background="#6366F1" Foreground="White" FontSize="11" FontWeight="Bold"
+                            BorderThickness="0" Click="BtnRefrescarProcesos_Click"/>
+                    
+                    <Button x:Name="BtnAyudaProcesos" Content="❓ Ayuda" 
+                            Width="80" Height="32"
+                            Background="#F59E0B" Foreground="White" FontSize="11" FontWeight="Bold"
+                            BorderThickness="0" Click="BtnAyudaProcesos_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

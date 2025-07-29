@@ -3,6 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:local="clr-namespace:costbenefi.Views"
+        xmlns:converters="clr-namespace:costbenefi"
         Title="Sistema Costo-Beneficio" Height="750" Width="1600"
         WindowStartupLocation="CenterScreen" WindowState="Maximized"
         Background="#F5F7FA">
@@ -149,49 +151,6 @@
                                         <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
                                     </Setter.Value>
                                 </Setter>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Estilo para productos en lista POS -->
-        <Style x:Key="ProductoListBoxItemStyle" TargetType="ListBoxItem">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="border" 
-                                Background="White" 
-                                Margin="2" 
-                                CornerRadius="5"
-                                BorderThickness="1"
-                                BorderBrush="#E5E7EB">
-                            <Grid Margin="10">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <TextBlock Grid.Row="0" Text="{Binding NombreArticulo}" 
-                                          FontWeight="Bold" FontSize="13" Foreground="#111827"/>
-                                <TextBlock Grid.Row="1" FontSize="11" Foreground="#6B7280" Margin="0,2,0,0">
-                                    <Run Text="Stock: "/><Run Text="{Binding StockTotal, StringFormat=F2, Mode=OneWay}"/><Run Text=" "/><Run Text="{Binding UnidadMedida}"/>
-                                </TextBlock>
-                                <TextBlock Grid.Row="2" Text="{Binding PrecioVentaFinal, StringFormat=C2, Mode=OneWay}" 
-                                          FontWeight="Bold" FontSize="12" Foreground="#059669" Margin="0,2,0,0"/>
-                            </Grid>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#F3F4F6"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#3B82F6"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#EBF8FF"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#3B82F6"/>
-                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -530,7 +489,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- ========== PESTAÑA POS SIMPLIFICADA ========== -->
+            <!-- ========== PESTAÑA POS CORREGIDA ========== -->
             <TabItem Header="💰 Punto de Venta" Style="{StaticResource TabItemStyle}">
                 <Grid Background="#F8FAFC">
                     <Grid.RowDefinitions>
@@ -548,33 +507,31 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
-                                <!-- NUEVA COLUMNA PARA CERRAR SESIÓN -->
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0" Text="💰 Sistema Punto de Venta" 
-                   FontSize="18" Style="{StaticResource HeaderTextPOSStyle}"/>
+                                       FontSize="18" Style="{StaticResource HeaderTextPOSStyle}"/>
 
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,30,0">
                                 <TextBlock x:Name="TxtVentasHoy" Text="Ventas hoy: 0" 
-                       FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
-                       Margin="0,0,15,0" Opacity="0.9"/>
+                                           FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
+                                           Margin="0,0,15,0" Opacity="0.9"/>
                                 <TextBlock x:Name="TxtTotalVentasHoy" Text="Total: $0.00" 
-                       FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
-                       Opacity="0.9"/>
+                                           FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
+                                           Opacity="0.9"/>
                             </StackPanel>
 
                             <TextBlock Grid.Column="2" x:Name="TxtFechaHoraPOS" 
-                   Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='dd/MM/yyyy HH:mm'}" 
-                   FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
-                   Opacity="0.9" Margin="0,0,20,0"/>
+                                       Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='dd/MM/yyyy HH:mm'}" 
+                                       FontSize="12" Style="{StaticResource HeaderTextPOSStyle}" 
+                                       Opacity="0.9" Margin="0,0,20,0"/>
 
-                            <!-- 🚪 BOTÓN DE CERRAR SESIÓN NUEVO -->
                             <Button Grid.Column="3" x:Name="BtnCerrarSesionPOS" 
-        Background="#DC2626" Foreground="White" 
-        Width="120" Height="35" 
-        FontSize="12" FontWeight="Bold"
-        Click="BtnCerrarSesion_Click"
-        Style="{StaticResource POSButtonStyle}">
+                                    Background="#DC2626" Foreground="White" 
+                                    Width="120" Height="35" 
+                                    FontSize="12" FontWeight="Bold"
+                                    Click="BtnCerrarSesion_Click"
+                                    Style="{StaticResource POSButtonStyle}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🚪" FontSize="14" Margin="0,0,8,0"/>
                                     <TextBlock Text="Cerrar Sesión"/>
@@ -592,7 +549,6 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- ===== DISPOSITIVOS POS + CORTE DE CAJA ===== -->
                             <StackPanel Grid.Column="0" Orientation="Horizontal">
                                 <Button x:Name="BtnEscanerPOS" Content="📱 Escáner" Width="90"
                                         Background="#8B5CF6" Foreground="White" 
@@ -600,9 +556,9 @@
                                         Click="BtnEscanerPOS_Click" Height="32"/>
 
                                 <Button x:Name="BtnBascula" Content="⚖️ Config" Width="90"
-                                         Background="#F59E0B" Foreground="White"
-                                         Style="{StaticResource POSButtonStyle}"
-                                         Click="BtnBascula_Click" Height="32"/>
+                                        Background="#F59E0B" Foreground="White"
+                                        Style="{StaticResource POSButtonStyle}"
+                                        Click="BtnBascula_Click" Height="32"/>
 
                                 <Button x:Name="BtnImpresora" Content="🖨️ Impresora" Width="90"
                                         Background="#6366F1" Foreground="White"
@@ -619,11 +575,16 @@
                                         Style="{StaticResource POSButtonStyle}"
                                         Click="BtnConfigComisiones_Click" Height="32"/>
 
-                                <!-- BOTÓN DE CORTE DE CAJA -->
                                 <Button x:Name="BtnCorteCaja" Content="💰 Corte Caja" Width="110"
                                         Background="#28A745" Foreground="White"
                                         Style="{StaticResource POSButtonStyle}"
                                         Click="BtnCorteCaja_Click" Height="32"/>
+
+                                <Button x:Name="BtnActualizarPOSToolbar" Content="🔄 Actualizar" Width="100"
+                                        Background="#6366F1" Foreground="White"
+                                        Style="{StaticResource POSButtonStyle}"
+                                        Click="BtnActualizar_Click" Height="32"
+                                        ToolTip="Actualizar productos y servicios"/>
                             </StackPanel>
 
                             <!-- Búsqueda productos POS -->
@@ -667,7 +628,7 @@
                             <ColumnDefinition Width="1.5*"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Panel izquierdo: Productos -->
+                        <!-- Panel izquierdo: Productos Y Servicios -->
                         <Border Grid.Column="0" Background="White" CornerRadius="10" 
                                 BorderBrush="#E5E7EB" BorderThickness="1">
                             <Grid>
@@ -676,7 +637,7 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- Header productos -->
+                                <!-- Header productos y servicios -->
                                 <Border Grid.Row="0" Background="#F9FAFB" CornerRadius="10,10,0,0" 
                                         BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="15,10">
                                     <Grid>
@@ -685,21 +646,161 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <TextBlock Grid.Column="0" Text="🛍️ Productos Disponibles" 
+                                        <TextBlock Grid.Column="0" Text="🛍️ Productos y Servicios" 
                                                    FontSize="16" FontWeight="Bold" Foreground="#374151"/>
-                                        <TextBlock Grid.Column="1" x:Name="TxtCountProductos" Text="0 productos" 
+                                        <TextBlock Grid.Column="1" x:Name="TxtCountProductos" Text="0 items" 
                                                    FontSize="12" Foreground="#6B7280" VerticalAlignment="Center"/>
                                     </Grid>
                                 </Border>
 
-                                <!-- Lista productos -->
+                                <!-- ✅ LISTA UNIVERSAL CORREGIDA: Productos Y Servicios -->
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10">
                                     <ListBox x:Name="LstProductosPOS" 
                                              BorderThickness="0" 
                                              Background="Transparent"
-                                             ItemContainerStyle="{StaticResource ProductoListBoxItemStyle}"
                                              SelectionChanged="LstProductosPOS_SelectionChanged"
-                                             MouseDoubleClick="LstProductosPOS_MouseDoubleClick"/>
+                                             MouseDoubleClick="LstProductosPOS_MouseDoubleClick">
+
+                                        <!-- ✅ TEMPLATE UNIVERSAL CORREGIDO -->
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="White" Margin="2" CornerRadius="5"
+                                                        BorderThickness="1" BorderBrush="#E5E7EB" Padding="10" MinHeight="90">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                        </Grid.RowDefinitions>
+
+                                                        <!-- Nombre del item -->
+                                                        <TextBlock Grid.Row="0" FontWeight="Bold" FontSize="13" Foreground="#111827" TextWrapping="Wrap">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Style.Triggers>
+                                                                        <!-- Si es producto (RawMaterial) -->
+                                                                        <DataTrigger Binding="{Binding Path=., Converter={x:Static converters:TypeHelper.IsTypeConverter}, ConverterParameter=RawMaterial}" Value="True">
+                                                                            <Setter Property="Text" Value="{Binding NombreArticulo}"/>
+                                                                        </DataTrigger>
+                                                                        <!-- Si es servicio (ServicioVenta) -->
+                                                                        <DataTrigger Binding="{Binding Path=., Converter={x:Static converters:TypeHelper.IsTypeConverter}, ConverterParameter=ServicioVenta}" Value="True">
+                                                                            <Setter Property="Text" Value="{Binding NombreServicio}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+
+                                                        <!-- Indicador de tipo -->
+                                                        <Border Grid.Row="1" HorizontalAlignment="Left" CornerRadius="3" Padding="4,2" Margin="0,3,0,0">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Path=., Converter={x:Static converters:TypeHelper.IsTypeConverter}, ConverterParameter=RawMaterial}" Value="True">
+                                                                            <Setter Property="Background" Value="#EBF8FF"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Path=., Converter={x:Static converters:TypeHelper.IsTypeConverter}, ConverterParameter=ServicioVenta}" Value="True">
+                                                                            <Setter Property="Background" Value="#F0FDF4"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
+                                                            <TextBlock FontSize="10" FontWeight="Bold">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Path=., Converter={x:Static converters:TypeHelper.IsTypeConverter}, ConverterParameter=RawMaterial}" Value="True">
+                                                                                <Setter Property="Text" Value="📦 PRODUCTO"/>
+                                                                                <Setter Property="Foreground" Value="#1E40AF"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding Path=., Converter={x:Static converters:TypeHelper.IsTypeConverter}, ConverterParameter=ServicioVenta}" Value="True">
+                                                                                <Setter Property="Text" Value="🛍️ SERVICIO"/>
+                                                                                <Setter Property="Foreground" Value="#166534"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Border>
+
+                                                        <!-- Info específica (Stock o Categoría) -->
+                                                        <TextBlock Grid.Row="2" FontSize="11" Foreground="#6B7280" Margin="0,3,0,0">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Path=., Converter={x:Static converters:TypeHelper.IsTypeConverter}, ConverterParameter=RawMaterial}" Value="True">
+                                                                            <Setter Property="Text" Value="{Binding StockTotal, StringFormat='Stock: {0:F2}'}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Path=., Converter={x:Static converters:TypeHelper.IsTypeConverter}, ConverterParameter=ServicioVenta}" Value="True">
+                                                                            <Setter Property="Text" Value="{Binding CategoriaServicio, StringFormat='Categoría: {0}'}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+
+                                                        <!-- Precio -->
+                                                        <TextBlock Grid.Row="3" FontWeight="Bold" FontSize="12" Foreground="#059669" Margin="0,3,0,0">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Path=., Converter={x:Static converters:TypeHelper.IsTypeConverter}, ConverterParameter=RawMaterial}" Value="True">
+                                                                            <Setter Property="Text" Value="{Binding PrecioVentaFinal, StringFormat=C2}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Path=., Converter={x:Static converters:TypeHelper.IsTypeConverter}, ConverterParameter=ServicioVenta}" Value="True">
+                                                                            <Setter Property="Text" Value="{Binding PrecioServicio, StringFormat=C2}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+
+                                        <!-- ✅ MANTENER ESTILO DE CONTENEDOR PARA SELECCIÓN -->
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ListBoxItem">
+                                                            <ContentPresenter x:Name="contentPresenter"/>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="contentPresenter" Property="RenderTransform">
+                                                                        <Setter.Value>
+                                                                            <ScaleTransform ScaleX="1.02" ScaleY="1.02"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                    <Setter TargetName="contentPresenter" Property="Effect">
+                                                                        <Setter.Value>
+                                                                            <DropShadowEffect Color="LightBlue" ShadowDepth="2" BlurRadius="8"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </Trigger>
+                                                                <Trigger Property="IsSelected" Value="True">
+                                                                    <Setter TargetName="contentPresenter" Property="RenderTransform">
+                                                                        <Setter.Value>
+                                                                            <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                    <Setter TargetName="contentPresenter" Property="Effect">
+                                                                        <Setter.Value>
+                                                                            <DropShadowEffect Color="#3B82F6" ShadowDepth="3" BlurRadius="12"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Setter Property="Margin" Value="3"/>
+                                                <Setter Property="Padding" Value="0"/>
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
+                                    </ListBox>
                                 </ScrollViewer>
                             </Grid>
                         </Border>
@@ -868,11 +969,12 @@
                         </Border>
                     </Grid>
 
-                    <!-- Status Bar POS -->
+                    <!-- ✅ STATUS BAR POS ACTUALIZADO CON CONTADOR DE SERVICIOS -->
                     <Border Grid.Row="3" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
                         <Grid Margin="15,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -886,11 +988,16 @@
                                        Text="Productos: 0" FontSize="11" FontWeight="Bold" 
                                        Foreground="#059669" VerticalAlignment="Center" Margin="15,0"/>
 
-                            <TextBlock x:Name="TxtGananciaPrevista" Grid.Column="2" 
+                            <!-- ✅ NUEVO: Contador de servicios -->
+                            <TextBlock x:Name="TxtServiciosDisponibles" Grid.Column="2" 
+                                       Text="Servicios: 0" FontSize="11" FontWeight="Bold" 
+                                       Foreground="#10B981" VerticalAlignment="Center" Margin="15,0"/>
+
+                            <TextBlock x:Name="TxtGananciaPrevista" Grid.Column="3" 
                                        Text="Ganancia: $0.00" FontSize="11" FontWeight="Bold" 
                                        Foreground="#F59E0B" VerticalAlignment="Center" Margin="15,0"/>
 
-                            <TextBlock x:Name="TxtMargenPromedio" Grid.Column="3" 
+                            <TextBlock x:Name="TxtMargenPromedio" Grid.Column="4" 
                                        Text="Margen: 0%" FontSize="11" FontWeight="Bold" 
                                        Foreground="#3B82F6" VerticalAlignment="Center" Margin="15,0"/>
                         </Grid>
@@ -898,7 +1005,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- Pestaña 2: Reportes - ACTUALIZADA -->
+            <!-- Resto de pestañas (sin cambios) -->
             <TabItem Header="📊 Reportes" Style="{StaticResource TabItemStyle}">
                 <Grid Background="White">
                     <Border Margin="30" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
@@ -1118,25 +1225,10 @@
                 </Grid>
             </TabItem>
 
-            <!-- Pestaña 3: Procesos -->
             <TabItem Header="⚙️ Procesos" Style="{StaticResource TabItemStyle}">
-                <Grid Background="White">
-                    <Border Margin="50" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="⚙️" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,20"/>
-                            <TextBlock Text="Gestión de Procesos" FontSize="24" FontWeight="Bold" 
-                                      HorizontalAlignment="Center" Foreground="#374151" Margin="0,0,0,10"/>
-                            <TextBlock Text="Configure y monitoree procesos de producción y transformación" 
-                                      FontSize="14" HorizontalAlignment="Center" Foreground="#6B7280" Margin="0,0,0,30"/>
-                            <Button Content="🔧 Configurar Procesos" Width="200" Height="40" 
-                                   Background="#3B82F6" Foreground="White" FontSize="14" FontWeight="Bold"
-                                   BorderThickness="0" Click="BtnConfigurarProcesos_Click"/>
-                        </StackPanel>
-                    </Border>
-                </Grid>
+                <local:ProcesosMainControl/>
             </TabItem>
 
-            <!-- Pestaña 4: Análisis -->
             <TabItem Header="📈 Análisis" Style="{StaticResource TabItemStyle}">
                 <Grid Background="White">
                     <Border Margin="50" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
@@ -1154,7 +1246,6 @@
                 </Grid>
             </TabItem>
 
-            <!-- Pestaña 5: Configuración - ACTUALIZADA -->
             <TabItem Header="⚙️ Configuración" Style="{StaticResource TabItemStyle}">
                 <Grid Background="White">
                     <Border Margin="30" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
@@ -1285,7 +1376,6 @@
                 </Grid>
             </TabItem>
 
-            <!-- Pestaña 6: Mi Información -->
             <TabItem Header="👨‍💻 Mi Información" Style="{StaticResource TabItemStyle}">
                 <Grid Background="White">
                     <Border Margin="50" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
@@ -1302,6 +1392,7 @@
                     </Border>
                 </Grid>
             </TabItem>
+
             <TabItem Header="🔧 Sistema" Style="{StaticResource TabItemStyle}">
                 <Grid Background="White">
                     <Border Margin="50" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
@@ -1312,7 +1403,6 @@
                             <TextBlock Text="Opciones avanzadas y control del sistema" 
                           FontSize="14" HorizontalAlignment="Center" Foreground="#6B7280" Margin="0,0,0,30"/>
 
-                            <!-- Botones de sistema -->
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <Button x:Name="BtnCerrarSesionSistema" Content="🚪 Cerrar Sesión" 
                            Width="150" Height="50" Margin="0,0,20,0"

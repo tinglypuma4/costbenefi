@@ -21,8 +21,13 @@ namespace costbenefi.Data
         public DbSet<Venta> Ventas { get; set; }
         public DbSet<DetalleVenta> DetalleVentas { get; set; }
 
-        // ========== ✅ NUEVO DbSet PARA BÁSCULA ==========
+        // ========== ✅ DbSet PARA BÁSCULA ==========
         public DbSet<ConfiguracionBascula> ConfiguracionesBascula { get; set; }
+
+        // ========== ✅ NUEVOS DbSets PARA MÓDULO DE SERVICIOS ==========
+        public DbSet<ServicioVenta> ServiciosVenta { get; set; }
+        public DbSet<MaterialServicio> MaterialesServicio { get; set; }
+        public DbSet<PromocionVenta> PromocionesVenta { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -303,17 +308,326 @@ namespace costbenefi.Data
                       .HasForeignKey(e => e.VentaId)
                       .OnDelete(DeleteBehavior.Cascade);
 
+                // ✅ CORRECCIÓN: RawMaterialId ahora es NULLABLE para servicios
+                entity.HasOne(e => e.RawMaterial)
+                      .WithMany()
+                      .HasForeignKey(e => e.RawMaterialId)
+                      .OnDelete(DeleteBehavior.Restrict)
+                      .IsRequired(false); // ✅ Permitir NULL
+
+                // ✅ NUEVO: Relación con ServicioVenta
+                entity.HasOne(e => e.ServicioVenta)
+                      .WithMany()
+                      .HasForeignKey(e => e.ServicioVentaId)
+                      .OnDelete(DeleteBehavior.Restrict)
+                      .IsRequired(false); // También opcional
+
+                // Índices para DetalleVenta
+                entity.HasIndex(e => e.VentaId);
+                entity.HasIndex(e => e.RawMaterialId);
+                entity.HasIndex(e => e.ServicioVentaId); // ✅ NUEVO índice
+            });
+
+            // ========== ✅ NUEVA CONFIGURACIÓN PARA ServicioVenta ==========
+            modelBuilder.Entity<ServicioVenta>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.NombreServicio)
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entity.Property(e => e.Descripcion)
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.CategoriaServicio)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.PrecioBase)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.PrecioServicio)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.DuracionEstimada)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("30 min");
+
+                entity.Property(e => e.CostoMateriales)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.CostoManoObra)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.MargenObjetivo)
+                    .HasColumnType("decimal(5,2)")
+                    .HasDefaultValue(40);
+
+                entity.Property(e => e.PorcentajeIVA)
+                    .HasColumnType("decimal(5,2)")
+                    .HasDefaultValue(16);
+
+                entity.Property(e => e.Activo)
+                    .HasDefaultValue(true);
+
+                entity.Property(e => e.IntegradoPOS)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.PrioridadPOS)
+                    .HasDefaultValue(100);
+
+                entity.Property(e => e.RequiereConfirmacion)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.LimiteDiario)
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.StockDisponible)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(999);
+
+                entity.Property(e => e.CodigoServicio)
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.Observaciones)
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.FechaCreacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.FechaActualizacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.UsuarioCreador)
+                    .HasMaxLength(100);
+
+                // Configuración para eliminación lógica
+                entity.Property(e => e.Eliminado)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.UsuarioEliminacion)
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.MotivoEliminacion)
+                    .HasMaxLength(500);
+
+                // Filtro global: ocultar eliminados automáticamente
+                entity.HasQueryFilter(e => !e.Eliminado);
+
+                // Índices para ServicioVenta
+                entity.HasIndex(e => e.NombreServicio);
+                entity.HasIndex(e => e.CategoriaServicio);
+                entity.HasIndex(e => e.Activo);
+                entity.HasIndex(e => e.IntegradoPOS);
+                entity.HasIndex(e => e.CodigoServicio);
+                entity.HasIndex(e => e.Eliminado);
+                entity.HasIndex(e => e.FechaCreacion);
+            });
+
+            // ========== ✅ NUEVA CONFIGURACIÓN PARA MaterialServicio ==========
+            modelBuilder.Entity<MaterialServicio>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.CantidadNecesaria)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.CostoUnitario)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.UnidadMedida)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.PorcentajeDesperdicio)
+                    .HasColumnType("decimal(5,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.EsOpcional)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.OrdenUso)
+                    .HasDefaultValue(1);
+
+                entity.Property(e => e.TiempoUsoMinutos)
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.Observaciones)
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.VerificarDisponibilidad)
+                    .HasDefaultValue(true);
+
+                entity.Property(e => e.StockMinimoRequerido)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.FechaCreacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.FechaActualizacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.UsuarioCreador)
+                    .HasMaxLength(100);
+
+                // Relaciones para MaterialServicio
+                entity.HasOne(e => e.ServicioVenta)
+                      .WithMany(s => s.MaterialesNecesarios)
+                      .HasForeignKey(e => e.ServicioVentaId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
                 entity.HasOne(e => e.RawMaterial)
                       .WithMany()
                       .HasForeignKey(e => e.RawMaterialId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                // Índices para DetalleVenta
-                entity.HasIndex(e => e.VentaId);
+                // Índices para MaterialServicio
+                entity.HasIndex(e => e.ServicioVentaId);
                 entity.HasIndex(e => e.RawMaterialId);
+                entity.HasIndex(e => e.EsOpcional);
+                entity.HasIndex(e => e.OrdenUso);
             });
 
-            // ========== ✅ NUEVA CONFIGURACIÓN PARA ConfiguracionBascula ==========
+            // ========== ✅ NUEVA CONFIGURACIÓN PARA PromocionVenta ==========
+            modelBuilder.Entity<PromocionVenta>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.NombrePromocion)
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entity.Property(e => e.Descripcion)
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.TipoPromocion)
+                    .IsRequired()
+                    .HasMaxLength(50)
+                    .HasDefaultValue("DescuentoPorcentaje");
+
+                entity.Property(e => e.CategoriaPromocion)
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasDefaultValue("General");
+
+                entity.Property(e => e.ValorPromocion)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.DescuentoMaximo)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.MontoMinimo)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.CantidadMinima)
+                    .HasDefaultValue(1);
+
+                entity.Property(e => e.FechaInicio)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.FechaFin)
+                    .HasDefaultValueSql("datetime('now', '+30 days')");
+
+                entity.Property(e => e.Activa)
+                    .HasDefaultValue(true);
+
+                entity.Property(e => e.AplicacionAutomatica)
+                    .HasDefaultValue(true);
+
+                entity.Property(e => e.IntegradaPOS)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.Prioridad)
+                    .HasDefaultValue(100);
+
+                entity.Property(e => e.LimitePorCliente)
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.LimiteUsoTotal)
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.VecesUsada)
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.CodigoPromocion)
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.ProductosAplicables)
+                    .HasMaxLength(1000);
+
+                entity.Property(e => e.ServiciosAplicables)
+                    .HasMaxLength(1000);
+
+                entity.Property(e => e.CategoriasAplicables)
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.DiasAplicables)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("L,M,Mi,J,V,S,D");
+
+                entity.Property(e => e.HoraInicio)
+                    .HasMaxLength(5)
+                    .HasDefaultValue("00:00");
+
+                entity.Property(e => e.HoraFin)
+                    .HasMaxLength(5)
+                    .HasDefaultValue("23:59");
+
+                entity.Property(e => e.RequiereCodigo)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.Combinable)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.Observaciones)
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.FechaCreacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.FechaActualizacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.UsuarioCreador)
+                    .HasMaxLength(100);
+
+                // Configuración para eliminación lógica
+                entity.Property(e => e.Eliminado)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.UsuarioEliminacion)
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.MotivoEliminacion)
+                    .HasMaxLength(500);
+
+                // Filtro global: ocultar eliminados automáticamente
+                entity.HasQueryFilter(e => !e.Eliminado);
+
+                // Índices para PromocionVenta
+                entity.HasIndex(e => e.NombrePromocion);
+                entity.HasIndex(e => e.TipoPromocion);
+                entity.HasIndex(e => e.CategoriaPromocion);
+                entity.HasIndex(e => e.Activa);
+                entity.HasIndex(e => e.FechaInicio);
+                entity.HasIndex(e => e.FechaFin);
+                entity.HasIndex(e => e.CodigoPromocion);
+                entity.HasIndex(e => e.IntegradaPOS);
+                entity.HasIndex(e => e.Eliminado);
+            });
+
+            // ========== ✅ CONFIGURACIÓN PARA ConfiguracionBascula ==========
             modelBuilder.Entity<ConfiguracionBascula>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -625,7 +939,7 @@ namespace costbenefi.Data
                 .Where(m => RawMaterials.IgnoreQueryFilters().Any(r => r.Id == m.RawMaterialId && r.Eliminado));
         }
 
-        // ========== ✅ MÉTODOS PARA POS ==========
+        // ========== ✅ MÉTODOS EXISTENTES PARA POS ==========
 
         /// <summary>
         /// Obtiene productos disponibles para venta en POS
@@ -731,7 +1045,163 @@ namespace costbenefi.Data
             };
         }
 
-        // ========== ✅ NUEVOS MÉTODOS PARA BÁSCULA ==========
+        // ========== ✅ NUEVOS MÉTODOS PARA SERVICIOS Y PROMOCIONES ==========
+
+        /// <summary>
+        /// Obtiene servicios disponibles para venta en POS
+        /// </summary>
+        public IQueryable<ServicioVenta> GetServiciosDisponiblesParaVenta()
+        {
+            return ServiciosVenta.Where(s => s.Activo && s.StockDisponible > 0);
+        }
+
+        /// <summary>
+        /// Obtiene servicios integrados con POS
+        /// </summary>
+        public IQueryable<ServicioVenta> GetServiciosIntegradosPOS()
+        {
+            return ServiciosVenta.Where(s => s.IntegradoPOS && s.Activo)
+                                .OrderBy(s => s.PrioridadPOS)
+                                .ThenBy(s => s.NombreServicio);
+        }
+
+        /// <summary>
+        /// Obtiene promociones vigentes
+        /// </summary>
+        public IQueryable<PromocionVenta> GetPromocionesVigentes()
+        {
+            var ahora = DateTime.Now;
+            return PromocionesVenta.Where(p =>
+                p.Activa &&
+                p.FechaInicio <= ahora &&
+                p.FechaFin >= ahora &&
+                (p.LimiteUsoTotal == 0 || p.VecesUsada < p.LimiteUsoTotal));
+        }
+
+        /// <summary>
+        /// Obtiene promociones aplicables automáticamente
+        /// </summary>
+        public IQueryable<PromocionVenta> GetPromocionesAutomaticas()
+        {
+            return GetPromocionesVigentes().Where(p => p.AplicacionAutomatica);
+        }
+
+        /// <summary>
+        /// Obtiene materiales necesarios para un servicio
+        /// </summary>
+        public async Task<List<MaterialServicio>> GetMaterialesServicioAsync(int servicioId)
+        {
+            return await MaterialesServicio
+                .Include(m => m.RawMaterial)
+                .Where(m => m.ServicioVentaId == servicioId)
+                .OrderBy(m => m.OrdenUso)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Verifica si un servicio puede ejecutarse (materiales disponibles)
+        /// </summary>
+        public async Task<bool> ServicioPuedeEjecutarseAsync(int servicioId)
+        {
+            var materiales = await GetMaterialesServicioAsync(servicioId);
+            return materiales.All(m => m.PuedeUtilizarse());
+        }
+
+        /// <summary>
+        /// Obtiene servicios por categoría
+        /// </summary>
+        public IQueryable<ServicioVenta> GetServiciosPorCategoria(string categoria)
+        {
+            return ServiciosVenta.Where(s => s.CategoriaServicio == categoria && s.Activo);
+        }
+
+        /// <summary>
+        /// Obtiene promociones aplicables a un producto
+        /// </summary>
+        public async Task<List<PromocionVenta>> GetPromocionesParaProductoAsync(int productId, string categoria = "")
+        {
+            var promociones = await GetPromocionesVigentes().ToListAsync();
+            return promociones.Where(p => p.AplicaAProducto(productId, categoria)).ToList();
+        }
+
+        /// <summary>
+        /// Obtiene promociones aplicables a un servicio
+        /// </summary>
+        public async Task<List<PromocionVenta>> GetPromocionesParaServicioAsync(int servicioId, string categoria = "")
+        {
+            var promociones = await GetPromocionesVigentes().ToListAsync();
+            return promociones.Where(p => p.AplicaAServicio(servicioId, categoria)).ToList();
+        }
+
+        /// <summary>
+        /// Actualiza costos de materiales para todos los servicios
+        /// </summary>
+        public async Task ActualizarCostosMaterialesServiciosAsync()
+        {
+            var servicios = await ServiciosVenta.Include(s => s.MaterialesNecesarios).ToListAsync();
+
+            foreach (var servicio in servicios)
+            {
+                servicio.ActualizarCostoMateriales();
+            }
+
+            await SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Obtiene estadísticas de servicios
+        /// </summary>
+        public async Task<dynamic> GetEstadisticasServiciosAsync()
+        {
+            var totalServicios = await ServiciosVenta.CountAsync();
+            var serviciosActivos = await ServiciosVenta.CountAsync(s => s.Activo);
+            var serviciosIntegrados = await ServiciosVenta.CountAsync(s => s.IntegradoPOS && s.Activo);
+            var promocionesVigentes = await GetPromocionesVigentes().CountAsync();
+
+            return new
+            {
+                TotalServicios = totalServicios,
+                ServiciosActivos = serviciosActivos,
+                ServiciosIntegrados = serviciosIntegrados,
+                PromocionesVigentes = promocionesVigentes
+            };
+        }
+
+        /// <summary>
+        /// Obtiene servicios más rentables
+        /// </summary>
+        public IQueryable<ServicioVenta> GetServiciosMasRentables(int top = 10)
+        {
+            return ServiciosVenta.Where(s => s.Activo)
+                                .OrderByDescending(s => s.PrecioServicio - s.CostoMateriales - s.CostoManoObra) // ← Usar campos reales
+                                .Take(top);
+        }
+
+        /// <summary>
+        /// Busca servicios por texto
+        /// </summary>
+        public IQueryable<ServicioVenta> BuscarServicios(string texto)
+        {
+            texto = texto.ToLower();
+            return ServiciosVenta.Where(s =>
+                s.NombreServicio.ToLower().Contains(texto) ||
+                s.Descripcion.ToLower().Contains(texto) ||
+                s.CategoriaServicio.ToLower().Contains(texto));
+        }
+
+        /// <summary>
+        /// Busca promociones por texto
+        /// </summary>
+        public IQueryable<PromocionVenta> BuscarPromociones(string texto)
+        {
+            texto = texto.ToLower();
+            return PromocionesVenta.Where(p =>
+                p.NombrePromocion.ToLower().Contains(texto) ||
+                p.Descripcion.ToLower().Contains(texto) ||
+                p.TipoPromocion.ToLower().Contains(texto));
+        }
+
+        // ========== ✅ MÉTODOS EXISTENTES PARA BÁSCULA ==========
 
         /// <summary>
         /// Obtiene la configuración activa de báscula
@@ -910,6 +1380,7 @@ namespace costbenefi.Data
                     entry.Entity.FechaActualizacion = DateTime.Now;
                 }
             }
+
             // ========== ✅ NUEVO: Timestamp para usuarios ==========
             var userEntries = ChangeTracker.Entries<User>();
             foreach (var entry in userEntries)
@@ -934,8 +1405,50 @@ namespace costbenefi.Data
                     entry.Entity.UltimaActividad = DateTime.Now;
                 }
             }
-        }
 
+            // ========== ✅ NUEVO: Timestamp para módulo de servicios ==========
+            var servicioEntries = ChangeTracker.Entries<ServicioVenta>();
+            foreach (var entry in servicioEntries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.FechaCreacion = DateTime.Now;
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+            }
+
+            var materialServicioEntries = ChangeTracker.Entries<MaterialServicio>();
+            foreach (var entry in materialServicioEntries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.FechaCreacion = DateTime.Now;
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+            }
+
+            var promocionEntries = ChangeTracker.Entries<PromocionVenta>();
+            foreach (var entry in promocionEntries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.FechaCreacion = DateTime.Now;
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+            }
+        }
 
         /// <summary>
         /// Obtiene el corte de caja del día especificado
@@ -1087,7 +1600,7 @@ namespace costbenefi.Data
         /// <summary>
         /// Obtiene un usuario por nombre de usuario
         /// </summary>
-       
+
         public async Task<dynamic> GetEstadisticasUsuariosRealesAsync()
         {
             var totalUsuarios = await Users.Where(u => u.Id > 0 && !u.Eliminado).CountAsync();
@@ -1268,7 +1781,7 @@ namespace costbenefi.Data
 
                 if (usuario != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"✅ Usuario encontrado en BD: {usuario .NombreCompleto} ({usuario.Rol})");
+                    System.Diagnostics.Debug.WriteLine($"✅ Usuario encontrado en BD: {usuario.NombreCompleto} ({usuario.Rol})");
                 }
                 else
                 {
@@ -1314,6 +1827,5 @@ namespace costbenefi.Data
                 // Silencioso - no es crítico si falla
             }
         }
-
     }
 }
