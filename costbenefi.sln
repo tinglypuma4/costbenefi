@@ -30,6 +30,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{46
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9-E21E-492B-83DD-6A5046CA4BA3}"
 	ProjectSection(SolutionItems) = preProject
+		CrearEditarPromocionWindow.xaml = CrearEditarPromocionWindow.xaml
+		CrearEditarPromocionWindow.xaml.cs = CrearEditarPromocionWindow.xaml.cs
 		CrearEditarServicioWindow.xaml = CrearEditarServicioWindow.xaml
 		CrearEditarServicioWindow.xaml.cs = CrearEditarServicioWindow.xaml.cs
 		FabricacionWindow.xaml = FabricacionWindow.xaml

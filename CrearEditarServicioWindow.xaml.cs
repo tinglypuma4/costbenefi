@@ -561,79 +561,123 @@ namespace costbenefi.Views
                     return;
 
                 if (BtnGuardar != null)
-                {
                     BtnGuardar.IsEnabled = false;
-                }
 
                 if (TxtEstadoFormulario != null)
-                {
                     TxtEstadoFormulario.Text = "💾 Guardando servicio...";
+
+                // ✅ USAR CONTEXTO FRESCO PARA EVITAR CONFLICTOS
+                using var contextGuardado = new AppDbContext();
+                ServicioVenta servicioGuardar;
+
+                if (_esEdicion)
+                {
+                    // ✅ BUSCAR EL SERVICIO EN EL CONTEXTO FRESCO
+                    servicioGuardar = await contextGuardado.ServiciosVenta
+                        .FirstOrDefaultAsync(s => s.Id == _servicioActual.Id);
+
+                    if (servicioGuardar == null)
+                    {
+                        throw new InvalidOperationException("Servicio no encontrado en la base de datos");
+                    }
+                }
+                else
+                {
+                    // ✅ NUEVO SERVICIO
+                    servicioGuardar = new ServicioVenta();
+                    contextGuardado.ServiciosVenta.Add(servicioGuardar);
                 }
 
-                // Actualizar datos del servicio
-                _servicioActual.NombreServicio = TxtNombreServicio?.Text?.Trim() ?? "";
-                _servicioActual.Descripcion = TxtDescripcion?.Text?.Trim() ?? "";
-                _servicioActual.CategoriaServicio = CmbCategoriaServicio?.Text ?? "";
-                _servicioActual.Observaciones = TxtObservaciones?.Text?.Trim() ?? "";
-                _servicioActual.DuracionEstimada = "Variable"; // Duración estándar
+                // ✅ ACTUALIZAR DATOS DEL SERVICIO
+                servicioGuardar.NombreServicio = TxtNombreServicio?.Text?.Trim() ?? "";
+                servicioGuardar.Descripcion = TxtDescripcion?.Text?.Trim() ?? "";
+                servicioGuardar.CategoriaServicio = CmbCategoriaServicio?.Text ?? "";
+                servicioGuardar.Observaciones = TxtObservaciones?.Text?.Trim() ?? "";
+                servicioGuardar.DuracionEstimada = "Variable";
 
                 decimal.TryParse(TxtCostoManoObra?.Text ?? "0", out decimal costoManoObra);
-                _servicioActual.CostoManoObra = costoManoObra;
+                servicioGuardar.CostoManoObra = costoManoObra;
 
                 decimal.TryParse(TxtMargenObjetivo?.Text ?? "40", out decimal margenObjetivo);
-                _servicioActual.MargenObjetivo = margenObjetivo;
+                servicioGuardar.MargenObjetivo = margenObjetivo;
 
                 decimal.TryParse(TxtPrecioServicio?.Text ?? "0", out decimal precioServicio);
-                _servicioActual.PrecioServicio = precioServicio;
-                _servicioActual.PrecioBase = precioServicio / (1 + (_servicioActual.PorcentajeIVA / 100));
+                servicioGuardar.PrecioServicio = precioServicio;
+                servicioGuardar.PrecioBase = precioServicio / (1 + (servicioGuardar.PorcentajeIVA / 100));
 
-                _servicioActual.Activo = ChkActivoParaVenta?.IsChecked ?? true;
-                _servicioActual.IntegradoPOS = ChkIntegrarPOS?.IsChecked ?? true; // ✅ POR DEFECTO ACTIVADO
-                _servicioActual.RequiereConfirmacion = ChkRequiereConfirmacion?.IsChecked ?? false;
+                servicioGuardar.Activo = ChkActivoParaVenta?.IsChecked ?? true;
+                servicioGuardar.IntegradoPOS = ChkIntegrarPOS?.IsChecked ?? true;
+                servicioGuardar.RequiereConfirmacion = ChkRequiereConfirmacion?.IsChecked ?? false;
 
-                // Calcular costos
-                _servicioActual.CostoMateriales = _materialesSeleccionados.Sum(m => m.CostoTotal);
+                servicioGuardar.CostoMateriales = _materialesSeleccionados.Sum(m => m.CostoTotal);
 
                 if (!_esEdicion)
                 {
-                    // Nuevo servicio
-                    _servicioActual.UsuarioCreador = UserService.UsuarioActual?.NombreUsuario ?? "Sistema";
-                    _context.ServiciosVenta.Add(_servicioActual);
+                    servicioGuardar.UsuarioCreador = UserService.UsuarioActual?.NombreUsuario ?? "Sistema";
                 }
 
-                await _context.SaveChangesAsync();
+                // ✅ GUARDAR SERVICIO PRIMERO
+                await contextGuardado.SaveChangesAsync();
 
-                // Guardar materiales
+                // ✅ MANEJAR MATERIALES DE FORMA SEGURA
                 if (_esEdicion)
                 {
-                    // Eliminar materiales existentes
-                    var materialesExistentes = await _context.MaterialesServicio
-                        .Where(m => m.ServicioVentaId == _servicioActual.Id)
+                    // ✅ ELIMINAR MATERIALES EXISTENTES DE FORMA SEGURA
+                    var materialesExistentes = await contextGuardado.MaterialesServicio
+                        .Where(m => m.ServicioVentaId == servicioGuardar.Id)
                         .ToListAsync();
-                    _context.MaterialesServicio.RemoveRange(materialesExistentes);
+
+                    if (materialesExistentes.Any())
+                    {
+                        contextGuardado.MaterialesServicio.RemoveRange(materialesExistentes);
+                        await contextGuardado.SaveChangesAsync(); // ✅ GUARDAR ELIMINACIÓN PRIMERO
+                    }
                 }
 
-                // Agregar materiales actuales
+                // ✅ CREAR MATERIALES NUEVOS (NO REUTILIZAR OBJETOS EXISTENTES)
                 foreach (var material in _materialesSeleccionados)
                 {
-                    material.ServicioVentaId = _servicioActual.Id;
-                    _context.MaterialesServicio.Add(material);
+                    var nuevoMaterial = new MaterialServicio
+                    {
+                        ServicioVentaId = servicioGuardar.Id,
+                        RawMaterialId = material.RawMaterialId,
+                        CantidadNecesaria = material.CantidadNecesaria,
+                        UnidadMedida = material.UnidadMedida,
+                        CostoUnitario = material.CostoUnitario,
+                        PorcentajeDesperdicio = material.PorcentajeDesperdicio,
+                        EsOpcional = material.EsOpcional,
+                        OrdenUso = material.OrdenUso,
+                        TiempoUsoMinutos = material.TiempoUsoMinutos,
+                        VerificarDisponibilidad = material.VerificarDisponibilidad,
+                        StockMinimoRequerido = material.StockMinimoRequerido,
+                        Observaciones = material.Observaciones,
+                        UsuarioCreador = UserService.UsuarioActual?.NombreUsuario ?? "Sistema"
+                    };
+
+                    contextGuardado.MaterialesServicio.Add(nuevoMaterial);
                 }
 
-                await _context.SaveChangesAsync();
+                // ✅ GUARDAR MATERIALES
+                await contextGuardado.SaveChangesAsync();
 
-                // Configurar POS si está marcado
-                if (_servicioActual.IntegradoPOS)
+                // ✅ CONFIGURAR POS SI ESTÁ MARCADO
+                if (servicioGuardar.IntegradoPOS)
                 {
-                    _servicioActual.ConfigurarParaPOS(true);
-                    await _context.SaveChangesAsync();
+                    servicioGuardar.ConfigurarParaPOS(true);
+                    await contextGuardado.SaveChangesAsync();
                 }
 
-                MessageBox.Show($"✅ Servicio '{_servicioActual.NombreServicio}' guardado exitosamente!\n\n" +
-                              $"ID: {_servicioActual.Id}\n" +
-                              $"Precio: {_servicioActual.PrecioServicio:C2}\n" +
+                // ✅ ACTUALIZAR EL SERVICIO ACTUAL CON EL ID
+                if (!_esEdicion)
+                {
+                    _servicioActual.Id = servicioGuardar.Id;
+                }
+
+                MessageBox.Show($"✅ Servicio '{servicioGuardar.NombreServicio}' guardado exitosamente!\n\n" +
+                              $"ID: {servicioGuardar.Id}\n" +
+                              $"Precio: {servicioGuardar.PrecioServicio:C2}\n" +
                               $"Materiales: {_materialesSeleccionados.Count}\n" +
-                              $"Margen: {_servicioActual.MargenReal:F1}%",
+                              $"Margen: {servicioGuardar.MargenReal:F1}%",
                               "Servicio Guardado", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 DialogResult = true;
@@ -642,18 +686,22 @@ namespace costbenefi.Views
             catch (Exception ex)
             {
                 if (TxtEstadoFormulario != null)
-                {
                     TxtEstadoFormulario.Text = "❌ Error al guardar servicio";
+
+                string errorDetallado = $"Error al guardar servicio:\n\n{ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorDetallado += $"\n\nDetalle: {ex.InnerException.Message}";
                 }
-                MessageBox.Show($"Error al guardar servicio:\n\n{ex.Message}",
-                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                MessageBox.Show(errorDetallado, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                System.Diagnostics.Debug.WriteLine($"❌ ERROR GUARDANDO SERVICIO: {ex}");
             }
             finally
             {
                 if (BtnGuardar != null)
-                {
                     BtnGuardar.IsEnabled = true;
-                }
             }
         }
 

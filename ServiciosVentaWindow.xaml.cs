@@ -91,45 +91,16 @@ namespace costbenefi.Views
         /// </summary>
         private async void BtnNuevaPromocion_Click(object sender, RoutedEventArgs e)
         {
-            try
+            var crearPromocionWindow = new CrearEditarPromocionWindow()
             {
-                TxtStatusServicios.Text = "🎁 Creando nueva promoción...";
+                Owner = this,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
 
-                // Crear promoción de ejemplo
-                var nuevaPromocion = new PromocionVenta
-                {
-                    NombrePromocion = "Promoción Especial",
-                    TipoPromocion = "DescuentoPorcentaje",
-                    ValorPromocion = 15.0m,
-                    FechaInicio = DateTime.Now,
-                    FechaFin = DateTime.Now.AddDays(30),
-                    CategoriaPromocion = "General",
-                    UsuarioCreador = UserService.UsuarioActual?.NombreUsuario ?? "Sistema"
-                };
-
-                // Generar código automático
-                nuevaPromocion.CodigoPromocion = nuevaPromocion.GenerarCodigoPromocion();
-
-                _context.PromocionesVenta.Add(nuevaPromocion);
-                _context.SaveChanges();
-
-                MessageBox.Show($"🎁 Promoción creada exitosamente!\n\n" +
-                              $"Nombre: {nuevaPromocion.NombrePromocion}\n" +
-                              $"Descuento: {nuevaPromocion.ValorPromocion}%\n" +
-                              $"Vigencia: {nuevaPromocion.DiasRestantes} días\n" +
-                              $"Código: {nuevaPromocion.CodigoPromocion}\n\n" +
-                              "La promoción ha sido guardada en la base de datos.",
-                              "Promoción Creada", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                // Recargar lista
+            if (crearPromocionWindow.ShowDialog() == true)
+            {
+                // Recargar promociones
                 await CargarPromociones();
-                TxtStatusServicios.Text = "✅ Nueva promoción creada y guardada";
-            }
-            catch (Exception ex)
-            {
-                TxtStatusServicios.Text = "❌ Error al crear promoción";
-                MessageBox.Show($"Error al crear promoción:\n\n{ex.Message}",
-                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -254,6 +225,136 @@ namespace costbenefi.Views
 
         #endregion
 
+        #region Eventos de Botones Principales para Promociones
+
+        /// <summary>
+        /// Edita promoción desde botón principal
+        /// </summary>
+        private async void BtnEditarPromocionPrincipal_Click(object sender, RoutedEventArgs e)
+        {
+            // Verificar que estemos en la pestaña de promociones
+            if (MainTabControl?.SelectedIndex != 1)
+            {
+                MessageBox.Show("Seleccione la pestaña de Promociones primero.",
+                              "Pestaña Incorrecta", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (DgPromociones?.SelectedItem is PromocionVenta promocionSeleccionada)
+            {
+                await EditarPromocionSeleccionada(promocionSeleccionada);
+            }
+            else
+            {
+                MessageBox.Show("Seleccione una promoción para editar.",
+                              "Selección Requerida", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        /// <summary>
+        /// Elimina promoción desde botón principal
+        /// </summary>
+        private async void BtnEliminarPromocionPrincipal_Click(object sender, RoutedEventArgs e)
+        {
+            // Verificar que estemos en la pestaña de promociones
+            if (MainTabControl?.SelectedIndex != 1)
+            {
+                MessageBox.Show("Seleccione la pestaña de Promociones primero.",
+                              "Pestaña Incorrecta", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (DgPromociones?.SelectedItem is PromocionVenta promocionSeleccionada)
+            {
+                await EliminarPromocionSeleccionada(promocionSeleccionada);
+            }
+            else
+            {
+                MessageBox.Show("Seleccione una promoción para eliminar.",
+                              "Selección Requerida", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        /// <summary>
+        /// Método común para editar promoción
+        /// </summary>
+        private async System.Threading.Tasks.Task EditarPromocionSeleccionada(PromocionVenta promocion)
+        {
+            try
+            {
+                TxtStatusServicios.Text = $"✏️ Abriendo editor para: {promocion.NombrePromocion}";
+
+                var ventanaEditar = new CrearEditarPromocionWindow(promocion)
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                bool? resultado = ventanaEditar.ShowDialog();
+
+                if (resultado == true)
+                {
+                    await CargarPromociones();
+                    TxtStatusServicios.Text = "✅ Promoción actualizada exitosamente";
+                }
+                else
+                {
+                    TxtStatusServicios.Text = "ℹ️ Edición de promoción cancelada";
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtStatusServicios.Text = "❌ Error al abrir editor";
+                MessageBox.Show($"Error al abrir editor de promoción:\n\n{ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// Método común para eliminar promoción
+        /// </summary>
+        private async System.Threading.Tasks.Task EliminarPromocionSeleccionada(PromocionVenta promocion)
+        {
+            try
+            {
+                var resultado = MessageBox.Show(
+                    $"¿Eliminar la promoción '{promocion.NombrePromocion}'?\n\n" +
+                    $"Tipo: {promocion.DescripcionTipo}\n" +
+                    $"Valor: {promocion.ValorPromocion:F1}%\n" +
+                    $"Estado: {promocion.EstadoPromocion}\n\n" +
+                    $"La promoción será marcada como eliminada.",
+                    "Confirmar Eliminación",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (resultado == MessageBoxResult.Yes)
+                {
+                    var promocionDb = _context.PromocionesVenta.Find(promocion.Id);
+                    if (promocionDb != null)
+                    {
+                        string usuario = UserService.UsuarioActual?.NombreUsuario ?? "Sistema";
+                        promocionDb.MarcarComoEliminado(usuario, "Eliminación desde interfaz de promociones");
+
+                        _context.SaveChanges();
+
+                        MessageBox.Show($"✅ Promoción '{promocionDb.NombrePromocion}' eliminada correctamente.",
+                                      "Promoción Eliminada", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        await CargarPromociones();
+                        TxtStatusServicios.Text = $"🗑️ Promoción '{promocionDb.NombrePromocion}' eliminada";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtStatusServicios.Text = "❌ Error al eliminar promoción";
+                MessageBox.Show($"Error al eliminar promoción:\n\n{ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        #endregion
+
         #region Eventos de Búsqueda y Filtros
 
         private void TxtBuscarServicio_TextChanged(object sender, TextChangedEventArgs e)
@@ -296,7 +397,7 @@ namespace costbenefi.Views
 
         #endregion
 
-        #region Eventos del Grid y Detalles
+        #region Eventos del Grid y Detalles de Servicios
 
         private void DgServicios_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -344,6 +445,91 @@ namespace costbenefi.Views
             TxtMensajeSeleccionServicio.Visibility = Visibility.Visible;
             PanelInfoServicio.Visibility = Visibility.Collapsed;
             PanelBotonesServicio.Visibility = Visibility.Collapsed;
+        }
+
+        #endregion
+
+        #region Eventos del Grid y Detalles de Promociones
+
+        private void DgPromociones_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DgPromociones.SelectedItem is PromocionVenta promocionSeleccionada)
+            {
+                MostrarDetallesPromocion(promocionSeleccionada);
+            }
+            else
+            {
+                OcultarDetallesPromocion();
+            }
+        }
+
+        private void MostrarDetallesPromocion(PromocionVenta promocion)
+        {
+            try
+            {
+                // Mostrar información básica
+                TxtNombrePromocionDetalle.Text = promocion.NombrePromocion;
+                TxtDescripcionPromocionDetalle.Text = promocion.Descripcion;
+                TxtTipoPromocionDetalle.Text = promocion.DescripcionTipo;
+                TxtValorPromocionDetalle.Text = $"{promocion.ValorPromocion:F1}%";
+                TxtVigenciaPromocionDetalle.Text = $"{promocion.DiasRestantes} días";
+                TxtUsosPromocionDetalle.Text = $"{promocion.VecesUsada}/{(promocion.LimiteUsoTotal > 0 ? promocion.LimiteUsoTotal.ToString() : "∞")}";
+
+                // Mostrar paneles
+                TxtMensajeSeleccionPromocion.Visibility = Visibility.Collapsed;
+                PanelInfoPromocion.Visibility = Visibility.Visible;
+                PanelBotonesPromocion.Visibility = Visibility.Visible;
+
+                TxtStatusServicios.Text = $"🎁 Mostrando promoción: {promocion.NombrePromocion}";
+            }
+            catch (Exception ex)
+            {
+                TxtStatusServicios.Text = "❌ Error al mostrar detalles de promoción";
+                System.Diagnostics.Debug.WriteLine($"Error mostrando detalles promoción: {ex.Message}");
+            }
+        }
+
+        private void OcultarDetallesPromocion()
+        {
+            TxtMensajeSeleccionPromocion.Visibility = Visibility.Visible;
+            PanelInfoPromocion.Visibility = Visibility.Collapsed;
+            PanelBotonesPromocion.Visibility = Visibility.Collapsed;
+        }
+
+        #endregion
+
+        #region Eventos de Botones de Promoción Individual
+
+        /// <summary>
+        /// Edita promoción desde panel derecho
+        /// </summary>
+        private async void BtnEditarPromocion_Click(object sender, RoutedEventArgs e)
+        {
+            if (DgPromociones.SelectedItem is PromocionVenta promocionSeleccionada)
+            {
+                await EditarPromocionSeleccionada(promocionSeleccionada);
+            }
+            else
+            {
+                MessageBox.Show("Seleccione una promoción para editar.",
+                              "Selección Requerida", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        /// <summary>
+        /// Elimina promoción desde panel derecho
+        /// </summary>
+        private async void BtnEliminarPromocion_Click(object sender, RoutedEventArgs e)
+        {
+            if (DgPromociones.SelectedItem is PromocionVenta promocionSeleccionada)
+            {
+                await EliminarPromocionSeleccionada(promocionSeleccionada);
+            }
+            else
+            {
+                MessageBox.Show("Seleccione una promoción para eliminar.",
+                              "Selección Requerida", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
 
         #endregion
@@ -532,6 +718,8 @@ namespace costbenefi.Views
                               "El combo ha sido guardado como promoción.",
                               "Combo Creado", MessageBoxButton.OK, MessageBoxImage.Information);
 
+                // Recargar promociones para mostrar el nuevo combo
+                await CargarPromociones();
                 TxtStatusServicios.Text = "📦 Combo creado como promoción";
             }
             catch (Exception ex)
@@ -630,12 +818,18 @@ namespace costbenefi.Views
                     .OrderBy(p => p.NombrePromocion)
                     .ToListAsync();
 
+                // Actualizar interfaz
+                ActualizarGridPromociones();
+
                 System.Diagnostics.Debug.WriteLine($"✅ Promociones cargadas: {_promociones.Count}");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"❌ Error cargando promociones: {ex.Message}");
                 _promociones = new List<PromocionVenta>();
+
+                // Actualizar interfaz aunque haya error
+                ActualizarGridPromociones();
 
                 MessageBox.Show($"Error al cargar promociones desde la base de datos:\n\n{ex.Message}",
                               "Error de Base de Datos", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -649,6 +843,14 @@ namespace costbenefi.Views
 
             TxtCountServicios.Text = $"{_serviciosFiltrados.Count} servicios";
             TxtTotalServicios.Text = $"{_servicios.Count} servicios";
+        }
+
+        private void ActualizarGridPromociones()
+        {
+            DgPromociones.ItemsSource = null;
+            DgPromociones.ItemsSource = _promociones;
+
+            TxtCountPromociones.Text = $"{_promociones.Count} promociones";
         }
 
         /// <summary>
@@ -666,7 +868,7 @@ namespace costbenefi.Views
                 TxtIngresoServicios.Text = "Ingresos: $0.00"; // TODO: Implementar cuando tengamos ventas de servicios
 
                 // Estadísticas adicionales
-                var serviciosMasRentables = await _context.GetServiciosMasRentables(3).ToListAsync();
+                var serviciosMasRentables = _context.GetServiciosMasRentables(3).ToList();
                 if (serviciosMasRentables.Any())
                 {
                     var mejorServicio = serviciosMasRentables.First();

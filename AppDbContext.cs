@@ -588,7 +588,7 @@ namespace costbenefi.Data
                     .HasDefaultValue(false);
 
                 entity.Property(e => e.Combinable)
-                    .HasDefaultValue(false);
+                    .HasDefaultValue(true);
 
                 entity.Property(e => e.Observaciones)
                     .HasMaxLength(500);
@@ -1172,11 +1172,13 @@ namespace costbenefi.Data
         /// </summary>
         public IQueryable<ServicioVenta> GetServiciosMasRentables(int top = 10)
         {
+            // ✅ SOLUCIÓN: Usar ToList() primero, luego ordenar en memoria
             return ServiciosVenta.Where(s => s.Activo)
-                                .OrderByDescending(s => s.PrecioServicio - s.CostoMateriales - s.CostoManoObra) // ← Usar campos reales
-                                .Take(top);
+                                .ToList() // ← Traer a memoria primero
+                                .OrderByDescending(s => s.PrecioServicio - s.CostoMateriales - s.CostoManoObra)
+                                .Take(top)
+                                .AsQueryable();
         }
-
         /// <summary>
         /// Busca servicios por texto
         /// </summary>
@@ -1826,6 +1828,128 @@ namespace costbenefi.Data
             {
                 // Silencioso - no es crítico si falla
             }
+        }
+
+       
+        /// <summary>
+        /// Obtiene productos que se venden a granel (por peso, volumen o longitud)
+        /// </summary>
+        public IQueryable<RawMaterial> GetProductosAGranel()
+        {
+            return RawMaterials.Where(p =>
+                p.ActivoParaVenta &&
+                !p.Eliminado &&
+                (// ✅ PESO
+                 p.UnidadMedida.ToLower().Contains("kg") ||
+                 p.UnidadMedida.ToLower().Contains("gr") ||
+                 p.UnidadMedida.ToLower().Contains("gram") ||
+                 p.UnidadMedida.ToLower().Contains("kilo") ||
+                 // ✅ VOLUMEN
+                 p.UnidadMedida.ToLower().Contains("lt") ||
+                 p.UnidadMedida.ToLower().Contains("ltr") ||
+                 p.UnidadMedida.ToLower().Contains("litro") ||
+                 p.UnidadMedida.ToLower().Contains("ml") ||
+                 p.UnidadMedida.ToLower().Contains("mililitro") ||
+                 // ✅ LONGITUD
+                 p.UnidadMedida.ToLower().Contains("m") ||
+                 p.UnidadMedida.ToLower().Contains("mt") ||
+                 p.UnidadMedida.ToLower().Contains("mtr") ||
+                 p.UnidadMedida.ToLower().Contains("metro") ||
+                 p.UnidadMedida.ToLower().Contains("cm") ||
+                 p.UnidadMedida.ToLower().Contains("centimetro") ||
+                 p.UnidadMedida.ToLower().Contains("centímetro"))
+            ).OrderBy(p => p.NombreArticulo);
+        }
+
+        /// <summary>
+        /// Verifica si un producto específico es a granel
+        /// </summary>
+        public bool EsProductoAGranel(int productId)
+        {
+            var producto = RawMaterials.Find(productId);
+            if (producto == null) return false;
+
+            return EsProductoAGranel(producto);
+        }
+
+        /// <summary>
+        /// Verifica si un producto es a granel basado en su unidad de medida
+        /// </summary>
+        public bool EsProductoAGranel(RawMaterial producto)
+        {
+            if (producto == null) return false;
+
+            var unidad = producto.UnidadMedida.ToLower().Trim();
+
+            // ✅ UNIDADES DE PESO
+            if (unidad.Contains("kg") || unidad.Contains("gram") ||
+                unidad.Contains("kilo") || unidad.Contains("gr"))
+                return true;
+
+            // ✅ UNIDADES DE VOLUMEN    
+            if (unidad.Contains("lt") || unidad.Contains("ltr") ||
+                unidad.Contains("litro") || unidad.Contains("ml") ||
+                unidad.Contains("mililitro"))
+                return true;
+
+            // ✅ UNIDADES DE LONGITUD
+            if (unidad.Contains("m") || unidad.Contains("mt") ||
+                unidad.Contains("mtr") || unidad.Contains("metro") ||
+                unidad.Contains("cm") || unidad.Contains("centimetro") ||
+                unidad.Contains("centímetro"))
+                return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Obtiene estadísticas de productos a granel
+        /// </summary>
+        public async Task<dynamic> GetEstadisticasProductosAGranelAsync()
+        {
+            var productosAGranel = await GetProductosAGranel().ToListAsync();
+            var totalProductos = await RawMaterials.CountAsync(p => p.ActivoParaVenta && !p.Eliminado);
+
+            return new
+            {
+                CantidadProductosAGranel = productosAGranel.Count,
+                TotalProductos = totalProductos,
+                PorcentajeAGranel = totalProductos > 0 ? (decimal)productosAGranel.Count / totalProductos * 100 : 0,
+                ValorTotalAGranel = productosAGranel.Sum(p => p.ValorTotalConIVA),
+
+                // ✅ ESTADÍSTICAS POR TIPO DE MEDIDA
+                ProductosPorPeso = productosAGranel
+                    .Where(p => p.UnidadMedida.ToLower().Contains("kg") || p.UnidadMedida.ToLower().Contains("gr"))
+                    .Count(),
+                ProductosPorVolumen = productosAGranel
+                    .Where(p => p.UnidadMedida.ToLower().Contains("lt") || p.UnidadMedida.ToLower().Contains("ml"))
+                    .Count(),
+                ProductosPorLongitud = productosAGranel
+                    .Where(p => p.UnidadMedida.ToLower().Contains("m") || p.UnidadMedida.ToLower().Contains("cm"))
+                    .Count(),
+
+                // ✅ EJEMPLOS VARIADOS POR CATEGORÍA  
+                ProductosMasPesados = productosAGranel
+                    .Where(p => p.UnidadMedida.ToLower().Contains("kg"))
+                    .OrderByDescending(p => p.StockTotal)
+                    .Take(3)
+                    .Select(p => new { p.NombreArticulo, p.StockTotal, p.UnidadMedida })
+                    .ToList(),
+
+                ProductosMasLargos = productosAGranel
+                    .Where(p => p.UnidadMedida.ToLower().Contains("m") && !p.UnidadMedida.ToLower().Contains("cm"))
+                    .OrderByDescending(p => p.StockTotal)
+                    .Take(3)
+                    .Select(p => new { p.NombreArticulo, p.StockTotal, p.UnidadMedida })
+                    .ToList(),
+
+                ProductosMasVoluminosos = productosAGranel
+                    .Where(p => p.UnidadMedida.ToLower().Contains("lt"))
+                    .OrderByDescending(p => p.StockTotal)
+                    .Take(3)
+                    .Select(p => new { p.NombreArticulo, p.StockTotal, p.UnidadMedida })
+                    .ToList()
+            };
         }
     }
 }

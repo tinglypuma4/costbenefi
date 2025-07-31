@@ -1,0 +1,560 @@
+﻿<Window x:Class="costbenefi.Views.CrearEditarPromocionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🎁 Crear/Editar Promoción" Height="700" Width="1000"
+        WindowStartupLocation="CenterOwner" 
+        Background="#F5F7FA">
+
+    <Window.Resources>
+        <!-- Estilo para botones de tipo de promoción -->
+        <Style x:Key="PromoTypeButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="80"/>
+            <Setter Property="Width" Value="150"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="10"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="10"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                BorderBrush="{TemplateBinding BorderBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#8B5CF6"/>
+                                <Setter TargetName="border" Property="Background" Value="#F3E8FF"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#8B5CF6"/>
+                                <Setter TargetName="border" Property="Background" Value="#8B5CF6"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Estilo para inputs -->
+        <Style x:Key="InputStyle" TargetType="TextBox">
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Height" Value="35"/>
+        </Style>
+
+        <!-- Estilo para labels -->
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="5,8,5,3"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#374151"/>
+        </Style>
+
+        <!-- Estilo para botones principales -->
+        <Style x:Key="MainButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#10B981"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#059669"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="20" Margin="0,0,0,20" 
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="🎁 Crear Nueva Promoción" FontSize="24" FontWeight="Bold" 
+                              Foreground="#1F2937" x:Name="TxtTituloVentana"/>
+                    <TextBlock Text="Configure descuentos, combos y promociones especiales" 
+                              FontSize="14" Foreground="#6B7280" Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="📊 Análisis" Style="{StaticResource MainButtonStyle}" 
+                           x:Name="BtnAnalisisViabilidad" Click="BtnAnalisisViabilidad_Click"
+                           Background="#F59E0B"/>
+                    <Button Content="💾 Guardar" Style="{StaticResource MainButtonStyle}" 
+                           x:Name="BtnGuardar" Click="BtnGuardar_Click"/>
+                    <Button Content="❌ Cancelar" Style="{StaticResource MainButtonStyle}" 
+                           x:Name="BtnCancelar" Click="BtnCancelar_Click"
+                           Background="#6B7280"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Contenido Principal con TabControl -->
+        <TabControl Grid.Row="1" Background="White" BorderThickness="0">
+
+            <!-- Tab 1: Tipo de Promoción -->
+            <TabItem Header="1️⃣ Tipo de Promoción">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="🎯 Seleccione el tipo de promoción que desea crear:" 
+                                  FontSize="18" FontWeight="Bold" Foreground="#1F2937" 
+                                  Margin="0,0,0,20" HorizontalAlignment="Center"/>
+
+                        <!-- Tipos de Promoción en Grid -->
+                        <UniformGrid Columns="3" Margin="0,0,0,20">
+                            
+                            <!-- Descuento Porcentaje -->
+                            <Button x:Name="BtnDescuentoPorcentaje" Style="{StaticResource PromoTypeButtonStyle}"
+                                   Click="BtnTipoPromocion_Click" Tag="DescuentoPorcentaje">
+                                <StackPanel>
+                                    <TextBlock Text="💰" FontSize="24" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Descuento %" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Ej: 20% descuento" FontSize="10" Foreground="#6B7280" 
+                                              HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Descuento Fijo -->
+                            <Button x:Name="BtnDescuentoFijo" Style="{StaticResource PromoTypeButtonStyle}"
+                                   Click="BtnTipoPromocion_Click" Tag="DescuentoFijo">
+                                <StackPanel>
+                                    <TextBlock Text="💵" FontSize="24" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Descuento Fijo" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Ej: $50 descuento" FontSize="10" Foreground="#6B7280" 
+                                              HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Precio por Cantidad -->
+                            <Button x:Name="BtnCantidad" Style="{StaticResource PromoTypeButtonStyle}"
+                                   Click="BtnTipoPromocion_Click" Tag="Cantidad">
+                                <StackPanel>
+                                    <TextBlock Text="⚖️" FontSize="24" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Por Cantidad" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Ej: 2 kilos x $80" FontSize="10" Foreground="#6B7280" 
+                                              HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Compra y Lleva -->
+                            <Button x:Name="BtnCompraYLleva" Style="{StaticResource PromoTypeButtonStyle}"
+                                   Click="BtnTipoPromocion_Click" Tag="CompraYLleva">
+                                <StackPanel>
+                                    <TextBlock Text="🎯" FontSize="24" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Compra y Lleva" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Ej: 2x1, 3x2" FontSize="10" Foreground="#6B7280" 
+                                              HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Combo Especial -->
+                            <Button x:Name="BtnCombo" Style="{StaticResource PromoTypeButtonStyle}"
+                                   Click="BtnTipoPromocion_Click" Tag="Combo">
+                                <StackPanel>
+                                    <TextBlock Text="📦" FontSize="24" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Combo" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Ej: Producto A+B" FontSize="10" Foreground="#6B7280" 
+                                              HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Monto Mínimo -->
+                            <Button x:Name="BtnMontoMinimo" Style="{StaticResource PromoTypeButtonStyle}"
+                                   Click="BtnTipoPromocion_Click" Tag="MontoMinimo">
+                                <StackPanel>
+                                    <TextBlock Text="💳" FontSize="24" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Monto Mínimo" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Ej: Gasta $500+" FontSize="10" Foreground="#6B7280" 
+                                              HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Button>
+                        </UniformGrid>
+
+                        <!-- Descripción del tipo seleccionado -->
+                        <Border x:Name="PanelDescripcionTipo" Background="#F0F9FF" CornerRadius="10" 
+                               Padding="20" Margin="0,20,0,0" Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtTipoSeleccionado" Text="" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#0369A1" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="TxtDescripcionTipo" Text="" FontSize="14" 
+                                          Foreground="#0369A1" TextWrapping="Wrap" 
+                                          HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Tab 2: Configuración -->
+            <TabItem Header="2️⃣ Configuración">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Panel Izquierdo: Información Básica -->
+                        <Border Grid.Column="0" Background="White" CornerRadius="10" 
+                               BorderBrush="#E5E7EB" BorderThickness="1" Padding="20">
+                            <StackPanel>
+                                <TextBlock Text="📋 Información Básica" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#1F2937" Margin="0,0,0,15"/>
+
+                                <TextBlock Text="Nombre de la Promoción *" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtNombrePromocion" Style="{StaticResource InputStyle}"/>
+
+                                <TextBlock Text="Descripción" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtDescripcion" Style="{StaticResource InputStyle}" 
+                                        Height="60" TextWrapping="Wrap" AcceptsReturn="True"/>
+
+                                <TextBlock Text="Categoría" Style="{StaticResource LabelStyle}"/>
+                                <ComboBox x:Name="CmbCategoriaPromocion" Margin="5" Padding="10" FontSize="14">
+                                    <ComboBoxItem Content="General"/>
+                                    <ComboBoxItem Content="Productos"/>
+                                    <ComboBoxItem Content="Servicios"/>
+                                    <ComboBoxItem Content="Combos"/>
+                                    <ComboBoxItem Content="Temporada"/>
+                                    <ComboBoxItem Content="Liquidación"/>
+                                </ComboBox>
+
+                                <!-- Panel dinámico según tipo -->
+                                <StackPanel x:Name="PanelConfiguracionTipo" Margin="0,20,0,0">
+                                    
+                                    <!-- Para Descuento Porcentaje -->
+                                    <StackPanel x:Name="PanelDescuentoPorcentaje" Visibility="Collapsed">
+                                        <TextBlock Text="Porcentaje de Descuento *" Style="{StaticResource LabelStyle}"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBox x:Name="TxtValorPorcentaje" Style="{StaticResource InputStyle}" 
+                                                    Width="100" TextChanged="TxtValor_TextChanged"/>
+                                            <TextBlock Text="%" FontSize="16" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                        </StackPanel>
+                                        
+                                        <TextBlock Text="Descuento Máximo (opcional)" Style="{StaticResource LabelStyle}"/>
+                                        <TextBox x:Name="TxtDescuentoMaximo" Style="{StaticResource InputStyle}"/>
+                                    </StackPanel>
+
+                                    <!-- Para Descuento Fijo -->
+                                    <StackPanel x:Name="PanelDescuentoFijo" Visibility="Collapsed">
+                                        <TextBlock Text="Monto del Descuento *" Style="{StaticResource LabelStyle}"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="$" FontSize="16" VerticalAlignment="Center" Margin="5,0,5,0"/>
+                                            <TextBox x:Name="TxtValorFijo" Style="{StaticResource InputStyle}" 
+                                                    Width="150" TextChanged="TxtValor_TextChanged"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <!-- Para Cantidad - VERSIÓN MEJORADA CON SELECTOR DE PRODUCTOS -->
+                                    <StackPanel x:Name="PanelCantidad" Visibility="Collapsed">
+                                        
+                                        <!-- ✅ NUEVO: Selector de producto a granel -->
+                                        <TextBlock Text="Producto Específico *" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox x:Name="CmbProductoAGranel" Margin="5" Padding="10" FontSize="14"
+                                                  SelectedValuePath="Id"
+                                                  SelectionChanged="CmbProductoAGranel_SelectionChanged">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="⚖️" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding NombreArticulo}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                        <TextBlock Text=" - " Foreground="#6B7280" Margin="5,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding UnidadMedida}" Foreground="#6B7280" FontSize="11" VerticalAlignment="Center"/>
+                                                        <TextBlock Text=" - " Foreground="#6B7280" Margin="5,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding PrecioVenta, StringFormat=C2}" Foreground="#059669" FontWeight="Bold" FontSize="11" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        
+                                        <!-- ✅ INFO AUTOMÁTICA DEL PRODUCTO SELECCIONADO -->
+                                        <Border x:Name="PanelInfoProductoSeleccionado" Background="#F0F9FF" CornerRadius="5" 
+                                                Padding="10" Margin="5,10,5,0" Visibility="Collapsed">
+                                            <StackPanel>
+                                                <TextBlock x:Name="TxtInfoProducto" Text="" FontSize="11" Foreground="#0369A1" FontWeight="SemiBold"/>
+                                                <TextBlock x:Name="TxtPrecioNormalProducto" Text="" FontSize="10" Foreground="#0369A1" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <Grid Margin="0,15,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                                <TextBlock Text="Cantidad Promocional *" Style="{StaticResource LabelStyle}"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox x:Name="TxtCantidadMinima" Style="{StaticResource InputStyle}" Width="80"
+                                                            TextChanged="TxtValor_TextChanged"/>
+                                                    <TextBlock x:Name="TxtUnidadMedidaProducto" Text="kg" FontSize="14" VerticalAlignment="Center" 
+                                                              Margin="8,0,0,0" Foreground="#6B7280"/>
+                                                </StackPanel>
+                                                <TextBlock Text="Ej: 2 (kilos)" FontSize="10" Foreground="#6B7280" Margin="5,2,0,0"/>
+                                            </StackPanel>
+                                            
+                                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                <TextBlock Text="Precio Promocional *" Style="{StaticResource LabelStyle}"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="$" FontSize="16" VerticalAlignment="Center" Margin="5,0,5,0"/>
+                                                    <TextBox x:Name="TxtPrecioTotal" Style="{StaticResource InputStyle}" Width="100"
+                                                            TextChanged="TxtValor_TextChanged"/>
+                                                </StackPanel>
+                                                <TextBlock Text="Ej: 80.00 (total)" FontSize="10" Foreground="#6B7280" Margin="5,2,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        
+                                        <!-- ✅ COMPARACIÓN AUTOMÁTICA -->
+                                        <Border x:Name="PanelComparacion" Background="#FEF3C7" CornerRadius="5" 
+                                                Padding="10" Margin="5,15,5,0" Visibility="Collapsed">
+                                            <StackPanel>
+                                                <TextBlock Text="📊 Comparación de Precios" FontWeight="Bold" FontSize="12" Foreground="#92400E"/>
+                                                <Grid Margin="0,5,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="Precio Normal:" FontSize="10" Foreground="#92400E"/>
+                                                        <TextBlock x:Name="TxtPrecioNormalTotal" Text="$0.00" FontWeight="Bold" FontSize="11" Foreground="#92400E"/>
+                                                    </StackPanel>
+                                                    
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="Precio Promocional:" FontSize="10" Foreground="#92400E"/>
+                                                        <TextBlock x:Name="TxtPrecioPromocionalTotal" Text="$0.00" FontWeight="Bold" FontSize="11" Foreground="#92400E"/>
+                                                    </StackPanel>
+                                                    
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="Ahorro:" FontSize="10" Foreground="#92400E"/>
+                                                        <TextBlock x:Name="TxtAhorroTotal" Text="$0.00" FontWeight="Bold" FontSize="11" Foreground="#92400E"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <TextBlock x:Name="TxtPorcentajeDescuento" Text="" FontSize="10" Foreground="#92400E" 
+                                                          HorizontalAlignment="Center" Margin="0,5,0,0" FontWeight="Bold"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <!-- Para Compra y Lleva -->
+                                    <StackPanel x:Name="PanelCompraYLleva" Visibility="Collapsed">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                                <TextBlock Text="Compra *" Style="{StaticResource LabelStyle}"/>
+                                                <TextBox x:Name="TxtCompra" Style="{StaticResource InputStyle}"
+                                                        TextChanged="TxtValor_TextChanged"/>
+                                            </StackPanel>
+                                            
+                                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                <TextBlock Text="Lleva *" Style="{StaticResource LabelStyle}"/>
+                                                <TextBox x:Name="TxtLleva" Style="{StaticResource InputStyle}"
+                                                        TextChanged="TxtValor_TextChanged"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Condiciones comunes -->
+                                <TextBlock Text="🎯 Condiciones" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#1F2937" Margin="0,20,0,15"/>
+
+                                <TextBlock Text="Monto Mínimo de Compra" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtMontoMinimo" Style="{StaticResource InputStyle}" Text="0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Panel Derecho: Vigencia y Restricciones -->
+                        <Border Grid.Column="2" Background="White" CornerRadius="10" 
+                               BorderBrush="#E5E7EB" BorderThickness="1" Padding="20">
+                            <StackPanel>
+                                <TextBlock Text="📅 Vigencia" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#1F2937" Margin="0,0,0,15"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="Fecha Inicio *" Style="{StaticResource LabelStyle}"/>
+                                        <DatePicker x:Name="DpFechaInicio" Margin="5" FontSize="14"/>
+                                    </StackPanel>
+                                    
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                        <TextBlock Text="Fecha Fin *" Style="{StaticResource LabelStyle}"/>
+                                        <DatePicker x:Name="DpFechaFin" Margin="5" FontSize="14"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Text="⏰ Horario de Aplicación" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#1F2937" Margin="0,20,0,15"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="Hora Inicio" Style="{StaticResource LabelStyle}"/>
+                                        <TextBox x:Name="TxtHoraInicio" Style="{StaticResource InputStyle}" Text="00:00"/>
+                                    </StackPanel>
+                                    
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                        <TextBlock Text="Hora Fin" Style="{StaticResource LabelStyle}"/>
+                                        <TextBox x:Name="TxtHoraFin" Style="{StaticResource InputStyle}" Text="23:59"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Text="📊 Límites de Uso" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#1F2937" Margin="0,20,0,15"/>
+
+                                <TextBlock Text="Límite Total de Usos (0 = ilimitado)" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtLimiteUsoTotal" Style="{StaticResource InputStyle}" Text="0"/>
+
+                                <TextBlock Text="Límite por Cliente por Día (0 = ilimitado)" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtLimitePorCliente" Style="{StaticResource InputStyle}" Text="0"/>
+
+                                <TextBlock Text="⚙️ Configuración Avanzada" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#1F2937" Margin="0,20,0,15"/>
+
+                                <CheckBox x:Name="ChkActivaPromocion" Content="Promoción activa" 
+                                         Margin="5,10" IsChecked="True" FontSize="14"/>
+
+                                <CheckBox x:Name="ChkAplicacionAutomatica" Content="Aplicación automática" 
+                                         Margin="5,5" IsChecked="True" FontSize="14"/>
+
+                                <CheckBox x:Name="ChkIntegrarPOS" Content="Integrar con POS" 
+                                         Margin="5,5" IsChecked="True" FontSize="14"/>
+
+                                <CheckBox x:Name="ChkCombinable" Content="Combinable con otras promociones" 
+                                         Margin="5,5" IsChecked="False" FontSize="14"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Tab 3: Vista Previa y Análisis -->
+            <TabItem Header="3️⃣ Vista Previa">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Vista Previa -->
+                        <Border Grid.Column="0" Background="White" CornerRadius="10" 
+                               BorderBrush="#E5E7EB" BorderThickness="1" Padding="20">
+                            <StackPanel>
+                                <TextBlock Text="👁️ Vista Previa de la Promoción" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#1F2937" Margin="0,0,0,15"/>
+
+                                <Border Background="#F0F9FF" CornerRadius="10" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock x:Name="TxtVistaPrevia" Text="Seleccione un tipo de promoción para ver la vista previa" 
+                                                  FontSize="14" TextWrapping="Wrap" Foreground="#0369A1"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Text="📋 Resumen de Configuración" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#1F2937" Margin="0,20,0,15"/>
+
+                                <StackPanel x:Name="PanelResumenConfiguracion">
+                                    <TextBlock x:Name="TxtResumenTipo" Text="" FontSize="12" Margin="0,2"/>
+                                    <TextBlock x:Name="TxtResumenValor" Text="" FontSize="12" Margin="0,2"/>
+                                    <TextBlock x:Name="TxtResumenVigencia" Text="" FontSize="12" Margin="0,2"/>
+                                    <TextBlock x:Name="TxtResumenLimites" Text="" FontSize="12" Margin="0,2"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Análisis de Viabilidad -->
+                        <Border Grid.Column="2" Background="White" CornerRadius="10" 
+                               BorderBrush="#E5E7EB" BorderThickness="1" Padding="20">
+                            <StackPanel>
+                                <TextBlock Text="📊 Análisis de Viabilidad" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#1F2937" Margin="0,0,0,15"/>
+
+                                <Border x:Name="PanelAnalisisViabilidad" Background="#ECFDF5" CornerRadius="10" Padding="15">
+                                    <StackPanel>
+                                        <TextBlock x:Name="TxtEstadoViabilidad" Text="✅ Promoción viable" 
+                                                  FontSize="14" FontWeight="Bold" Foreground="#059669" 
+                                                  HorizontalAlignment="Center"/>
+                                        
+                                        <TextBlock x:Name="TxtAnalisisDetallado" Text="Configure la promoción para ver el análisis" 
+                                                  FontSize="12" TextWrapping="Wrap" Foreground="#059669" 
+                                                  Margin="0,10,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Text="💡 Sugerencias" FontSize="16" FontWeight="Bold" 
+                                          Foreground="#1F2937" Margin="0,20,0,15"/>
+
+                                <TextBlock x:Name="TxtSugerencias" Text="• Configure los valores para recibir sugerencias automáticas" 
+                                          FontSize="12" TextWrapping="Wrap" Foreground="#6B7280"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="White" CornerRadius="10" Padding="15" Margin="0,20,0,0" 
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" x:Name="TxtEstadoFormulario" 
+                          Text="🎁 Seleccione un tipo de promoción para comenzar" 
+                          FontSize="14" VerticalAlignment="Center" Foreground="#059669"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="🔄 Actualizar Vista Previa" Style="{StaticResource MainButtonStyle}" 
+                           x:Name="BtnActualizarVista" Click="BtnActualizarVista_Click"
+                           Background="#6366F1"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

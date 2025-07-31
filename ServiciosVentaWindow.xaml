@@ -134,25 +134,40 @@
 
                 <!-- Botones de acción -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <!-- Botones para SERVICIOS -->
                     <Button x:Name="BtnNuevoServicio" Content="➕ Nuevo Servicio" Width="130"
                             Background="#10B981" Foreground="White" 
                             Style="{StaticResource ActionButtonStyle}" 
                             Click="BtnNuevoServicio_Click"/>
 
+                    <Button x:Name="BtnEditarServicio" Content="✏️ Editar Servicio" Width="120"
+                            Background="#3B82F6" Foreground="White"
+                            Style="{StaticResource ActionButtonStyle}"
+                            Click="BtnEditarServicio_Click"/>
+
+                    <Button x:Name="BtnEliminarServicio" Content="🗑️ Eliminar Servicio" Width="130"
+                            Background="#EF4444" Foreground="White"
+                            Style="{StaticResource ActionButtonStyle}"
+                            Click="BtnEliminarServicio_Click"/>
+
+                    <!-- Separador -->
+                    <Rectangle Width="1" Height="25" Fill="#E5E7EB" Margin="10,0"/>
+
+                    <!-- Botones para PROMOCIONES -->
                     <Button x:Name="BtnNuevaPromocion" Content="🎁 Nueva Promoción" Width="140"
                             Background="#F59E0B" Foreground="White"
                             Style="{StaticResource ActionButtonStyle}"
                             Click="BtnNuevaPromocion_Click"/>
 
-                    <Button x:Name="BtnEditarServicio" Content="✏️ Editar" Width="80"
-                            Background="#3B82F6" Foreground="White"
+                    <Button x:Name="BtnEditarPromocionPrincipal" Content="✏️ Editar Promoción" Width="130"
+                            Background="#8B5CF6" Foreground="White"
                             Style="{StaticResource ActionButtonStyle}"
-                            Click="BtnEditarServicio_Click"/>
+                            Click="BtnEditarPromocionPrincipal_Click"/>
 
-                    <Button x:Name="BtnEliminarServicio" Content="🗑️ Eliminar" Width="90"
-                            Background="#EF4444" Foreground="White"
+                    <Button x:Name="BtnEliminarPromocionPrincipal" Content="🗑️ Eliminar Promoción" Width="140"
+                            Background="#DC2626" Foreground="White"
                             Style="{StaticResource ActionButtonStyle}"
-                            Click="BtnEliminarServicio_Click"/>
+                            Click="BtnEliminarPromocionPrincipal_Click"/>
                 </StackPanel>
 
                 <!-- Búsqueda -->
@@ -184,7 +199,7 @@
         </Border>
 
         <!-- Contenido principal con TabControl -->
-        <TabControl Grid.Row="2" Background="White" BorderThickness="0" Margin="10">
+        <TabControl x:Name="MainTabControl" Grid.Row="2" Background="White" BorderThickness="0" Margin="10">
 
             <!-- Tab 1: Servicios Básicos -->
             <TabItem Header="💼 Servicios" Style="{StaticResource ServiceTabStyle}">
@@ -301,7 +316,7 @@
                             <!-- Contenido detalles -->
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="15">
                                 <StackPanel x:Name="PanelDetallesServicio">
-                                    
+
                                     <!-- Mensaje por defecto -->
                                     <TextBlock x:Name="TxtMensajeSeleccionServicio" 
                                               Text="Seleccione un servicio para ver sus detalles" 
@@ -311,7 +326,7 @@
 
                                     <!-- Panel de detalles (inicialmente oculto) -->
                                     <StackPanel x:Name="PanelInfoServicio" Visibility="Collapsed">
-                                        
+
                                         <!-- Información básica -->
                                         <Border Background="#F3E8FF" CornerRadius="5" Padding="10" Margin="0,0,0,15">
                                             <StackPanel>
@@ -338,9 +353,9 @@
                                                         <TextBlock Grid.Column="0" Text="{Binding NombreMaterial}" 
                                                                   FontSize="11" VerticalAlignment="Center"/>
                                                         <TextBlock Grid.Column="1" FontSize="10" Foreground="#6B7280" VerticalAlignment="Center">
-                                                            <Run Text="{Binding Cantidad}"/>
-                                                            <Run Text=" "/>
-                                                            <Run Text="{Binding Unidad}"/>
+                                                             <Run Text="{Binding CantidadNecesaria, StringFormat='{}{0:F2}'}"/>
+                                                             <Run Text=" "/>
+                                                             <Run Text="{Binding UnidadMedida}"/>
                                                         </TextBlock>
                                                     </Grid>
                                                 </DataTemplate>
@@ -389,18 +404,18 @@
                                            Height="35" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"
                                            Background="#8B5CF6" Foreground="White" BorderThickness="0"
                                            Click="BtnActivarPOS_Click"/>
-                                    
+
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        
+
                                         <Button Grid.Column="0" x:Name="BtnDuplicarServicio" Content="📋 Duplicar" 
                                                Height="30" FontSize="11" FontWeight="Bold" Margin="0,0,4,0"
                                                Background="#6366F1" Foreground="White" BorderThickness="0"
                                                Click="BtnDuplicarServicio_Click"/>
-                                        
+
                                         <Button Grid.Column="1" x:Name="BtnAnalisisMargen" Content="📊 Margen" 
                                                Height="30" FontSize="11" FontWeight="Bold" Margin="4,0,0,0"
                                                Background="#F59E0B" Foreground="White" BorderThickness="0"
@@ -416,28 +431,220 @@
             <!-- Tab 2: Promociones y Combos -->
             <TabItem Header="🎁 Promociones" Style="{StaticResource ServiceTabStyle}">
                 <Grid>
-                    <Border Background="#FEF3C7" CornerRadius="10" Padding="30" Margin="20">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="🎁" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,20"/>
-                            <TextBlock Text="Promociones y Combos" FontSize="24" FontWeight="Bold" 
-                                      HorizontalAlignment="Center" Foreground="#92400E" Margin="0,0,0,10"/>
-                            <TextBlock Text="Configure descuentos automáticos, ofertas por tiempo limitado y combos especiales" 
-                                      FontSize="14" HorizontalAlignment="Center" Foreground="#92400E" 
-                                      Margin="0,0,0,30" TextWrapping="Wrap" TextAlignment="Center"/>
-                            
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button Content="🎁 Nueva Promoción" Width="150" Height="40" Margin="0,0,15,0"
-                                       Background="#F59E0B" Foreground="White" FontSize="14" FontWeight="Bold"
-                                       BorderThickness="0" Click="BtnNuevaPromocion_Click"/>
-                                <Button Content="📦 Nuevo Combo" Width="150" Height="40"
-                                       Background="#8B5CF6" Foreground="White" FontSize="14" FontWeight="Bold"
-                                       BorderThickness="0" Click="BtnNuevoCombo_Click"/>
-                            </StackPanel>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.5*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
 
-                            <TextBlock Text="Próxima implementación: Sistema completo de promociones automáticas" 
-                                      FontSize="12" Foreground="#92400E" HorizontalAlignment="Center" 
-                                      FontStyle="Italic" Margin="0,20,0,0"/>
-                        </StackPanel>
+                    <!-- Panel izquierdo: Lista de promociones -->
+                    <Border Grid.Column="0" Background="White" CornerRadius="10" 
+                            BorderBrush="#E5E7EB" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Header lista promociones -->
+                            <Border Grid.Row="0" Background="#FEF3C7" CornerRadius="10,10,0,0" 
+                                    BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="15,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0" Text="🎁 Promociones Activas" 
+                                               Style="{StaticResource SectionHeaderStyle}"/>
+                                    <TextBlock Grid.Column="1" x:Name="TxtCountPromociones" Text="0 promociones" 
+                                               FontSize="12" Foreground="#92400E" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Lista de promociones -->
+                            <DataGrid Grid.Row="1" x:Name="DgPromociones" 
+                                      AutoGenerateColumns="False" 
+                                      CanUserAddRows="False" 
+                                      CanUserDeleteRows="False"
+                                      IsReadOnly="True"
+                                      SelectionMode="Single"
+                                      GridLinesVisibility="Horizontal"
+                                      HeadersVisibility="Column"
+                                      AlternatingRowBackground="#FFFBEB"
+                                      RowBackground="White"
+                                      BorderThickness="0"
+                                      FontSize="11"
+                                      RowHeight="35"
+                                      ColumnHeaderHeight="32"
+                                      Margin="10"
+                                      SelectionChanged="DgPromociones_SelectionChanged">
+
+                                <DataGrid.ColumnHeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="Background" Value="#FEF3C7"/>
+                                        <Setter Property="Foreground" Value="#92400E"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="FontSize" Value="11"/>
+                                        <Setter Property="Padding" Value="8,5"/>
+                                        <Setter Property="BorderBrush" Value="#E5E7EB"/>
+                                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                    </Style>
+                                </DataGrid.ColumnHeaderStyle>
+
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="🎁 Nombre" Binding="{Binding NombrePromocion}" 
+                                                        Width="160" FontWeight="SemiBold"/>
+                                    <DataGridTextColumn Header="📊 Tipo" Binding="{Binding DescripcionTipo}" 
+                                                        Width="120"/>
+                                    <DataGridTextColumn Header="💰 Valor" Width="80">
+                                        <DataGridTextColumn.Binding>
+                                            <MultiBinding StringFormat="{}{0:F1}%">
+                                                <Binding Path="ValorPromocion"/>
+                                            </MultiBinding>
+                                        </DataGridTextColumn.Binding>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="⏰ Vigencia" Binding="{Binding DiasRestantes}" Width="70">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DiasRestantes}" Value="0">
+                                                        <Setter Property="Foreground" Value="#EF4444"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTemplateColumn Header="✅" Width="40">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Ellipse Width="12" Height="12" HorizontalAlignment="Center">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Fill" Value="#10B981"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Activa}" Value="False">
+                                                                    <Setter Property="Fill" Value="#EF4444"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Panel derecho: Detalles de promoción + botones -->
+                    <Border Grid.Column="2" Background="White" CornerRadius="10" 
+                            BorderBrush="#E5E7EB" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Header detalles -->
+                            <Border Grid.Row="0" Background="#FEF3C7" CornerRadius="10,10,0,0" 
+                                    BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="15,10">
+                                <TextBlock Text="🎁 Detalle de Promoción" Style="{StaticResource SectionHeaderStyle}" 
+                                           Foreground="#92400E"/>
+                            </Border>
+
+                            <!-- Contenido detalles -->
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="15">
+                                <StackPanel>
+                                    <!-- Mensaje por defecto -->
+                                    <TextBlock x:Name="TxtMensajeSeleccionPromocion" 
+                                              Text="Seleccione una promoción para ver sus detalles" 
+                                              FontSize="12" Foreground="#6B7280" 
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="0,50,0,0"/>
+
+                                    <!-- Panel de detalles (inicialmente oculto) -->
+                                    <StackPanel x:Name="PanelInfoPromocion" Visibility="Collapsed">
+
+                                        <!-- Información básica -->
+                                        <Border Background="#FEF3C7" CornerRadius="5" Padding="10" Margin="0,0,0,15">
+                                            <StackPanel>
+                                                <TextBlock x:Name="TxtNombrePromocionDetalle" Text="" 
+                                                          FontSize="14" FontWeight="Bold" Foreground="#92400E"/>
+                                                <TextBlock x:Name="TxtDescripcionPromocionDetalle" Text="" 
+                                                          FontSize="11" Foreground="#374151" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Detalles técnicos -->
+                                        <TextBlock Text="⚙️ Configuración:" FontSize="12" FontWeight="Bold" 
+                                                  Foreground="#374151" Margin="0,0,0,8"/>
+                                        <Border Background="#F9FAFB" CornerRadius="5" Padding="10" Margin="0,0,0,15">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Tipo:" FontSize="10" Foreground="#6B7280"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="TxtTipoPromocionDetalle" Text="" 
+                                                          FontSize="10" FontWeight="Bold"/>
+
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Valor:" FontSize="10" Foreground="#6B7280"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TxtValorPromocionDetalle" Text="" 
+                                                          FontSize="10" FontWeight="Bold"/>
+
+                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Vigencia:" FontSize="10" Foreground="#6B7280"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="TxtVigenciaPromocionDetalle" Text="" 
+                                                          FontSize="10" FontWeight="Bold"/>
+
+                                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Usos:" FontSize="10" Foreground="#6B7280"/>
+                                                <TextBlock Grid.Row="3" Grid.Column="1" x:Name="TxtUsosPromocionDetalle" Text="" 
+                                                          FontSize="10" FontWeight="Bold"/>
+                                            </Grid>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <!-- Botones -->
+                            <Border Grid.Row="2" Background="#FEF3C7" BorderBrush="#E5E7EB" 
+                                    BorderThickness="0,1,0,0" CornerRadius="0,0,10,10" Padding="15">
+                                <StackPanel x:Name="PanelBotonesPromocion" Visibility="Collapsed">
+
+                                    <!-- Botón Editar Promoción -->
+                                    <Button x:Name="BtnEditarPromocion" Content="✏️ Editar Promoción" 
+                                           Height="35" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"
+                                           Background="#F59E0B" Foreground="White" BorderThickness="0"
+                                           Click="BtnEditarPromocion_Click"/>
+
+                                    <!-- Botón Eliminar Promoción -->
+                                    <Button x:Name="BtnEliminarPromocion" Content="🗑️ Eliminar Promoción" 
+                                           Height="35" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"
+                                           Background="#EF4444" Foreground="White" BorderThickness="0"
+                                           Click="BtnEliminarPromocion_Click"/>
+
+                                    <!-- Botones originales (crear nueva, combo) -->
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="🎁 Nueva Promoción" Width="130" Height="30" Margin="0,0,8,0"
+                                               Background="#8B5CF6" Foreground="White" FontSize="11" FontWeight="Bold"
+                                               BorderThickness="0" Click="BtnNuevaPromocion_Click"/>
+                                        <Button Content="📦 Nuevo Combo" Width="120" Height="30"
+                                               Background="#10B981" Foreground="White" FontSize="11" FontWeight="Bold"
+                                               BorderThickness="0" Click="BtnNuevoCombo_Click"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                     </Border>
                 </Grid>
             </TabItem>
@@ -453,7 +660,7 @@
                             <TextBlock Text="Configure qué servicios aparecen en el POS y cómo se procesan automáticamente" 
                                       FontSize="14" HorizontalAlignment="Center" Foreground="#1E40AF" 
                                       Margin="0,0,0,30" TextWrapping="Wrap" TextAlignment="Center"/>
-                            
+
                             <Button Content="⚙️ Configurar POS" Width="200" Height="40"
                                    Background="#3B82F6" Foreground="White" FontSize="14" FontWeight="Bold"
                                    BorderThickness="0" Click="BtnConfigurarPOS_Click"/>

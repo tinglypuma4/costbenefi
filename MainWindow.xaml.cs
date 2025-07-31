@@ -593,7 +593,315 @@ namespace costbenefi
                 TxtStatusPOS.Text = "❌ Error al abrir reporte de cortes";
             }
         }
+        private async Task<decimal> CalcularDescuentoPromociones()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("🔍 DEBUG: Iniciando CalcularDescuentoPromociones() EXPANDIDO");
 
+                // Obtener promociones automáticas vigentes
+                var promocionesVigentes = await _context.GetPromocionesVigentes()
+                    .Where(p => p.AplicacionAutomatica)
+                    .OrderBy(p => p.Prioridad) // Aplicar por prioridad
+                    .ToListAsync();
+
+                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Promociones vigentes encontradas: {promocionesVigentes.Count}");
+
+                if (!promocionesVigentes.Any())
+                {
+                    System.Diagnostics.Debug.WriteLine("❌ DEBUG: No hay promociones vigentes");
+                    return 0;
+                }
+
+                decimal descuentoTotal = 0;
+
+                // ✅ PROCESAR CADA TIPO DE PROMOCIÓN
+                foreach (var promocion in promocionesVigentes)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Procesando promoción: {promocion.NombrePromocion} (Tipo: {promocion.TipoPromocion})");
+
+                    decimal descuentoPromocion = promocion.TipoPromocion switch
+                    {
+                        "DescuentoPorcentaje" => await CalcularDescuentoPorcentaje(promocion),
+                        "DescuentoFijo" => await CalcularDescuentoFijo(promocion),
+                        "Cantidad" => await CalcularDescuentoCantidad(promocion),
+                        "CompraYLleva" => await CalcularDescuentoCompraYLleva(promocion),
+                        _ => 0
+                    };
+
+                    if (descuentoPromocion > 0)
+                    {
+                        descuentoTotal += descuentoPromocion;
+                        System.Diagnostics.Debug.WriteLine($"🎁 DEBUG: Promoción aplicada: {promocion.NombrePromocion} - Descuento: ${descuentoPromocion:F2}");
+
+                        // Registrar uso de la promoción (opcional)
+                        // promocion.RegistrarUso(); // Descomentar si quieres trackear usos
+                    }
+
+                    // Si no es combinable y ya se aplicó una promoción, terminar
+                    /*
+  if (!promocion.Combinable && descuentoTotal > 0)
+  {
+      System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Promoción no combinable aplicada, terminando");
+      break;
+  }
+  */
+                }
+
+                System.Diagnostics.Debug.WriteLine($"🎁 DEBUG: Descuento TOTAL final: ${descuentoTotal:F2}");
+                return descuentoTotal;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ DEBUG: Error calculando promociones: {ex.Message}");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// ✅ NUEVO: Calcula descuento por porcentaje (funcionalidad original)
+        /// </summary>
+        private async Task<decimal> CalcularDescuentoPorcentaje(PromocionVenta promocion)
+        {
+            try
+            {
+                decimal subtotal = _carritoItems.Sum(i => i.SubTotal);
+                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: DescuentoPorcentaje - Subtotal: ${subtotal}, Monto mín: ${promocion.MontoMinimo}");
+
+                if (subtotal >= promocion.MontoMinimo)
+                {
+                    decimal descuento = subtotal * (promocion.ValorPromocion / 100);
+
+                    // Aplicar límite máximo si existe
+                    if (promocion.DescuentoMaximo > 0)
+                        descuento = Math.Min(descuento, promocion.DescuentoMaximo);
+
+                    return descuento;
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ DEBUG: Error en DescuentoPorcentaje: {ex.Message}");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// ✅ NUEVO: Calcula descuento fijo
+        /// </summary>
+        private async Task<decimal> CalcularDescuentoFijo(PromocionVenta promocion)
+        {
+            try
+            {
+                decimal subtotal = _carritoItems.Sum(i => i.SubTotal);
+                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: DescuentoFijo - Subtotal: ${subtotal}, Monto mín: ${promocion.MontoMinimo}");
+
+                if (subtotal >= promocion.MontoMinimo)
+                {
+                    // El descuento fijo no puede ser mayor al subtotal
+                    return Math.Min(promocion.ValorPromocion, subtotal);
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ DEBUG: Error en DescuentoFijo: {ex.Message}");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// ✅ NUEVO: Calcula descuento por cantidad (PRINCIPAL)
+        /// </summary>
+        private async Task<decimal> CalcularDescuentoCantidad(PromocionVenta promocion)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: CalcularDescuentoCantidad iniciado");
+                System.Diagnostics.Debug.WriteLine($"   - Promoción: {promocion.NombrePromocion}");
+                System.Diagnostics.Debug.WriteLine($"   - Cantidad mínima: {promocion.CantidadMinima}");
+                System.Diagnostics.Debug.WriteLine($"   - Precio promocional: ${promocion.ValorPromocion:F2}");
+                System.Diagnostics.Debug.WriteLine($"   - Productos aplicables: '{promocion.ProductosAplicables}'");
+
+                // Verificar que tiene productos específicos
+                if (string.IsNullOrEmpty(promocion.ProductosAplicables))
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ DEBUG: No hay productos específicos definidos");
+                    return 0;
+                }
+
+                // Obtener IDs de productos aplicables
+                var productIds = promocion.ProductosAplicables.Split(',')
+                    .Select(p => p.Trim())
+                    .Where(p => int.TryParse(p, out _))
+                    .Select(p => int.Parse(p))
+                    .ToList();
+
+                if (!productIds.Any())
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ DEBUG: No se pudieron parsear los IDs de productos");
+                    return 0;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Productos aplicables: [{string.Join(", ", productIds)}]");
+
+                decimal descuentoTotal = 0;
+
+                // Buscar items en el carrito que apliquen
+                foreach (var productId in productIds)
+                {
+                    var itemsCarrito = _carritoItems.Where(i =>
+                        i.RawMaterialId == productId && i.EsProducto).ToList();
+
+                    if (!itemsCarrito.Any())
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Producto {productId} no está en el carrito");
+                        continue;
+                    }
+
+                    // Sumar cantidad total del producto en el carrito
+                    decimal cantidadTotalCarrito = itemsCarrito.Sum(i => i.Cantidad);
+                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Producto {productId} - Cantidad en carrito: {cantidadTotalCarrito}");
+
+                    // Verificar si cumple la cantidad mínima
+                    if (cantidadTotalCarrito >= promocion.CantidadMinima)
+                    {
+                        // Calcular cuántas "promociones completas" se pueden aplicar
+                        int promocionesCompletas = (int)(cantidadTotalCarrito / promocion.CantidadMinima);
+                        decimal cantidadPromocional = promocionesCompletas * promocion.CantidadMinima;
+
+                        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Promociones completas: {promocionesCompletas}");
+                        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Cantidad promocional: {cantidadPromocional}");
+
+                        // Obtener precio normal del producto
+                        var itemMuestra = itemsCarrito.First();
+                        decimal precioNormalUnitario = itemMuestra.PrecioUnitario;
+                        decimal precioNormalTotal = cantidadPromocional * precioNormalUnitario;
+                        decimal precioPromocionalTotal = promocionesCompletas * promocion.ValorPromocion;
+
+                        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Precio normal total: ${precioNormalTotal:F2}");
+                        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Precio promocional total: ${precioPromocionalTotal:F2}");
+
+                        // El descuento es la diferencia
+                        decimal descuentoProducto = Math.Max(0, precioNormalTotal - precioPromocionalTotal);
+                        descuentoTotal += descuentoProducto;
+
+                        System.Diagnostics.Debug.WriteLine($"🎁 DEBUG: Descuento para producto {productId}: ${descuentoProducto:F2}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ DEBUG: Producto {productId} no cumple cantidad mínima ({cantidadTotalCarrito} < {promocion.CantidadMinima})");
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"🎁 DEBUG: Descuento total por cantidad: ${descuentoTotal:F2}");
+                return descuentoTotal;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ DEBUG: Error en CalcularDescuentoCantidad: {ex.Message}");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// ✅ NUEVO: Calcula descuento compra y lleva (2x1, 3x2, etc.)
+        /// </summary>
+        private async Task<decimal> CalcularDescuentoCompraYLleva(PromocionVenta promocion)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: CalcularDescuentoCompraYLleva iniciado");
+                System.Diagnostics.Debug.WriteLine($"   - Promoción: {promocion.NombrePromocion}");
+                System.Diagnostics.Debug.WriteLine($"   - Compra: {promocion.CantidadMinima}");
+                System.Diagnostics.Debug.WriteLine($"   - Lleva: {promocion.ValorPromocion}");
+
+                // ValorPromocion contiene la cantidad que se lleva
+                // CantidadMinima contiene la cantidad que se paga
+                int compra = promocion.CantidadMinima;
+                int lleva = (int)promocion.ValorPromocion;
+                int gratis = lleva - compra;
+
+                if (gratis <= 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ DEBUG: No hay productos gratis (lleva {lleva} - compra {compra} = {gratis})");
+                    return 0;
+                }
+
+                // Si no hay productos específicos, aplicar a todos
+                var productIds = new List<int>();
+                if (!string.IsNullOrEmpty(promocion.ProductosAplicables))
+                {
+                    productIds = promocion.ProductosAplicables.Split(',')
+                        .Select(p => p.Trim())
+                        .Where(p => int.TryParse(p, out _))
+                        .Select(p => int.Parse(p))
+                        .ToList();
+                }
+
+                decimal descuentoTotal = 0;
+
+                // Si hay productos específicos, solo aplicar a esos
+                if (productIds.Any())
+                {
+                    foreach (var productId in productIds)
+                    {
+                        var itemsCarrito = _carritoItems.Where(i =>
+                            i.RawMaterialId == productId && i.EsProducto).ToList();
+
+                        if (itemsCarrito.Any())
+                        {
+                            decimal cantidadTotal = itemsCarrito.Sum(i => i.Cantidad);
+                            int promocionesCompletas = (int)(cantidadTotal / lleva);
+                            int productosGratis = promocionesCompletas * gratis;
+
+                            if (productosGratis > 0)
+                            {
+                                decimal precioUnitario = itemsCarrito.First().PrecioUnitario;
+                                decimal descuentoProducto = productosGratis * precioUnitario;
+                                descuentoTotal += descuentoProducto;
+
+                                System.Diagnostics.Debug.WriteLine($"🎁 DEBUG: Producto {productId} - {productosGratis} gratis = ${descuentoProducto:F2}");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Aplicar a todos los productos del carrito
+                    var productosAgrupados = _carritoItems.Where(i => i.EsProducto)
+                        .GroupBy(i => i.RawMaterialId)
+                        .ToList();
+
+                    foreach (var grupo in productosAgrupados)
+                    {
+                        decimal cantidadTotal = grupo.Sum(i => i.Cantidad);
+                        int promocionesCompletas = (int)(cantidadTotal / lleva);
+                        int productosGratis = promocionesCompletas * gratis;
+
+                        if (productosGratis > 0)
+                        {
+                            decimal precioUnitario = grupo.First().PrecioUnitario;
+                            decimal descuentoProducto = productosGratis * precioUnitario;
+                            descuentoTotal += descuentoProducto;
+
+                            System.Diagnostics.Debug.WriteLine($"🎁 DEBUG: Producto {grupo.Key} - {productosGratis} gratis = ${descuentoProducto:F2}");
+                        }
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"🎁 DEBUG: Descuento total compra y lleva: ${descuentoTotal:F2}");
+                return descuentoTotal;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ DEBUG: Error en CalcularDescuentoCompraYLleva: {ex.Message}");
+                return 0;
+            }
+        }
         /// <summary>
         /// Muestra estadísticas rápidas de cortes de caja
         /// </summary>
@@ -748,28 +1056,50 @@ namespace costbenefi
             }
         }
 
-        private void ActualizarTotalesCarrito()
+        private async void ActualizarTotalesCarrito()
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine("🔍 DEBUG: ActualizarTotalesCarrito() iniciado");
+
                 if (_carritoItems.Any())
                 {
-                    // ✅ CORRECCIÓN: Sin IVA adicional, los precios ya incluyen IVA
                     decimal subtotal = _carritoItems.Sum(i => i.SubTotal);
-                    decimal descuentoTotal = _carritoItems.Sum(i => i.DescuentoAplicado * i.Cantidad);
+                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Subtotal calculado: ${subtotal}");
 
-                    // ✅ IVA es solo informativo (muestra cuánto IVA está incluido en los precios)
-                    // Asumiendo que los precios incluyen 16% de IVA
+                    // ✅ NUEVO: Calcular descuentos por promociones
+                    System.Diagnostics.Debug.WriteLine("🔍 DEBUG: Llamando CalcularDescuentoPromociones()...");
+                    decimal descuentoPromociones = await CalcularDescuentoPromociones();
+                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Descuento promociones resultado: ${descuentoPromociones}");
+
+                    decimal descuentoProductos = _carritoItems.Sum(i => i.DescuentoAplicado * i.Cantidad);
+                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Descuento productos: ${descuentoProductos}");
+
+                    decimal descuentoTotal = descuentoProductos + descuentoPromociones;
+                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Descuento TOTAL calculado: ${descuentoTotal}");
+
+                    // IVA es solo informativo (muestra cuánto IVA está incluido en los precios)
                     decimal ivaIncluido = subtotal - (subtotal / 1.16m);
 
-                    // ✅ Total = subtotal (sin agregar IVA adicional)
-                    decimal total = subtotal;
+                    // Total = subtotal - descuentos (incluyendo promociones)
+                    decimal total = subtotal - descuentoTotal;
+                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Total final: ${total}");
+
+                    // ✅ AGREGAR DEBUG AQUÍ - JUSTO ANTES DE ACTUALIZAR LA INTERFAZ
+                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Actualizando interfaz...");
+                    System.Diagnostics.Debug.WriteLine($"   - TxtSubTotal: ${subtotal:C2}");
+                    System.Diagnostics.Debug.WriteLine($"   - TxtDescuento: ${descuentoTotal:C2}");
+                    System.Diagnostics.Debug.WriteLine($"   - TxtTotal: ${total:C2}");
 
                     // Actualizar textos
                     TxtSubTotal.Text = subtotal.ToString("C2");
-                    TxtDescuento.Text = descuentoTotal.ToString("C2");
-                    TxtIVA.Text = $"{ivaIncluido:C2} (incluido)"; // Mostrar como "incluido"
+                    TxtDescuento.Text = descuentoTotal.ToString("C2"); // ← ✅ Ahora incluye promociones
+                    TxtIVA.Text = $"{ivaIncluido:C2} (incluido)";
                     TxtTotal.Text = total.ToString("C2");
+
+                    // ✅ VERIFICAR QUE SÍ SE ACTUALIZÓ
+                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Interfaz actualizada. Verificando...");
+                    System.Diagnostics.Debug.WriteLine($"   - TxtDescuento.Text actual: '{TxtDescuento.Text}'");
 
                     // Calcular análisis costo-beneficio
                     var gananciaTotal = _carritoItems.Sum(i => i.GananciaLinea);
@@ -778,10 +1108,18 @@ namespace costbenefi
 
                     TxtGananciaPrevista.Text = $"Ganancia: {gananciaTotal:C2}";
                     TxtMargenPromedio.Text = $"Margen: {margenPromedio:F1}%";
+
+                    // ✅ NUEVO: Mostrar info de promociones en el status
+                    if (descuentoPromociones > 0)
+                    {
+                        TxtStatusPOS.Text = $"🎁 Promoción aplicada - Descuento: ${descuentoPromociones:F2}";
+                        System.Diagnostics.Debug.WriteLine($"🎁 DEBUG: Status actualizado con promoción");
+                    }
                 }
                 else
                 {
                     // Resetear totales
+                    System.Diagnostics.Debug.WriteLine("🔍 DEBUG: Carrito vacío, reseteando totales");
                     TxtSubTotal.Text = "$0.00";
                     TxtDescuento.Text = "$0.00";
                     TxtIVA.Text = "$0.00 (incluido)";
@@ -792,6 +1130,7 @@ namespace costbenefi
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"❌ DEBUG: Error en ActualizarTotalesCarrito: {ex.Message}");
                 TxtStatusPOS.Text = "❌ Error al calcular totales";
             }
         }
@@ -813,10 +1152,12 @@ namespace costbenefi
 
                 // Calcular total
                 decimal subtotal = _carritoItems.Sum(i => i.SubTotal);
-                decimal total = subtotal;
+                decimal descuentoPromociones = await CalcularDescuentoPromociones();
+                decimal descuentoProductos = _carritoItems.Sum(i => i.DescuentoAplicado * i.Cantidad);
+                decimal totalFinal = subtotal - descuentoPromociones - descuentoProductos;
 
                 // Abrir ventana de pago
-                var pagoWindow = new ProcesarPagoWindow(total, TxtCliente.Text.Trim());
+                var pagoWindow = new ProcesarPagoWindow(totalFinal, TxtCliente.Text.Trim());
                 if (pagoWindow.ShowDialog() != true)
                 {
                     return false;
@@ -1432,6 +1773,97 @@ namespace costbenefi
             }
         }
 
+        private async void ActualizarPromocionesACombinables()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("🔄 Iniciando actualización de promociones...");
+
+                // Usar contexto fresco
+                using var context = new AppDbContext();
+
+                // Obtener TODAS las promociones que no son combinables
+                var promocionesNoCombinable = await context.PromocionesVenta
+                    .Where(p => !p.Eliminado && !p.Combinable)
+                    .ToListAsync();
+
+                System.Diagnostics.Debug.WriteLine($"📊 Encontradas {promocionesNoCombinable.Count} promociones no combinables");
+
+                if (!promocionesNoCombinable.Any())
+                {
+                    System.Diagnostics.Debug.WriteLine("✅ Todas las promociones ya son combinables");
+                    MessageBox.Show("✅ Todas las promociones ya son combinables!",
+                                   "Sin Cambios", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // Actualizar todas a combinables
+                foreach (var promocion in promocionesNoCombinable)
+                {
+                    promocion.Combinable = true;
+                    System.Diagnostics.Debug.WriteLine($"✅ Promoción '{promocion.NombrePromocion}' ahora es combinable");
+                }
+
+                // Guardar cambios
+                await context.SaveChangesAsync();
+
+                System.Diagnostics.Debug.WriteLine($"🎁 {promocionesNoCombinable.Count} promociones actualizadas exitosamente");
+
+                MessageBox.Show($"✅ {promocionesNoCombinable.Count} promociones actualizadas!\n\n" +
+                               "Ahora se pueden aplicar múltiples promociones simultáneamente.",
+                               "Promociones Actualizadas", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                TxtStatusPOS.Text = $"✅ {promocionesNoCombinable.Count} promociones ahora son combinables";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error actualizando promociones: {ex.Message}");
+                MessageBox.Show($"Error al actualizar promociones:\n\n{ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatusPOS.Text = "❌ Error al actualizar promociones";
+            }
+        }
+        private async void VerificarEstadoPromociones_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                using var context = new AppDbContext();
+
+                var totalPromociones = await context.PromocionesVenta
+                    .Where(p => !p.Eliminado && p.Activa)
+                    .CountAsync();
+
+                var combinables = await context.PromocionesVenta
+                    .Where(p => !p.Eliminado && p.Activa && p.Combinable)
+                    .CountAsync();
+
+                var noCombinable = totalPromociones - combinables;
+
+                string mensaje = $"📊 ESTADO ACTUAL:\n\n" +
+                                $"🎁 Total promociones activas: {totalPromociones}\n" +
+                                $"✅ Promociones combinables: {combinables}\n" +
+                                $"❌ Promociones NO combinables: {noCombinable}\n\n";
+
+                if (noCombinable > 0)
+                {
+                    mensaje += "⚠️ Hay promociones que no se pueden combinar.\n" +
+                              "Solo se aplicará una promoción por venta.";
+                }
+                else
+                {
+                    mensaje += "🎉 ¡Perfecto! Todas las promociones son combinables.\n" +
+                              "Se pueden aplicar múltiples promociones simultáneamente.";
+                }
+
+                MessageBox.Show(mensaje, "Estado de Promociones",
+                               MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al verificar estado: {ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private async void BtnVerVentas_Click(object sender, RoutedEventArgs e)
         {
             try
