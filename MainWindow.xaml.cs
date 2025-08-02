@@ -29,19 +29,24 @@ namespace costbenefi
         private List<ServicioVenta> _serviciosParaVenta = new();
         private List<object> _itemsPOS = new(); // Lista mixta para productos Y servicios
 
-
+        private ScannerProtectionService _scannerProtection;
+        private UnifiedScannerService _unifiedScanner;
 
         // ========== VARIABLES POS ==========
         private List<RawMaterial> _productosParaVenta = new();
         private List<RawMaterial> _productosParaVentaFiltrados = new();
         private ObservableCollection<DetalleVenta> _carritoItems = new();
         private CorteCajaService _corteCajaService;
+        private RawMaterial _ultimoProductoEscaneado = null;
+        private DateTime _tiempoUltimoEscaneo = DateTime.MinValue;
 
         // Servicios POS
         private TicketPrinter _ticketPrinter;
         private BasculaService _basculaService;
-        private ScannerPOSService _scannerService;
         private POSIntegrationService _posIntegrationService;
+        private bool _cerrandoSesion = false;
+    
+
 
         // Estado POS
         private bool _posLoaded = false;
@@ -55,6 +60,7 @@ namespace costbenefi
                 // Inicializar componentes de UI
                 InitializeComponent();
 
+             
                 // Inicializar colecciones básicas
                 _allMaterials = new List<RawMaterial>();
                 _filteredMaterials = new List<RawMaterial>();
@@ -71,9 +77,16 @@ namespace costbenefi
                 timer.Tick += (s, e) => UpdateDateTime();
                 timer.Start();
 
-                // Configurar carga diferida
-                this.Loaded += MainWindow_Loaded;
-               
+                // ✅ INICIALIZAR SERVICIOS DEL ESCÁNER
+                _scannerProtection = new ScannerProtectionService(this);
+                _cerrandoSesion = false;
+
+                // Configurar eventos de carga (UNIFICADO)
+                this.Loaded += MainWindow_Loaded_Complete;
+
+                this.KeyDown += MainWindow_KeyDown_Plus;
+
+                System.Diagnostics.Debug.WriteLine("✅ MainWindow constructor completado exitosamente");
             }
             catch (Exception ex)
             {
@@ -83,32 +96,10 @@ namespace costbenefi
                     $"El sistema se cerrará. Por favor reporte este error.",
                     "Error Fatal - MainWindow",
                     MessageBoxButton.OK, MessageBoxImage.Error);
-
                 Application.Current.Shutdown(1);
             }
-            this.Loaded += async (s, e) =>
-            {
-                await Task.Delay(500); // Dar tiempo a que se renderice
-
-                // Forzar actualización completa
-                this.UpdateLayout();
-                this.InvalidateVisual();
-
-                // Si tienes un TabControl, forzar su actualización
-                var tabControl = this.FindName("MainTabControl") as TabControl;
-                if (tabControl != null)
-                {
-                    var currentTab = tabControl.SelectedIndex;
-                    tabControl.SelectedIndex = -1;
-                    tabControl.UpdateLayout();
-                    tabControl.SelectedIndex = currentTab >= 0 ? currentTab : 0;
-                }
-
-                System.Diagnostics.Debug.WriteLine("🎉 UI refrescada después de logout");
-            };
         }
-       
-        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        private async Task MainWindow_Loaded_Internal()
         {
             try
             {
@@ -153,6 +144,112 @@ namespace costbenefi
             }
         }
 
+        // ✅ EVENTO DE CARGA UNIFICADO (AGREGAR ESTE MÉTODO NUEVO)
+        private async void MainWindow_Loaded_Complete(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Carga de datos principal (sin await porque es void)
+                await MainWindow_Loaded_Internal();
+
+                // Esperar un poco para que se renderice completamente
+                await Task.Delay(500);
+
+                // Forzar actualización completa de UI
+                this.UpdateLayout();
+                this.InvalidateVisual();
+
+                // Actualizar TabControl si existe
+                var tabControl = this.FindName("MainTabControl") as TabControl;
+                if (tabControl != null)
+                {
+                    var currentTab = tabControl.SelectedIndex;
+                    tabControl.SelectedIndex = -1;
+                    tabControl.UpdateLayout();
+                    tabControl.SelectedIndex = currentTab >= 0 ? currentTab : 0;
+                }
+
+                System.Diagnostics.Debug.WriteLine("🎉 UI completamente inicializada");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error en carga completa: {ex.Message}");
+                if (TxtStatus != null)
+                    TxtStatus.Text = "⚠️ Error en inicialización completa";
+            }
+        }
+        private async Task ManejarTeclaMas()
+        {
+            try
+            {
+                // Verificar que hay un producto reciente (escaneado en los últimos 30 segundos)
+                if (_ultimoProductoEscaneado == null ||
+                    (DateTime.Now - _tiempoUltimoEscaneo).TotalSeconds > 30)
+                {
+                    TxtStatusPOS.Text = "⚠️ No hay producto reciente para agregar cantidad";
+                    MessageBox.Show("No hay ningún producto reciente para agregar cantidad.\n\n" +
+                                   "Escanee un producto primero o seleccione uno de la lista.",
+                                   "Sin Producto Seleccionado",
+                                   MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"📦 Abriendo ventana de cantidad para: {_ultimoProductoEscaneado.NombreArticulo}");
+
+                // Abrir ventana de cantidad
+                var cantidadWindow = new IngresarCantidadWindow(_ultimoProductoEscaneado.NombreArticulo)
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                if (cantidadWindow.ShowDialog() == true && cantidadWindow.SeConfirmo)
+                {
+                    int cantidadAdicional = cantidadWindow.CantidadIngresada;
+                    System.Diagnostics.Debug.WriteLine($"✅ Usuario confirmó cantidad adicional: {cantidadAdicional}");
+
+                    // Agregar cantidad adicional al carrito
+                    await AgregarProductoAlCarrito(_ultimoProductoEscaneado, cantidadAdicional);
+
+                    TxtStatusPOS.Text = $"✅ Agregado: {_ultimoProductoEscaneado.NombreArticulo} x{cantidadAdicional} (cantidad adicional)";
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("❌ Usuario canceló ingreso de cantidad adicional");
+                    TxtStatusPOS.Text = "❌ Ingreso de cantidad adicional cancelado";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error en ManejarTeclaMas: {ex.Message}");
+                TxtStatusPOS.Text = $"❌ Error al agregar cantidad adicional: {ex.Message}";
+
+                MessageBox.Show($"Error al procesar cantidad adicional:\n\n{ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private async void MainWindow_KeyDown_Plus(object sender, KeyEventArgs e)
+        {
+            try
+            {
+                // Solo procesar en pestaña POS
+                if (MainTabControl.SelectedIndex != 1 || !_posLoaded)
+                    return;
+
+                // Detectar tecla "+" (tanto en teclado principal como numérico)
+                if (e.Key == Key.Add || e.Key == Key.OemPlus)
+                {
+                    System.Diagnostics.Debug.WriteLine("🔑 Tecla '+' detectada en POS");
+
+                    await ManejarTeclaMas();
+                    e.Handled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error en KeyDown_Plus: {ex.Message}");
+            }
+        }
 
         // ========== INICIALIZACIÓN POS ==========
         // ✅ CORREGIR - Inicialización con báscula real
@@ -163,7 +260,29 @@ namespace costbenefi
                 // Inicializar servicios básicos primero
                 _ticketPrinter = new TicketPrinter();
                 _corteCajaService = new CorteCajaService(_context);
-                _scannerService = new ScannerPOSService();
+
+                // ✅ NUEVO: Inicializar UnifiedScannerService (USB + Serie)
+                _unifiedScanner = new UnifiedScannerService(this, _scannerProtection);
+
+                // ✅ CONFIGURAR EVENTOS DEL ESCÁNER UNIFICADO
+                _unifiedScanner.CodigoDetectado += OnCodigoEscaneadoPOS_Protected;
+
+                _unifiedScanner.EstadoCambiado += (s, mensaje) =>
+                {
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        if (TxtStatusPOS != null)
+                            TxtStatusPOS.Text = $"📱 {mensaje}";
+
+                        if (TxtEstadoEscaner != null)
+                        {
+                            TxtEstadoEscaner.Text = "📱 OK";
+                            TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
+                                new SolidColorBrush(Color.FromRgb(34, 197, 94)));
+                        }
+                        System.Diagnostics.Debug.WriteLine($"✅ Estado escáner: {mensaje}");
+                    });
+                };
 
                 // Inicializar báscula de forma segura
                 try
@@ -208,7 +327,7 @@ namespace costbenefi
                     _basculaService = null; // Continuar sin báscula
                 }
 
-                System.Diagnostics.Debug.WriteLine("✅ Servicios POS inicializados (con o sin báscula)");
+                System.Diagnostics.Debug.WriteLine("✅ Servicios POS inicializados (escáner unificado USB+Serie + báscula)");
             }
             catch (Exception ex)
             {
@@ -286,6 +405,149 @@ namespace costbenefi
                 MessageBox.Show($"Error al cargar datos: {ex.Message}",
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 TxtStatus.Text = "❌ Error al cargar datos";
+            }
+        }
+        // ✅ HANDLER DEL ESCÁNER CON PROTECCIÓN INTEGRADA
+        private async void OnCodigoEscaneadoPOS_Protected(object sender, CodigoEscaneadoEventArgs e)
+        {
+            try
+            {
+                // ✅ DEBUG DETALLADO
+                System.Diagnostics.Debug.WriteLine($"🔍 ===== OnCodigoEscaneadoPOS_Protected INICIADO =====");
+                System.Diagnostics.Debug.WriteLine($"   📝 Código recibido: '{e.CodigoBarras}'");
+                System.Diagnostics.Debug.WriteLine($"   📝 Contexto: {e.Contexto}");
+                System.Diagnostics.Debug.WriteLine($"   📝 _posLoaded: {_posLoaded}");
+                System.Diagnostics.Debug.WriteLine($"   📝 Tab seleccionado: {MainTabControl.SelectedIndex}");
+
+                // Solo procesar si estamos en contexto POS
+                if (e.Contexto != ScannerContext.PuntoVenta)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ RECHAZADO - Contexto incorrecto: {e.Contexto} (se requiere PuntoVenta)");
+                    return;
+                }
+
+                if (!_posLoaded)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ RECHAZADO - POS no cargado (_posLoaded = false)");
+                    return;
+                }
+
+                if (MainTabControl.SelectedIndex != 1)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ RECHAZADO - No estamos en tab POS (tab actual: {MainTabControl.SelectedIndex})");
+                    return;
+                }
+
+                string codigo = e.CodigoBarras.Trim();
+                System.Diagnostics.Debug.WriteLine($"✅ PROCESANDO código: '{codigo}'");
+
+                TxtStatusPOS.Text = $"🔍 Buscando producto: {codigo}";
+
+                // ✅ ACTIVAR PROTECCIÓN INMEDIATAMENTE
+                _scannerProtection.OnProductoEscaneado(codigo, "Procesando...");
+
+                // Buscar producto en lista POS
+                var producto = _productosParaVenta.FirstOrDefault(p =>
+                    p.CodigoBarras.Equals(codigo, StringComparison.OrdinalIgnoreCase));
+
+                if (producto != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"✅ PRODUCTO ENCONTRADO: {producto.NombreArticulo}");
+                    _ultimoProductoEscaneado = producto;
+                    _tiempoUltimoEscaneo = DateTime.Now;
+
+                    // Verificar disponibilidad
+                    if (!producto.DisponibleParaVenta)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"⚠️ Producto no disponible: {producto.NombreArticulo}");
+                        TxtStatusPOS.Text = $"⚠️ Producto no disponible: {producto.NombreArticulo}";
+                        MessageBox.Show($"El producto '{producto.NombreArticulo}' no está disponible para venta.\n\n" +
+                                       $"Estado: {producto.EstadoProducto}",
+                                       "Producto No Disponible", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    // ✅ ACTUALIZAR PROTECCIÓN CON NOMBRE DEL PRODUCTO
+                    _scannerProtection.OnProductoEscaneado(codigo, producto.NombreArticulo);
+
+                    // Verificar si es producto por peso
+                    if (producto.UnidadMedida.ToLower().Contains("kg") ||
+                        producto.UnidadMedida.ToLower().Contains("gr"))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"📏 Producto por peso detectado: {producto.UnidadMedida}");
+
+                        var pesoWindow = new IngresarPesoWindow(_context, producto, _basculaService);
+                        if (pesoWindow.ShowDialog() == true)
+                        {
+                            await AgregarProductoAlCarrito(producto, pesoWindow.PesoIngresado);
+                            TxtStatusPOS.Text = $"✅ Agregado: {producto.NombreArticulo} ({pesoWindow.PesoIngresado:F2} {producto.UnidadMedida})";
+                        }
+                        else
+                        {
+                            TxtStatusPOS.Text = "❌ Ingreso de peso cancelado";
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"📦 Producto por unidades: {producto.UnidadMedida}");
+
+                        await AgregarProductoAlCarrito(producto, 1);
+                        TxtStatusPOS.Text = $"✅ Agregado: {producto.NombreArticulo} (1 unidad)";
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ PRODUCTO NO ENCONTRADO: {codigo}");
+                    await ManejarProductoNoEncontrado(codigo);
+                }
+
+                System.Diagnostics.Debug.WriteLine($"🔍 ===== OnCodigoEscaneadoPOS_Protected COMPLETADO =====");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"💥 ERROR CRÍTICO en OnCodigoEscaneadoPOS_Protected: {ex.Message}");
+                TxtStatusPOS.Text = $"❌ Error procesando código: {ex.Message}";
+
+                MessageBox.Show($"Error al procesar código de barras:\n\n{ex.Message}",
+                               "Error de Escáner", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // ✅ HELPER: MANEJAR PRODUCTO NO ENCONTRADO
+        private async Task ManejarProductoNoEncontrado(string codigo)
+        {
+            try
+            {
+                var resultado = MessageBox.Show(
+                    $"❌ PRODUCTO NO ENCONTRADO\n\n" +
+                    $"Código: {codigo}\n\n" +
+                    $"¿Desea crear un nuevo producto con este código?",
+                    "Producto No Encontrado",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (resultado == MessageBoxResult.Yes)
+                {
+                    TxtStatusPOS.Text = "📝 Abriendo formulario para nuevo producto...";
+                    var selectorWindow = new TipoMaterialSelectorWindow(_context, codigo);
+                    if (selectorWindow.ShowDialog() == true)
+                    {
+                        await RefrescarProductosAutomatico("nuevo producto desde escáner POS");
+                        TxtStatusPOS.Text = "✅ Producto creado y disponible para venta";
+                    }
+                    else
+                    {
+                        TxtStatusPOS.Text = "❌ Creación de producto cancelada";
+                    }
+                }
+                else
+                {
+                    TxtStatusPOS.Text = $"⚠️ Código ignorado: {codigo}";
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtStatusPOS.Text = $"❌ Error manejando producto no encontrado: {ex.Message}";
             }
         }
 
@@ -569,7 +831,140 @@ namespace costbenefi
                 TxtStatusPOS.Text = "❌ Error al abrir corte de caja";
             }
         }
+        private bool _modoEscanerActivo = false;
 
+        private void BtnModoEscaner_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // ✅ PROTECCIÓN ANTI-AUTOCLICK INMEDIATA
+                var button = sender as Button;
+                if (button != null)
+                {
+                    // Verificar si es click real vs automático
+                    bool esClickReal = button.IsMouseOver ||
+                                      System.Windows.Input.Mouse.LeftButton == MouseButtonState.Pressed ||
+                                      System.Windows.Input.Mouse.RightButton == MouseButtonState.Pressed;
+
+                    if (!esClickReal)
+                    {
+                        System.Diagnostics.Debug.WriteLine("🛡️ CLICK AUTOMÁTICO DEL ESCÁNER BLOQUEADO en botón modo escáner");
+                        return;
+                    }
+
+                    // Quitar foco inmediatamente para evitar futuros auto-clicks
+                    this.Focus();
+                    System.Diagnostics.Debug.WriteLine("✅ Click manual válido detectado en botón modo escáner");
+                }
+
+                // ✅ CORRECCIÓN: Era *modoEscanerActivo, ahora es _modoEscanerActivo
+                _modoEscanerActivo = !_modoEscanerActivo;
+
+                if (_modoEscanerActivo)
+                {
+                    // ✅ ACTIVAR MODO ESCÁNER
+                    _unifiedScanner?.SetEnabled(true);
+                    _unifiedScanner?.LimpiarBuffer(); // Limpiar cualquier buffer anterior
+
+                    // Cambiar interfaz a ROJO/ACTIVO
+                    BtnModoEscaner.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38)); // Rojo
+                    TxtIconoEscaner.Text = "🔴";
+                    TxtTextoEscaner.Text = "ESCÁNER ACTIVO";
+
+                    // Actualizar estado en interfaz
+                    if (TxtEstadoEscaner != null)
+                    {
+                        TxtEstadoEscaner.Text = "📱 ACTIVO";
+                        TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
+                            new SolidColorBrush(Color.FromRgb(34, 197, 94))); // Verde
+                    }
+
+                    TxtStatusPOS.Text = "📱 Escáner ACTIVADO - Listo para escanear productos";
+                    System.Diagnostics.Debug.WriteLine("📱 MODO ESCÁNER ACTIVADO MANUALMENTE");
+                }
+                else
+                {
+                    // ✅ DESACTIVAR MODO ESCÁNER
+                    _unifiedScanner?.SetEnabled(false);
+
+                    // Cambiar interfaz a VERDE/INACTIVO
+                    BtnModoEscaner.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105)); // Verde
+                    TxtIconoEscaner.Text = "📱";
+                    TxtTextoEscaner.Text = "Activar Escáner";
+
+                    // Actualizar estado en interfaz
+                    if (TxtEstadoEscaner != null)
+                    {
+                        TxtEstadoEscaner.Text = "📱 INACTIVO";
+                        TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
+                            new SolidColorBrush(Color.FromRgb(107, 114, 128))); // Gris
+                    }
+
+                    TxtStatusPOS.Text = "🚫 Escáner DESACTIVADO - Sistema seguro, no procesará códigos";
+                    System.Diagnostics.Debug.WriteLine("📱 MODO ESCÁNER DESACTIVADO MANUALMENTE");
+                }
+
+                // ✅ MOSTRAR INFORMACIÓN ADICIONAL EN DEBUG
+                var statusInfo = _unifiedScanner?.GetStatusInfo() ?? "Sin información";
+                System.Diagnostics.Debug.WriteLine($"📊 Estado del escáner: {statusInfo}");
+
+                // ✅ FEEDBACK VISUAL ADICIONAL (OPCIONAL)
+                // Pequeña animación del botón para confirmar el cambio
+                if (button != null)
+                {
+                    var originalTransform = button.RenderTransform;
+                    var scaleTransform = new ScaleTransform(0.95, 0.95);
+                    button.RenderTransform = scaleTransform;
+
+                    // Restaurar después de 100ms
+                    var timer = new System.Windows.Threading.DispatcherTimer();
+                    timer.Interval = TimeSpan.FromMilliseconds(100);
+                    timer.Tick += (s, args) =>
+                    {
+                        button.RenderTransform = originalTransform;
+                        timer.Stop();
+                    };
+                    timer.Start();
+                }
+
+                // ✅ LOG FINAL DE CONFIRMACIÓN
+                System.Diagnostics.Debug.WriteLine($"🎯 CAMBIO DE MODO COMPLETADO - Nuevo estado: {(_modoEscanerActivo ? "ACTIVO" : "INACTIVO")}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"💥 ERROR en BtnModoEscaner_Click: {ex}");
+                MessageBox.Show($"Error al cambiar modo escáner: {ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                // En caso de error, restaurar estado visual
+                TxtStatusPOS.Text = "❌ Error al cambiar modo escáner";
+            }
+        }
+        private void VerificarEstadoEscaner()
+        {
+            try
+            {
+                if (_unifiedScanner != null)
+                {
+                    var statusInfo = _unifiedScanner.GetStatusInfo();
+                    System.Diagnostics.Debug.WriteLine($"🔍 Verificación estado escáner: {statusInfo}");
+
+                    // Sincronizar interfaz con estado real
+                    if (statusInfo.Contains("DESHABILITADO") && _modoEscanerActivo)
+                    {
+                        System.Diagnostics.Debug.WriteLine("⚠️ Desincronización detectada - Corrigiendo interfaz");
+                        _modoEscanerActivo = false;
+                        BtnModoEscaner.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105));
+                        TxtIconoEscaner.Text = "📱";
+                        TxtTextoEscaner.Text = "Activar Escáner";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error verificando estado escáner: {ex.Message}");
+            }
+        }
         /// <summary>
         /// Abre la ventana de reportes de cortes históricos
         /// </summary>
@@ -1426,25 +1821,85 @@ namespace costbenefi
                 FiltrarItemsPOS();
                 UpdateContadoresPOS();
             }
-        
 
         private async void BtnCerrarSesion_Click(object sender, RoutedEventArgs e)
         {
             try
             {
+                // ✅ DEBUG CRÍTICO: ¿Qué está activando este botón?
+                System.Diagnostics.Debug.WriteLine($"🚪 === BOTÓN CERRAR SESIÓN ACTIVADO ===");
+                System.Diagnostics.Debug.WriteLine($"   Sender: {sender?.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"   RoutedEvent: {e?.RoutedEvent?.Name}");
+                System.Diagnostics.Debug.WriteLine($"   Source: {e?.Source?.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"   Hora: {DateTime.Now:HH:mm:ss.fff}");
+
+                // ✅ VERIFICAR SI ES CLICK REAL O AUTOMÁTICO
+                var button = sender as Button;
+                if (button != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"   Mouse sobre botón: {button.IsMouseOver}");
+                    System.Diagnostics.Debug.WriteLine($"   Botón tiene foco: {button.IsFocused}");
+                    System.Diagnostics.Debug.WriteLine($"   Botón habilitado: {button.IsEnabled}");
+                }
+
+                System.Diagnostics.Debug.WriteLine($"🚪 === FIN DEBUG BOTÓN ===");
+
                 System.Diagnostics.Debug.WriteLine("🚪 Botón cerrar sesión presionado");
 
-                // ===== MOSTRAR INDICADOR DE PROCESO =====
+                // ✅ PROTECCIÓN ESPECÍFICA: Si el botón tiene foco pero no mouse over = activación por teclado
+                if (button != null && button.IsFocused && !button.IsMouseOver)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🛡️ CLICK POR TECLADO DETECTADO - Botón tiene foco sin mouse");
+                    MessageBox.Show("⚠️ Activación por teclado detectada\n\nUse el mouse para hacer clic en el botón de cerrar sesión.",
+                                   "Protección Anti-Autoclick", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                    // Quitar foco del botón
+                    this.Focus();
+                    return;
+                }
+
+                // ✅ PROTECCIÓN TEMPORAL: Si acabamos de escanear, ignorar
+                if (_ultimoProductoEscaneado != null &&
+                    (DateTime.Now - _tiempoUltimoEscaneo).TotalSeconds < 5)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🛡️ CLICK DE CERRAR SESIÓN BLOQUEADO - Escaneo reciente");
+                    MessageBox.Show("⚠️ Acción bloqueada\n\nEscaneo reciente detectado.\nEspere unos segundos antes de cerrar sesión.",
+                                   "Protección Anti-Autoclick", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // ✅ PROTECCIÓN ADICIONAL: Verificar si es click automático
+                if (button != null && !button.IsMouseOver && !button.IsFocused)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🛡️ CLICK AUTOMÁTICO DETECTADO - Sin interacción real del usuario");
+                    MessageBox.Show("⚠️ Click automático detectado\n\nUse el mouse para hacer clic en el botón.",
+                                   "Protección Anti-Autoclick", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // 🛡️ PROTECCIÓN ANTI-DOBLE-CLICK
+                if (_cerrandoSesion)
+                {
+                    System.Diagnostics.Debug.WriteLine("🛡️ YA SE ESTÁ CERRANDO SESIÓN - IGNORANDO CLICK");
+                    return;
+                }
+
+                // ✅ MARCAR QUE ESTAMOS CERRANDO SESIÓN
+                _cerrandoSesion = true;
+
+                System.Diagnostics.Debug.WriteLine("✅ Click validado - Procesando cierre de sesión");
+
+                // ✅ MOSTRAR INDICADOR DE PROCESO
                 if (TxtStatusPOS != null)
                     TxtStatusPOS.Text = "🚪 Cerrando sesión...";
 
                 if (TxtStatus != null)
                     TxtStatus.Text = "🚪 Cerrando sesión...";
 
-                // ===== DESHABILITAR BOTÓN PARA EVITAR DOBLE-CLICK =====
+                // ✅ DESHABILITAR BOTÓN PARA EVITAR DOBLE-CLICK
                 BtnCerrarSesionPOS.IsEnabled = false;
 
-                // ===== LIMPIAR DATOS SENSIBLES LOCALES =====
+                // ✅ LIMPIAR DATOS SENSIBLES LOCALES
                 try
                 {
                     if (_carritoItems != null)
@@ -1458,7 +1913,7 @@ namespace costbenefi
                     System.Diagnostics.Debug.WriteLine($"⚠️ Error limpiando datos locales: {ex.Message}");
                 }
 
-                // ===== 🎯 USAR EL NUEVO MÉTODO DE REINICIO =====
+                // ✅ USAR EL NUEVO MÉTODO DE REINICIO
                 System.Diagnostics.Debug.WriteLine("🔄 Llamando SessionManager.CerrarSesionYReiniciar...");
 
                 bool exitoso = await SessionManager.CerrarSesionYReiniciar(
@@ -1478,11 +1933,14 @@ namespace costbenefi
                         TxtStatus.Text = "✅ Sistema listo";
 
                     BtnCerrarSesionPOS.IsEnabled = true;
+
+                    // ✅ RESTAURAR ESTADO PARA PERMITIR NUEVO INTENTO
+                    _cerrandoSesion = false;
                 }
                 else
                 {
                     System.Diagnostics.Debug.WriteLine("🔄 Proceso de reinicio iniciado - Esta instancia se cerrará");
-                    // No necesitamos hacer nada más - la aplicación se reiniciará
+                    // No restaurar _cerrandoSesion porque la aplicación se va a cerrar
                 }
             }
             catch (Exception ex)
@@ -1498,6 +1956,9 @@ namespace costbenefi
 
                 BtnCerrarSesionPOS.IsEnabled = true;
 
+                // ✅ RESTAURAR ESTADO PARA PERMITIR NUEVO INTENTO
+                _cerrandoSesion = false;
+
                 MessageBox.Show(
                     $"❌ Error al procesar cierre de sesión:\n\n{ex.Message}",
                     "Error",
@@ -1505,6 +1966,10 @@ namespace costbenefi
                     MessageBoxImage.Error);
             }
         }
+
+        // ========== AGREGAR ESTE MÉTODO PARA TESTING ==========
+
+
         private void BtnConfigComisiones_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1957,21 +2422,10 @@ namespace costbenefi
             MessageBoxImage.Error);
     }
 }
-        private void BtnEscanerPOS_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                _scannerService.MostrarVentanaEscaneo();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al activar escáner: {ex.Message}",
-                              "Error Escáner", MessageBoxButton.OK, MessageBoxImage.Error);
-                TxtEstadoEscaner.Text = "📱 ERROR";
-                TxtEstadoEscaner.Parent.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(239, 68, 68)));
-            }
-        }
-
+       
+       
+       
+        
         private async void BtnSalirSistema_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -2062,6 +2516,9 @@ namespace costbenefi
             }
         }
 
+       
+
+
         // ✅ CORREGIR - Botón para configurar báscula
         private async void BtnBascula_Click(object sender, RoutedEventArgs e)
         {
@@ -2136,35 +2593,6 @@ namespace costbenefi
             }
         }
 
-        private async Task OnProductoEscaneado(string codigoBarras)
-        {
-            try
-            {
-                var producto = _productosParaVenta.FirstOrDefault(p =>
-                    p.CodigoBarras.Equals(codigoBarras, StringComparison.OrdinalIgnoreCase));
-
-                if (producto != null)
-                {
-                    await AgregarProductoAlCarrito(producto);
-                }
-                else
-                {
-                    MessageBox.Show($"Producto no encontrado: {codigoBarras}",
-                                  "Código No Encontrado", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                TxtStatusPOS.Text = $"❌ Error al procesar código: {ex.Message}";
-            }
-        }
-
-        private void OnErrorPOSOcurrido(string dispositivo, string mensaje)
-        {
-            MessageBox.Show($"Error en dispositivo POS: {mensaje}",
-                          "Error POS", MessageBoxButton.OK, MessageBoxImage.Error);
-            TxtStatusPOS.Text = $"❌ Error POS: {dispositivo}";
-        }
 
         private void TxtBuscar_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -2188,6 +2616,8 @@ namespace costbenefi
             UpdateStatusBar();
         }
 
+      
+       
         private void BtnBuscar_Click(object sender, RoutedEventArgs e)
         {
             TxtBuscar.Focus();
@@ -2423,16 +2853,31 @@ namespace costbenefi
 
         protected override void OnClosed(EventArgs e)
         {
-            // Disposed servicios POS
-            _ticketPrinter?.Dispose();
-            _basculaService?.Dispose();
-            _scannerService?.Dispose();
-            _posIntegrationService?.Dispose();
-            _corteCajaService?.Dispose();
+            try
+            {
+                // Disposed servicios POS
+                _ticketPrinter?.Dispose();
+                _basculaService?.Dispose();
+                _posIntegrationService?.Dispose();
+                _corteCajaService?.Dispose();
 
-            _context?.Dispose();
+                // ✅ CAMBIAR: Dispose del escáner unificado
+                _unifiedScanner?.Dispose();
+                _scannerProtection?.Dispose();
+
+                // Dispose del contexto
+                _context?.Dispose();
+
+                System.Diagnostics.Debug.WriteLine("🗑️ Todos los servicios disposed correctamente");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error en OnClosed: {ex.Message}");
+            }
+
             base.OnClosed(e);
         }
+
         private void ConfigurarActualizacionAutomatica()
         {
             var timerActualizacion = new System.Windows.Threading.DispatcherTimer();
@@ -2449,7 +2894,36 @@ namespace costbenefi
             };
             timerActualizacion.Start();
         }
+        private void BtnInfoEscanerUnificado_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var estadoUnificado = _unifiedScanner?.GetStatusInfo() ?? "Escáner unificado: No inicializado";
+                var estadisticasProteccion = _scannerProtection?.ObtenerEstadisticas() ?? "Protección: No inicializada";
+                var contextoActual = MainTabControl.SelectedIndex == 1 ? "POS Activo" : "POS Inactivo";
 
+                var mensaje = $"📱 ESCÁNER UNIVERSAL - TODOS LOS TIPOS\n\n" +
+                             $"🎯 {estadoUnificado}\n" +
+                             $"📊 Contexto: {contextoActual}\n\n" +
+                             $"🛡️ PROTECCIÓN:\n{estadisticasProteccion}\n\n" +
+                             $"💡 COMPATIBILIDAD TOTAL:\n" +
+                             $"✅ Escáneres USB (como teclado) - Tu Steren Com-596\n" +
+                             $"✅ Escáneres Serie/COM (puerto serie)\n" +
+                             $"✅ Cualquier escáner del mercado\n" +
+                             $"✅ Detección automática del tipo\n" +
+                             $"✅ Protección anti-autoclick integrada";
+
+                MessageBox.Show(mensaje, "Información del Escáner Universal",
+                               MessageBoxButton.OK, MessageBoxImage.Information);
+
+                TxtStatusPOS.Text = "📱 Información del escáner universal mostrada";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al mostrar información del escáner: {ex.Message}",
+                               "Error Escáner", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private async Task AgregarServicioAlCarrito(ServicioVenta servicio, decimal cantidad = 1)
         {
             try
@@ -2518,6 +2992,34 @@ namespace costbenefi
                 TxtStatusPOS.Text = "❌ Error al agregar servicio";
             }
         }
+        private void BtnInfoEscaner_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var estadoUnificado = _unifiedScanner?.GetStatusInfo() ?? "Escáner unificado: No inicializado";
+                var estadisticasProteccion = _scannerProtection?.ObtenerEstadisticas() ?? "Protección: No inicializada";
+                var contextoActual = MainTabControl.SelectedIndex == 1 ? "POS Activo" : "POS Inactivo";
+
+                var mensaje = $"📱 INFORMACIÓN COMPLETA DEL ESCÁNER\n\n" +
+                             $"🔌 {estadoUnificado}\n" +
+                             $"📊 Contexto: {contextoActual}\n\n" +
+                             $"🛡️ PROTECCIÓN:\n{estadisticasProteccion}\n\n" +
+                             $"💡 COMPATIBILIDAD:\n" +
+                             $"• Escáneres serie/COM: Detección automática\n" +
+                             $"• El escáner está activo automáticamente en POS\n" +
+                             $"• Protección anti-autoclick integrada";
+
+                MessageBox.Show(mensaje, "Información del Escáner",
+                               MessageBoxButton.OK, MessageBoxImage.Information);
+
+                TxtStatusPOS.Text = "📱 Información del escáner mostrada";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al mostrar información del escáner: {ex.Message}",
+                               "Error Escáner", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private async void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.Source is TabControl tabControl)
@@ -2525,10 +3027,35 @@ namespace costbenefi
                 switch (tabControl.SelectedIndex)
                 {
                     case 0: // Materia Prima
-                        TxtStatus.Text = "✅ Módulo de Materia Prima activo";
+                        if (_unifiedScanner != null)
+                        {
+                            _unifiedScanner.SetContext(ScannerContext.MateriaPrima);
+                            System.Diagnostics.Debug.WriteLine("🔄 Escáner unificado cambiado a contexto: Materia Prima");
+                        }
+                        if (TxtStatus != null)
+                            TxtStatus.Text = "✅ Módulo de Materia Prima activo";
                         break;
+
                     case 1: // PUNTO DE VENTA
-                        TxtStatusPOS.Text = "💰 Cargando Sistema POS...";
+                        if (TxtStatusPOS != null)
+                            TxtStatusPOS.Text = "💰 Activando escáner unificado POS...";
+
+                        // ✅ ACTIVAR ESCÁNER UNIFICADO PARA POS
+                        if (_unifiedScanner != null)
+                        {
+                            _unifiedScanner.SetContext(ScannerContext.PuntoVenta);
+                            _unifiedScanner.SetEnabled(true);
+
+                            if (TxtEstadoEscaner != null)
+                            {
+                                TxtEstadoEscaner.Text = "📱 ACTIVO";
+                                TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
+                                    new SolidColorBrush(Color.FromRgb(34, 197, 94)));
+                            }
+                            System.Diagnostics.Debug.WriteLine("🔄 Escáner unificado cambiado a contexto: Punto de Venta");
+                        }
+
+                        // Cargar datos POS si es necesario
                         if (!_posLoaded)
                         {
                             await LoadDataPuntoVenta();
@@ -2537,21 +3064,59 @@ namespace costbenefi
                         {
                             await VerificarEstadoCorteCaja();
                         }
+
+                        if (TxtStatusPOS != null)
+                            TxtStatusPOS.Text = "✅ Sistema POS listo - Escáner USB+Serie activo";
                         break;
+
                     case 2: // Reportes
-                        TxtStatus.Text = "📊 Módulo de Reportes disponible";
+                        if (_unifiedScanner != null)
+                        {
+                            _unifiedScanner.SetContext(ScannerContext.Ninguno);
+                            System.Diagnostics.Debug.WriteLine("🔄 Escáner unificado desactivado para Reportes");
+                        }
+                        if (TxtStatus != null)
+                            TxtStatus.Text = "📊 Módulo de Reportes disponible";
                         break;
-                    case 3: // Procesos - ✅ ACTUALIZAR ESTE CASO
-                        TxtStatus.Text = "⚙️ Módulo de Procesos activo";
+
+                    case 3: // Procesos
+                        if (_unifiedScanner != null)
+                        {
+                            _unifiedScanner.SetContext(ScannerContext.Ninguno);
+                        }
+                        if (TxtStatus != null)
+                            TxtStatus.Text = "⚙️ Módulo de Procesos activo";
                         break;
+
                     case 4: // Análisis
-                        TxtStatus.Text = "📈 Módulo de Análisis (próximamente)";
+                        if (_unifiedScanner != null)
+                        {
+                            _unifiedScanner.SetContext(ScannerContext.Ninguno);
+                        }
+                        if (TxtStatus != null)
+                            TxtStatus.Text = "📈 Módulo de Análisis (próximamente)";
                         break;
+
                     case 5: // Configuración
-                        TxtStatus.Text = "⚙️ Configuración del sistema (próximamente)";
+                        if (_unifiedScanner != null)
+                        {
+                            _unifiedScanner.SetContext(ScannerContext.Ninguno);
+                        }
+                        if (TxtStatus != null)
+                            TxtStatus.Text = "⚙️ Configuración del sistema (próximamente)";
                         break;
+
                     case 6: // Mi Información
-                        TxtStatus.Text = "👨‍💻 Información del desarrollador - Esaú Villagrán";
+                        if (_unifiedScanner != null)
+                        {
+                            _unifiedScanner.SetContext(ScannerContext.Ninguno);
+                        }
+                        if (TxtStatus != null)
+                            TxtStatus.Text = "👨‍💻 Información del desarrollador - Esaú Villagrán";
+                        break;
+
+                    default:
+                        System.Diagnostics.Debug.WriteLine($"⚠️ Tab no reconocido: {tabControl.SelectedIndex}");
                         break;
                 }
             }
@@ -2779,6 +3344,7 @@ namespace costbenefi
         }
     }
 
+   
     public class ManualBarcodeInputWindow : Window
     {
         private AppDbContext _context;

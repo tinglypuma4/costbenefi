@@ -527,11 +527,12 @@
                                        Opacity="0.9" Margin="0,0,20,0"/>
 
                             <Button Grid.Column="3" x:Name="BtnCerrarSesionPOS" 
-                                    Background="#DC2626" Foreground="White" 
-                                    Width="120" Height="35" 
-                                    FontSize="12" FontWeight="Bold"
-                                    Click="BtnCerrarSesion_Click"
-                                    Style="{StaticResource POSButtonStyle}">
+        Background="#DC2626" Foreground="White" 
+        Width="120" Height="35" 
+        FontSize="12" FontWeight="Bold"
+        Click="BtnCerrarSesion_Click"
+        Focusable="False"
+        Style="{StaticResource POSButtonStyle}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🚪" FontSize="14" Margin="0,0,8,0"/>
                                     <TextBlock Text="Cerrar Sesión"/>
@@ -550,11 +551,18 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                <Button x:Name="BtnEscanerPOS" Content="📱 Escáner" Width="90"
-                                        Background="#8B5CF6" Foreground="White" 
-                                        Style="{StaticResource POSButtonStyle}" 
-                                        Click="BtnEscanerPOS_Click" Height="32"/>
-
+                                <Button x:Name="BtnModoEscaner" 
+                                     Background="#059669" Foreground="White" 
+                                     Width="140" Height="35" 
+                                     FontSize="12" FontWeight="Bold"
+                                     Click="BtnModoEscaner_Click"
+                                     Focusable="False"
+                                     Margin="5,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="TxtIconoEscaner" Text="📱" FontSize="14" Margin="0,0,8,0"/>
+                                        <TextBlock x:Name="TxtTextoEscaner" Text="Activar Escáner"/>
+                                    </StackPanel>
+                                </Button>
                                 <Button x:Name="BtnBascula" Content="⚖️ Config" Width="90"
                                         Background="#F59E0B" Foreground="White"
                                         Style="{StaticResource POSButtonStyle}"
