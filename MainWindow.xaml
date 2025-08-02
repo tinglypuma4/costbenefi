@@ -839,50 +839,91 @@
                                                    FontSize="12" Foreground="#6B7280" VerticalAlignment="Center"/>
                                     </Grid>
                                 </Border>
+                              <!-- ✅ CARRITO MATRIZ FIJA: 3 columnas fijas, scroll solo vertical -->
+                                <!-- ✅ CARRITO MATRIZ FIJA: 3 columnas fijas, números grandes y visibles -->
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" 
+              HorizontalScrollBarVisibility="Disabled" Padding="10">
 
-                                <!-- Items del carrito -->
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10">
-                                    <ListBox x:Name="LstCarrito" 
-                                             BorderThickness="0" 
-                                             Background="Transparent">
-                                        <ListBox.ItemTemplate>
+                                    <!-- ✅ ItemsControl con Grid uniforme de 3 columnas -->
+                                    <ItemsControl x:Name="LstCarrito" 
+                  BorderThickness="0" 
+                  Background="Transparent">
+
+                                        <!-- ✅ Grid uniforme con 3 columnas fijas -->
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Columns="3" 
+                            HorizontalAlignment="Stretch"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+
+                                        <!-- ✅ Template optimizado con números grandes -->
+                                        <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Background="White" Margin="2" CornerRadius="5"
-                                                        BorderThickness="1" BorderBrush="#E5E7EB" Padding="10">
+                                                <Border Background="White" Margin="3" CornerRadius="6"
+                        BorderThickness="1" BorderBrush="#E5E7EB" 
+                        Padding="8" Height="95">
                                                     <Grid>
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition Height="Auto"/>
                                                             <RowDefinition Height="Auto"/>
                                                             <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="*"/>
                                                         </Grid.RowDefinitions>
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*"/>
                                                             <ColumnDefinition Width="Auto"/>
                                                         </Grid.ColumnDefinitions>
 
-                                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding NombreProducto}" 
-                                                                   FontWeight="Bold" FontSize="12" Foreground="#111827"/>
-                                                        <Button Grid.Row="0" Grid.Column="1" Content="❌" 
-                                                                Background="Transparent" BorderThickness="0" 
-                                                                Foreground="#EF4444" FontSize="10" Width="20" Height="20"
-                                                                Click="BtnEliminarDelCarrito_Click" Tag="{Binding}"/>
+                                                        <!-- Nombre del producto -->
+                                                        <TextBlock Grid.Row="0" Grid.Column="0" 
+                                   Text="{Binding NombreProducto}" 
+                                   FontWeight="Bold" FontSize="11" 
+                                   Foreground="#111827" TextWrapping="Wrap"
+                                   MaxHeight="32" TextTrimming="CharacterEllipsis"/>
 
-                                                        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,5,0,0">
-                                                            <TextBlock Text="Cant: " FontSize="10" Foreground="#6B7280"/>
-                                                            <TextBlock Text="{Binding Cantidad, StringFormat=F2}" FontSize="10" Foreground="#6B7280"/>
-                                                            <TextBlock Text=" × " FontSize="10" Foreground="#6B7280" Margin="5,0"/>
-                                                            <TextBlock Text="{Binding PrecioUnitario, StringFormat=C2}" FontSize="10" Foreground="#6B7280"/>
+                                                        <!-- Botón eliminar -->
+                                                        <Button Grid.Row="0" Grid.Column="1" Content="❌" 
+                                Background="Transparent" BorderThickness="0" 
+                                Foreground="#EF4444" FontSize="10" 
+                                Width="18" Height="18" Margin="2,0,0,0"
+                                Click="BtnEliminarDelCarrito_Click" 
+                                Tag="{Binding}"
+                                ToolTip="Eliminar del carrito"/>
+
+                                                        <!-- Cantidad con formato mejorado -->
+                                                        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" 
+                                    Orientation="Horizontal" Margin="0,4,0,0"
+                                    HorizontalAlignment="Center">
+                                                            <TextBlock Text="{Binding Cantidad, StringFormat=F1}" 
+                                       FontSize="12" FontWeight="Bold" 
+                                       Foreground="#374151"/>
+                                                            <TextBlock Text=" × " FontSize="11" 
+                                       Foreground="#6B7280" Margin="3,0"/>
+                                                            <TextBlock Text="{Binding PrecioUnitario, StringFormat=C0}" 
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="#6B7280"/>
                                                         </StackPanel>
 
-                                                        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding SubTotal, StringFormat=C2}" 
-                                                                   FontWeight="Bold" FontSize="13" Foreground="#059669" Margin="0,5,0,0"/>
+                                                        <!-- Línea separadora sutil -->
+                                                        <Rectangle Grid.Row="2" Grid.ColumnSpan="2" 
+                                  Height="1" Fill="#E5E7EB" 
+                                  Margin="0,6,0,6"/>
+
+                                                        <!-- Subtotal - NÚMEROS GRANDES -->
+                                                        <TextBlock Grid.Row="3" Grid.ColumnSpan="2" 
+                                   Text="{Binding SubTotal, StringFormat=C2}" 
+                                   FontWeight="Bold" FontSize="16" 
+                                   Foreground="#059669" 
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   TextAlignment="Center"/>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </ScrollViewer>
-
                                 <!-- Panel totales -->
                                 <Border Grid.Row="2" Background="#F9FAFB" BorderBrush="#E5E7EB" 
                                         BorderThickness="0,1,0,1" Padding="15">
