@@ -245,23 +245,24 @@ namespace costbenefi.Views
                     .FirstOrDefaultAsync(m => m.CodigoBarras == codigo);
 
                 bool esNuevo = material == null; // NUEVO
-
                 if (material != null)
                 {
                     // Código existente
-                    _codigosExistentes++; // NUEVO
+                    _codigosExistentes++;
                     ActualizarIndicador("✅ Código encontrado!", Colors.Green);
                     TxtStatus.Text = $"✅ Encontrado: {material.NombreArticulo}";
 
+                    // ✅ MENSAJE MEJORADO - MÁS CLARO SOBRE QUE ABRIRÁ EDICIÓN
                     var result = MessageBox.Show(
                         $"📦 PRODUCTO ENCONTRADO\n\n" +
-                        $"Nombre: {material.NombreArticulo}\n" +
-                        $"Categoría: {material.Categoria}\n" +
-                        $"Stock actual: {material.StockTotal:F2} {material.UnidadMedida}\n" +
-                        $"Precio: {material.PrecioConIVA:C2}\n" +
-                        $"Proveedor: {material.Proveedor}\n\n" +
-                        "¿Desea agregar más stock a este producto?",
-                        "Código Existente",
+                        $"📝 Nombre: {material.NombreArticulo}\n" +
+                        $"🏷️ Categoría: {material.Categoria}\n" +
+                        $"📊 Stock actual: {material.StockTotal:F2} {material.UnidadMedida}\n" +
+                        $"💰 Precio: {material.PrecioConIVA:C2}\n" +
+                        $"🏪 Proveedor: {material.Proveedor}\n\n" +
+                        $"✅ ¿Abrir formulario de gestión de stock?\n" +
+                        $"(Podrá agregar stock, quitar stock o editar información)",
+                        "Código Existente - Abrir Gestión",
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Question);
 
@@ -321,37 +322,57 @@ namespace costbenefi.Views
         {
             try
             {
-                bool esGranel = false;
-
                 if (materialExistente != null)
                 {
-                    // Detectar tipo basado en el material existente
-                    esGranel = materialExistente.UnidadMedida.ToLower() == materialExistente.UnidadBase.ToLower() &&
-                               (materialExistente.UnidadBase.ToLower() == "ml" || materialExistente.UnidadBase.ToLower() == "l" ||
-                                materialExistente.UnidadBase.ToLower() == "g" || materialExistente.UnidadBase.ToLower() == "kg");
+                    // ✅ PRODUCTO EXISTENTE - ABRIR FORMULARIO DE EDICIÓN/STOCK
+                    System.Diagnostics.Debug.WriteLine($"📝 Abriendo formulario de edición para: {materialExistente.NombreArticulo}");
 
-                    if (esGranel)
+                    var editWindow = new EditAddStockWindow(_context, materialExistente)
                     {
-                        var granelWindow = new AddMaterialGranelWindow(_context, codigo);
-                        granelWindow.ShowDialog();
+                        Owner = this,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner
+                    };
+
+                    if (editWindow.ShowDialog() == true)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"✅ Stock actualizado para: {materialExistente.NombreArticulo}");
+                        TxtStatus.Text = $"✅ Stock actualizado: {materialExistente.NombreArticulo}";
                     }
                     else
                     {
-                        var piezasWindow = new AddMaterialPiezasWindow(_context, codigo);
-                        piezasWindow.ShowDialog();
+                        System.Diagnostics.Debug.WriteLine($"❌ Edición cancelada para: {materialExistente.NombreArticulo}");
+                        TxtStatus.Text = $"❌ Edición cancelada: {materialExistente.NombreArticulo}";
                     }
                 }
                 else
                 {
-                    // Código nuevo - mostrar selector
-                    var selectorWindow = new TipoMaterialSelectorWindow(_context, codigo);
-                    selectorWindow.ShowDialog();
+                    // ✅ CÓDIGO NUEVO - MOSTRAR SELECTOR DE TIPO (COMPORTAMIENTO ORIGINAL)
+                    System.Diagnostics.Debug.WriteLine($"🆕 Abriendo selector para código nuevo: {codigo}");
+
+                    var selectorWindow = new TipoMaterialSelectorWindow(_context, codigo)
+                    {
+                        Owner = this,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner
+                    };
+
+                    if (selectorWindow.ShowDialog() == true)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"✅ Producto nuevo creado con código: {codigo}");
+                        TxtStatus.Text = $"✅ Producto nuevo creado: {codigo}";
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Creación cancelada para código: {codigo}");
+                        TxtStatus.Text = $"❌ Creación cancelada: {codigo}";
+                    }
                 }
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"💥 ERROR en AbrirFormularioParaProducto: {ex.Message}");
                 MessageBox.Show($"Error al abrir formulario: {ex.Message}",
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatus.Text = "❌ Error al abrir formulario";
             }
         }
 
