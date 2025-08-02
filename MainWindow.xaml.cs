@@ -471,8 +471,7 @@ namespace costbenefi
                     _scannerProtection.OnProductoEscaneado(codigo, producto.NombreArticulo);
 
                     // Verificar si es producto por peso
-                    if (producto.UnidadMedida.ToLower().Contains("kg") ||
-                        producto.UnidadMedida.ToLower().Contains("gr"))
+                    if (EsProductoAGranel(producto.UnidadMedida))
                     {
                         System.Diagnostics.Debug.WriteLine($"📏 Producto por peso detectado: {producto.UnidadMedida}");
 
@@ -2420,12 +2419,69 @@ namespace costbenefi
             "Error",
             MessageBoxButton.OK,
             MessageBoxImage.Error);
+
+        }
     }
-}
-       
-       
-       
-        
+
+
+        private bool EsProductoAGranel(string unidadMedida)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(unidadMedida)) return false;
+
+                var unidad = unidadMedida.ToLower().Trim();
+
+                // ⚖️ PESO
+                if (unidad.Contains("kg") || unidad.Contains("kilogramos") ||
+                    unidad.Contains("gr") || unidad.Contains("gramos") ||
+                    unidad.Contains("lb") || unidad.Contains("libras"))
+                    return true;
+
+                // 🧴 VOLUMEN/LÍQUIDOS  
+                if (unidad.Contains("litros") || unidad.Contains("lt") ||
+                    unidad.Contains("l") || unidad.Contains("ml") ||
+                    unidad.Contains("mililitros") || unidad.Contains("galones") ||
+                    unidad.Contains("gal"))
+                    return true;
+
+                // 📏 LONGITUD
+                if (unidad.Contains("metros") || unidad.Contains("mts") ||
+                    unidad.Contains("m") || unidad.Contains("cm") ||
+                    unidad.Contains("centímetros"))
+                    return true;
+
+                System.Diagnostics.Debug.WriteLine($"🔍 Unidad '{unidadMedida}' NO es a granel");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error detectando granel: {ex.Message}");
+                return false;
+            }
+        }
+
+        private string ObtenerTipoUnidad(string unidadMedida)
+        {
+            if (string.IsNullOrEmpty(unidadMedida)) return "Cantidad";
+
+            var unidad = unidadMedida.ToLower().Trim();
+
+            if (unidad.Contains("kg") || unidad.Contains("gr") || unidad.Contains("gramos") ||
+                unidad.Contains("kilogramos") || unidad.Contains("lb") || unidad.Contains("libras"))
+                return "Peso";
+
+            if (unidad.Contains("litros") || unidad.Contains("lt") || unidad.Contains("l") ||
+                unidad.Contains("ml") || unidad.Contains("mililitros") || unidad.Contains("galones"))
+                return "Volumen";
+
+            if (unidad.Contains("metros") || unidad.Contains("mts") || unidad.Contains("m") ||
+                unidad.Contains("cm") || unidad.Contains("centímetros"))
+                return "Longitud";
+
+            return "Cantidad";
+        }
+
         private async void BtnSalirSistema_Click(object sender, RoutedEventArgs e)
         {
             try
