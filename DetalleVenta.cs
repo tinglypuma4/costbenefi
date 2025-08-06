@@ -20,6 +20,14 @@ namespace costbenefi.Models
         private string _unidadMedida;
         private decimal _porcentajeIVA = 16.0m;
         private decimal _descuentoAplicado = 0;
+
+
+        public decimal PrecioOriginal { get; set; } = 0; // Precio antes del descuento
+        public decimal DescuentoUnitario { get; set; } = 0; // Descuento por unidad
+        public string MotivoDescuentoDetalle { get; set; } = "";
+        public bool TieneDescuentoManual { get; set; } = false;
+
+        public decimal TotalDescuentoLinea => DescuentoUnitario * Cantidad;
         #endregion
 
         [Key]
@@ -96,6 +104,7 @@ namespace costbenefi.Models
                 }
             }
         }
+
 
         // ===== CAMPOS ADICIONALES PARA EL TICKET =====
 
@@ -177,6 +186,8 @@ namespace costbenefi.Models
 
         public void CalcularSubTotal()
         {
+            // ✅ CÁLCULO SIMPLE: Si PrecioUnitario ya tiene descuento aplicado,
+            // solo usar DescuentoAplicado para descuentos adicionales tradicionales
             var nuevoSubTotal = (Cantidad * PrecioUnitario) - DescuentoAplicado;
             if (nuevoSubTotal < 0) nuevoSubTotal = 0;
 
@@ -187,9 +198,138 @@ namespace costbenefi.Models
             }
         }
 
-        public void AplicarDescuento(decimal descuento)
+        public void AplicarDescuentoConAuditoria(decimal descuentoPorUnidad, string motivo, string usuarioAutorizador = "")
         {
-            DescuentoAplicado = descuento;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🎁 === APLICANDO DESCUENTO A {NombreProducto} ===");
+                System.Diagnostics.Debug.WriteLine($"   • Precio actual: ${PrecioUnitario:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Cantidad: {Cantidad:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Descuento solicitado: ${descuentoPorUnidad:F2}/unidad");
+
+                // ✅ GUARDAR PRECIO ORIGINAL SI NO SE HA GUARDADO
+                if (PrecioOriginal == 0)
+                {
+                    PrecioOriginal = PrecioUnitario;
+                    System.Diagnostics.Debug.WriteLine($"   • Precio original guardado: ${PrecioOriginal:F2}");
+                }
+
+                // ✅ ESTABLECER INFORMACIÓN DE AUDITORÍA
+                DescuentoUnitario = descuentoPorUnidad;
+                MotivoDescuentoDetalle = motivo;
+                TieneDescuentoManual = true;
+
+                // ✅ CALCULAR NUEVO PRECIO UNITARIO (YA CON DESCUENTO INCLUIDO)
+                var nuevoPrecio = Math.Max(0, PrecioOriginal - descuentoPorUnidad);
+                PrecioUnitario = nuevoPrecio;
+
+                // ✅ IMPORTANTE: NO usar DescuentoAplicado para evitar doble descuento
+                // El descuento ya está reflejado en el PrecioUnitario reducido
+                DescuentoAplicado = 0; // ✅ CLAVE: Limpiar para evitar doble descuento
+
+                // ✅ RECALCULAR SUBTOTAL (ahora con precio ya descontado)
+                CalcularSubTotal();
+
+                System.Diagnostics.Debug.WriteLine($"   ✅ RESULTADO:");
+                System.Diagnostics.Debug.WriteLine($"      • Precio final: ${PrecioUnitario:F2}");
+                System.Diagnostics.Debug.WriteLine($"      • SubTotal: ${SubTotal:F2}");
+                System.Diagnostics.Debug.WriteLine($"      • Total descuento línea: ${TotalDescuentoLinea:F2}");
+                System.Diagnostics.Debug.WriteLine($"      • Ahorro total: ${(PrecioOriginal - PrecioUnitario) * Cantidad:F2}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error aplicando descuento: {ex.Message}");
+                throw;
+            }
+        }
+        public void RemoverDescuento()
+        {
+            if (TieneDescuentoManual && PrecioOriginal > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"🔄 Removiendo descuento de {NombreProducto}");
+                System.Diagnostics.Debug.WriteLine($"   • Precio con descuento: ${PrecioUnitario:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Precio original: ${PrecioOriginal:F2}");
+
+                // ✅ RESTAURAR PRECIO ORIGINAL
+                PrecioUnitario = PrecioOriginal;
+
+                // ✅ LIMPIAR INFORMACIÓN DE DESCUENTO
+                DescuentoUnitario = 0;
+                DescuentoAplicado = 0; // ✅ IMPORTANTE: Limpiar también
+                MotivoDescuentoDetalle = "";
+                TieneDescuentoManual = false;
+
+                // ✅ RECALCULAR
+                CalcularSubTotal();
+
+                System.Diagnostics.Debug.WriteLine($"   ✅ Precio restaurado: ${PrecioUnitario:F2}");
+                System.Diagnostics.Debug.WriteLine($"   ✅ SubTotal: ${SubTotal:F2}");
+            }
+        }
+
+        [NotMapped]
+        public string ResumenDescuentoDetalle
+        {
+            get
+            {
+                if (!TieneDescuentoManual || DescuentoUnitario <= 0)
+                    return "Sin descuento";
+
+                var porcentaje = PrecioOriginal > 0 ? (DescuentoUnitario / PrecioOriginal) * 100 : 0;
+                return $"${DescuentoUnitario:F2}/unidad ({porcentaje:F1}%) - {MotivoDescuentoDetalle}";
+            }
+        }
+
+        public bool ValidarDescuento()
+        {
+            if (!TieneDescuentoManual) return true;
+
+            // ✅ VALIDACIONES MEJORADAS
+            if (PrecioOriginal <= 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Precio original inválido en {NombreProducto}: ${PrecioOriginal:F2}");
+                return false;
+            }
+
+            if (DescuentoUnitario > PrecioOriginal)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Descuento mayor al precio original en {NombreProducto}");
+                System.Diagnostics.Debug.WriteLine($"   • Precio original: ${PrecioOriginal:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Descuento: ${DescuentoUnitario:F2}");
+                return false;
+            }
+
+            if (PrecioUnitario != (PrecioOriginal - DescuentoUnitario))
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Inconsistencia en precios de {NombreProducto}");
+                System.Diagnostics.Debug.WriteLine($"   • Precio original: ${PrecioOriginal:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Descuento: ${DescuentoUnitario:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Precio actual: ${PrecioUnitario:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Esperado: ${PrecioOriginal - DescuentoUnitario:F2}");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(MotivoDescuentoDetalle))
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Falta motivo de descuento en {NombreProducto}");
+                return false;
+            }
+
+            return true;
+        }
+        public string ObtenerInfoDebugDescuento()
+        {
+            if (!TieneDescuentoManual)
+                return "Sin descuento aplicado";
+
+            return $"DESCUENTO EN {NombreProducto}:\n" +
+                   $"• Precio original: ${PrecioOriginal:F2}\n" +
+                   $"• Descuento unitario: ${DescuentoUnitario:F2}\n" +
+                   $"• Precio final: ${PrecioUnitario:F2}\n" +
+                   $"• Cantidad: {Cantidad:F2}\n" +
+                   $"• Total línea descuento: ${TotalDescuentoLinea:F2}\n" +
+                   $"• SubTotal: ${SubTotal:F2}\n" +
+                   $"• Motivo: {MotivoDescuentoDetalle}";
         }
 
         public void AplicarDescuentoPorcentaje(decimal porcentaje)

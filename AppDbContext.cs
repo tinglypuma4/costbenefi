@@ -233,6 +233,30 @@ namespace costbenefi.Data
                 entity.Property(e => e.FechaVenta)
                     .HasDefaultValueSql("datetime('now')");
 
+                entity.Property(e => e.TieneDescuentosAplicados)
+       .HasDefaultValue(false);
+
+                entity.Property(e => e.UsuarioAutorizadorDescuento)
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.TipoUsuarioAutorizador)
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.MotivoDescuentoGeneral)
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.TotalDescuentosAplicados)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.FechaHoraDescuento);
+
+                // ✅ NUEVOS ÍNDICES PARA AUDITORÍA
+                entity.HasIndex(e => e.TieneDescuentosAplicados);
+                entity.HasIndex(e => e.UsuarioAutorizadorDescuento);
+                entity.HasIndex(e => e.TipoUsuarioAutorizador);
+                entity.HasIndex(e => e.FechaHoraDescuento);
+
                 // Propiedades para comisiones
                 entity.Property(e => e.ComisionTarjeta)
                     .HasColumnType("decimal(18,4)")
@@ -301,6 +325,25 @@ namespace costbenefi.Data
                 entity.Property(e => e.DescuentoAplicado)
                     .HasColumnType("decimal(18,4)")
                     .HasDefaultValue(0);
+
+                // ✅ NUEVAS CONFIGURACIONES PARA AUDITORÍA DE DESCUENTOS
+                entity.Property(e => e.PrecioOriginal)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.DescuentoUnitario)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.MotivoDescuentoDetalle)
+                    .HasMaxLength(300);
+
+                entity.Property(e => e.TieneDescuentoManual)
+                    .HasDefaultValue(false);
+
+                // ✅ NUEVOS ÍNDICES PARA AUDITORÍA
+                entity.HasIndex(e => e.TieneDescuentoManual);
+                entity.HasIndex(e => e.PrecioOriginal);
 
                 // Relaciones para DetalleVenta
                 entity.HasOne(e => e.Venta)

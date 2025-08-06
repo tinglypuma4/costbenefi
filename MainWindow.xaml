@@ -839,21 +839,18 @@
                                                    FontSize="12" Foreground="#6B7280" VerticalAlignment="Center"/>
                                     </Grid>
                                 </Border>
-                              <!-- ✅ CARRITO MATRIZ FIJA: 3 columnas fijas, scroll solo vertical -->
-                                <!-- ✅ CARRITO MATRIZ FIJA: 3 columnas fijas, números grandes y visibles -->
+
+                                <!-- ✅ CARRITO MATRIZ FIJA: 3 columnas fijas, scroll solo vertical -->
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" 
-              HorizontalScrollBarVisibility="Disabled" Padding="10">
-
-                                    <!-- ✅ ItemsControl con Grid uniforme de 3 columnas -->
+                                              HorizontalScrollBarVisibility="Disabled" Padding="10">
                                     <ItemsControl x:Name="LstCarrito" 
-                  BorderThickness="0" 
-                  Background="Transparent">
-
+                                                  BorderThickness="0" 
+                                                  Background="Transparent">
                                         <!-- ✅ Grid uniforme con 3 columnas fijas -->
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <UniformGrid Columns="3" 
-                            HorizontalAlignment="Stretch"/>
+                                                            HorizontalAlignment="Stretch"/>
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
 
@@ -861,8 +858,8 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Background="White" Margin="3" CornerRadius="6"
-                        BorderThickness="1" BorderBrush="#E5E7EB" 
-                        Padding="8" Height="95">
+                                                        BorderThickness="1" BorderBrush="#E5E7EB" 
+                                                        Padding="8" Height="95">
                                                     <Grid>
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition Height="Auto"/>
@@ -877,53 +874,54 @@
 
                                                         <!-- Nombre del producto -->
                                                         <TextBlock Grid.Row="0" Grid.Column="0" 
-                                   Text="{Binding NombreProducto}" 
-                                   FontWeight="Bold" FontSize="11" 
-                                   Foreground="#111827" TextWrapping="Wrap"
-                                   MaxHeight="32" TextTrimming="CharacterEllipsis"/>
+                                                                   Text="{Binding NombreProducto}" 
+                                                                   FontWeight="Bold" FontSize="11" 
+                                                                   Foreground="#111827" TextWrapping="Wrap"
+                                                                   MaxHeight="32" TextTrimming="CharacterEllipsis"/>
 
-                                                        <!-- Botón eliminar -->
+                                                        <!-- Botón eliminar CON AUTORIZACIÓN -->
                                                         <Button Grid.Row="0" Grid.Column="1" Content="❌" 
-                                Background="Transparent" BorderThickness="0" 
-                                Foreground="#EF4444" FontSize="10" 
-                                Width="18" Height="18" Margin="2,0,0,0"
-                                Click="BtnEliminarDelCarrito_Click" 
-                                Tag="{Binding}"
-                                ToolTip="Eliminar del carrito"/>
+                                                                Background="Transparent" BorderThickness="0" 
+                                                                Foreground="#EF4444" FontSize="10" 
+                                                                Width="18" Height="18" Margin="2,0,0,0"
+                                                                Click="BtnEliminarDelCarrito_Click_ConAutorizacion" 
+                                                                Tag="{Binding}"
+                                                                ToolTip="Eliminar del carrito"/>
 
                                                         <!-- Cantidad con formato mejorado -->
                                                         <StackPanel Grid.Row="1" Grid.ColumnSpan="2" 
-                                    Orientation="Horizontal" Margin="0,4,0,0"
-                                    HorizontalAlignment="Center">
+                                                                    Orientation="Horizontal" Margin="0,4,0,0"
+                                                                    HorizontalAlignment="Center">
                                                             <TextBlock Text="{Binding Cantidad, StringFormat=F1}" 
-                                       FontSize="12" FontWeight="Bold" 
-                                       Foreground="#374151"/>
+                                                                       FontSize="12" FontWeight="Bold" 
+                                                                       Foreground="#374151"/>
                                                             <TextBlock Text=" × " FontSize="11" 
-                                       Foreground="#6B7280" Margin="3,0"/>
+                                                                       Foreground="#6B7280" Margin="3,0"/>
                                                             <TextBlock Text="{Binding PrecioUnitario, StringFormat=C0}" 
-                                       FontSize="11" FontWeight="SemiBold"
-                                       Foreground="#6B7280"/>
+                                                                       FontSize="11" FontWeight="SemiBold"
+                                                                       Foreground="#6B7280"/>
                                                         </StackPanel>
 
                                                         <!-- Línea separadora sutil -->
                                                         <Rectangle Grid.Row="2" Grid.ColumnSpan="2" 
-                                  Height="1" Fill="#E5E7EB" 
-                                  Margin="0,6,0,6"/>
+                                                                   Height="1" Fill="#E5E7EB" 
+                                                                   Margin="0,6,0,6"/>
 
                                                         <!-- Subtotal - NÚMEROS GRANDES -->
                                                         <TextBlock Grid.Row="3" Grid.ColumnSpan="2" 
-                                   Text="{Binding SubTotal, StringFormat=C2}" 
-                                   FontWeight="Bold" FontSize="16" 
-                                   Foreground="#059669" 
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   TextAlignment="Center"/>
+                                                                   Text="{Binding SubTotal, StringFormat=C2}" 
+                                                                   FontWeight="Bold" FontSize="16" 
+                                                                   Foreground="#059669" 
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   TextAlignment="Center"/>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </ScrollViewer>
+
                                 <!-- Panel totales -->
                                 <Border Grid.Row="2" Background="#F9FAFB" BorderBrush="#E5E7EB" 
                                         BorderThickness="0,1,0,1" Padding="15">
@@ -960,9 +958,10 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- Botones de acción -->
+                                <!-- ✅ BOTONES DE ACCIÓN CORREGIDOS CON SISTEMA DE DESCUENTOS -->
                                 <Grid Grid.Row="3" Margin="15">
                                     <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
@@ -981,37 +980,54 @@
                                                  Text="Cliente General" Padding="8,5"/>
                                     </Grid>
 
-                                    <!-- Botones principales -->
-                                    <Grid Grid.Row="1">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
+                                    <!-- ✅ NUEVOS: Botones de descuento y cancelación -->
+                                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
 
-                                        <Button Grid.Row="0" x:Name="BtnProcesarVenta" Content="💰 PROCESAR VENTA" 
-                                                Height="45" FontSize="16" FontWeight="Bold"
-                                                Background="#059669" Foreground="White" Margin="0,0,0,8"
+                                        <Button Grid.Column="0" x:Name="BtnAplicarDescuento" Content="🎁 Descuento" 
+                                                Height="40" FontSize="13" FontWeight="Bold" Margin="0,0,4,0"
+                                                Background="#10B981" Foreground="White"
                                                 Style="{StaticResource POSButtonStyle}"
-                                                Click="BtnProcesarVenta_Click"/>
+                                                Click="BtnAplicarDescuento_Click"
+                                                ToolTip="Aplicar descuento con autorización"/>
 
-                                        <Grid Grid.Row="1">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="1" x:Name="BtnCancelarVenta" Content="❌ Cancelar Venta" 
+                                                Height="40" FontSize="13" FontWeight="Bold" Margin="4,0,0,0"
+                                                Background="#EF4444" Foreground="White"
+                                                Style="{StaticResource POSButtonStyle}"
+                                                Click="BtnCancelarVenta_Click"
+                                                ToolTip="Cancelar venta completa"/>
+                                    </Grid>
 
-                                            <Button Grid.Column="0" x:Name="BtnLimpiarCarrito" Content="🗑️ Limpiar" 
-                                                    Height="35" FontSize="12" FontWeight="Bold" Margin="0,0,4,0"
-                                                    Background="#EF4444" Foreground="White"
-                                                    Style="{StaticResource POSButtonStyle}"
-                                                    Click="BtnLimpiarCarrito_Click"/>
+                                    <!-- Botón principal de venta -->
+                                    <Button Grid.Row="2" x:Name="BtnProcesarVenta" Content="💰 PROCESAR VENTA" 
+                                            Height="45" FontSize="16" FontWeight="Bold"
+                                            Background="#059669" Foreground="White" Margin="6,0,-6,8"
+                                            Style="{StaticResource POSButtonStyle}"
+                                            Click="BtnProcesarVenta_Click"/>
 
-                                            <Button Grid.Column="1" x:Name="BtnVerVentas" Content="📊 Ventas" 
-                                                    Height="35" FontSize="12" FontWeight="Bold" Margin="4,0,0,0"
-                                                    Background="#6366F1" Foreground="White"
-                                                    Style="{StaticResource POSButtonStyle}"
-                                                    Click="BtnVerVentas_Click"/>
-                                        </Grid>
+                                    <!-- Botones secundarios -->
+                                    <Grid Grid.Row="3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- ✅ CAMBIO CRÍTICO: Nuevo evento con autorización -->
+                                        <Button Grid.Column="0" x:Name="BtnLimpiarCarrito" Content="🗑️ Limpiar" 
+                                                Height="35" FontSize="12" FontWeight="Bold" Margin="0,0,4,0"
+                                                Background="#EF4444" Foreground="White"
+                                                Style="{StaticResource POSButtonStyle}"
+                                                Click="BtnLimpiarCarrito_Click_ConAutorizacion"/>
+
+                                        <Button Grid.Column="1" x:Name="BtnVerVentas" Content="📊 Ventas" 
+                                                Height="35" FontSize="12" FontWeight="Bold" Margin="4,0,0,0"
+                                                Background="#6366F1" Foreground="White"
+                                                Style="{StaticResource POSButtonStyle}"
+                                                Click="BtnVerVentas_Click"/>
                                     </Grid>
                                 </Grid>
                             </Grid>
@@ -1054,7 +1070,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- Resto de pestañas (sin cambios) -->
+            <!-- Resto de pestañas exactamente iguales... -->
             <TabItem Header="📊 Reportes" Style="{StaticResource TabItemStyle}">
                 <Grid Background="White">
                     <Border Margin="30" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
@@ -1078,7 +1094,6 @@
                             <!-- Contenido -->
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40">
                                 <StackPanel>
-
                                     <!-- Reportes de Corte de Caja -->
                                     <Border Background="#F8F9FA" CornerRadius="8" Padding="20" Margin="0,0,0,20">
                                         <StackPanel>

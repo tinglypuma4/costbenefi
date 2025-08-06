@@ -348,9 +348,11 @@ namespace costbenefi.Views
 
             try
             {
+                System.Diagnostics.Debug.WriteLine("🔍 === APLICANDO FILTROS DE VENTAS ===");
                 var ventasFiltradas = new List<Venta>(_todasLasVentas);
+                var totalInicial = ventasFiltradas.Count;
 
-                // Filtrar por rango de fechas
+                // ===== FILTRAR POR RANGO DE FECHAS =====
                 if (ChkFiltrarPorFecha?.IsChecked == true)
                 {
                     if (DpFechaInicio?.SelectedDate.HasValue == true)
@@ -359,6 +361,7 @@ namespace costbenefi.Views
                         ventasFiltradas = ventasFiltradas
                             .Where(v => v.FechaVenta.Date >= fechaInicio)
                             .ToList();
+                        System.Diagnostics.Debug.WriteLine($"📅 Filtro fecha inicio: {ventasFiltradas.Count} ventas");
                     }
 
                     if (DpFechaFin?.SelectedDate.HasValue == true)
@@ -367,10 +370,11 @@ namespace costbenefi.Views
                         ventasFiltradas = ventasFiltradas
                             .Where(v => v.FechaVenta <= fechaFin)
                             .ToList();
+                        System.Diagnostics.Debug.WriteLine($"📅 Filtro fecha fin: {ventasFiltradas.Count} ventas");
                     }
                 }
 
-                // Filtrar por clientes seleccionados
+                // ===== FILTRAR POR CLIENTES SELECCIONADOS =====
                 if (PanelClientes != null)
                 {
                     var clientesSeleccionados = PanelClientes.Children.OfType<CheckBox>()
@@ -380,13 +384,20 @@ namespace costbenefi.Views
 
                     if (clientesSeleccionados.Any())
                     {
-                        ventasFiltradas = ventasFiltradas
-                            .Where(v => clientesSeleccionados.Contains(v.Cliente))
-                            .ToList();
+                        var totalClientes = PanelClientes.Children.OfType<CheckBox>().Count();
+
+                        // Solo filtrar si no están todos seleccionados
+                        if (clientesSeleccionados.Count < totalClientes)
+                        {
+                            ventasFiltradas = ventasFiltradas
+                                .Where(v => clientesSeleccionados.Contains(v.Cliente))
+                                .ToList();
+                            System.Diagnostics.Debug.WriteLine($"👥 Filtro clientes ({clientesSeleccionados.Count}): {ventasFiltradas.Count} ventas");
+                        }
                     }
                 }
 
-                // Filtrar por usuarios seleccionados
+                // ===== FILTRAR POR USUARIOS SELECCIONADOS =====
                 if (PanelUsuarios != null)
                 {
                     var usuariosSeleccionados = PanelUsuarios.Children.OfType<CheckBox>()
@@ -396,13 +407,20 @@ namespace costbenefi.Views
 
                     if (usuariosSeleccionados.Any())
                     {
-                        ventasFiltradas = ventasFiltradas
-                            .Where(v => usuariosSeleccionados.Contains(v.Usuario))
-                            .ToList();
+                        var totalUsuarios = PanelUsuarios.Children.OfType<CheckBox>().Count();
+
+                        // Solo filtrar si no están todos seleccionados
+                        if (usuariosSeleccionados.Count < totalUsuarios)
+                        {
+                            ventasFiltradas = ventasFiltradas
+                                .Where(v => usuariosSeleccionados.Contains(v.Usuario))
+                                .ToList();
+                            System.Diagnostics.Debug.WriteLine($"👤 Filtro usuarios ({usuariosSeleccionados.Count}): {ventasFiltradas.Count} ventas");
+                        }
                     }
                 }
 
-                // Filtrar por productos seleccionados
+                // ===== FILTRAR POR PRODUCTOS SELECCIONADOS =====
                 if (PanelProductos != null)
                 {
                     var productosSeleccionados = PanelProductos.Children.OfType<CheckBox>()
@@ -412,13 +430,104 @@ namespace costbenefi.Views
 
                     if (productosSeleccionados.Any())
                     {
-                        ventasFiltradas = ventasFiltradas
-                            .Where(v => v.DetallesVenta.Any(d => productosSeleccionados.Contains(d.NombreProducto)))
-                            .ToList();
+                        var totalProductos = PanelProductos.Children.OfType<CheckBox>().Count();
+
+                        // Solo filtrar si no están todos seleccionados
+                        if (productosSeleccionados.Count < totalProductos)
+                        {
+                            ventasFiltradas = ventasFiltradas
+                                .Where(v => v.DetallesVenta.Any(d => productosSeleccionados.Contains(d.NombreProducto)))
+                                .ToList();
+                            System.Diagnostics.Debug.WriteLine($"📦 Filtro productos ({productosSeleccionados.Count}): {ventasFiltradas.Count} ventas");
+                        }
                     }
                 }
 
-                // Filtrar por rango de monto
+                // ===== FILTROS DE DESCUENTOS =====
+
+                // ✅ FILTRAR SOLO VENTAS CON DESCUENTOS
+                if (ChkSoloConDescuentos?.IsChecked == true)
+                {
+                    ventasFiltradas = ventasFiltradas
+                        .Where(v => v.TieneDescuentosAplicados)
+                        .ToList();
+                    System.Diagnostics.Debug.WriteLine($"🎁 Filtro solo con descuentos: {ventasFiltradas.Count} ventas");
+                }
+
+                // ✅ FILTRAR POR TIPO DE AUTORIZADOR DE DESCUENTOS
+                var tipoAutorizadorSeleccionado = CmbTipoAutorizador?.SelectedItem?.ToString();
+                if (!string.IsNullOrEmpty(tipoAutorizadorSeleccionado) && tipoAutorizadorSeleccionado != "Todos")
+                {
+                    ventasFiltradas = ventasFiltradas
+                        .Where(v => v.TieneDescuentosAplicados && v.TipoUsuarioAutorizador == tipoAutorizadorSeleccionado)
+                        .ToList();
+                    System.Diagnostics.Debug.WriteLine($"👨‍💼 Filtro autorizador {tipoAutorizadorSeleccionado}: {ventasFiltradas.Count} ventas");
+                }
+
+                // ✅ FILTRAR POR RANGO DE PORCENTAJE DE DESCUENTO
+                if (ChkFiltrarPorPorcentajeDescuento?.IsChecked == true)
+                {
+                    if (decimal.TryParse(TxtPorcentajeDescuentoMin?.Text, out decimal porcentajeMin))
+                    {
+                        ventasFiltradas = ventasFiltradas
+                            .Where(v => v.PorcentajeDescuentoTotal >= porcentajeMin)
+                            .ToList();
+                        System.Diagnostics.Debug.WriteLine($"📊 Filtro % desc. mín {porcentajeMin}%: {ventasFiltradas.Count} ventas");
+                    }
+
+                    if (decimal.TryParse(TxtPorcentajeDescuentoMax?.Text, out decimal porcentajeMax))
+                    {
+                        ventasFiltradas = ventasFiltradas
+                            .Where(v => v.PorcentajeDescuentoTotal <= porcentajeMax)
+                            .ToList();
+                        System.Diagnostics.Debug.WriteLine($"📊 Filtro % desc. máx {porcentajeMax}%: {ventasFiltradas.Count} ventas");
+                    }
+                }
+
+                // ✅ FILTRAR POR RANGO DE MONTO DE DESCUENTO
+                if (ChkFiltrarPorMontoDescuento?.IsChecked == true)
+                {
+                    if (decimal.TryParse(TxtMontoDescuentoMin?.Text, out decimal montoDescMin))
+                    {
+                        ventasFiltradas = ventasFiltradas
+                            .Where(v => v.TotalDescuentosAplicados >= montoDescMin)
+                            .ToList();
+                        System.Diagnostics.Debug.WriteLine($"💰 Filtro monto desc. mín ${montoDescMin}: {ventasFiltradas.Count} ventas");
+                    }
+
+                    if (decimal.TryParse(TxtMontoDescuentoMax?.Text, out decimal montoDescMax))
+                    {
+                        ventasFiltradas = ventasFiltradas
+                            .Where(v => v.TotalDescuentosAplicados <= montoDescMax)
+                            .ToList();
+                        System.Diagnostics.Debug.WriteLine($"💰 Filtro monto desc. máx ${montoDescMax}: {ventasFiltradas.Count} ventas");
+                    }
+                }
+
+                // ✅ FILTRAR POR MOTIVO DE DESCUENTO (BÚSQUEDA DE TEXTO)
+                if (!string.IsNullOrWhiteSpace(TxtBuscarMotivoDescuento?.Text))
+                {
+                    var motivoBusqueda = TxtBuscarMotivoDescuento.Text.Trim().ToLower();
+                    ventasFiltradas = ventasFiltradas
+                        .Where(v => v.TieneDescuentosAplicados &&
+                                   !string.IsNullOrEmpty(v.MotivoDescuentoGeneral) &&
+                                   v.MotivoDescuentoGeneral.ToLower().Contains(motivoBusqueda))
+                        .ToList();
+                    System.Diagnostics.Debug.WriteLine($"🔍 Filtro motivo '{motivoBusqueda}': {ventasFiltradas.Count} ventas");
+                }
+
+                // ✅ FILTRAR SOLO DESCUENTOS DE ALTO IMPACTO (MÁS DEL 15%)
+                if (ChkSoloDescuentosAltoImpacto?.IsChecked == true)
+                {
+                    ventasFiltradas = ventasFiltradas
+                        .Where(v => v.TieneDescuentosAplicados && v.PorcentajeDescuentoTotal > 15)
+                        .ToList();
+                    System.Diagnostics.Debug.WriteLine($"⚡ Filtro alto impacto (>15%): {ventasFiltradas.Count} ventas");
+                }
+
+                // ===== FILTROS TRADICIONALES =====
+
+                // ✅ FILTRAR POR RANGO DE MONTO TOTAL
                 if (ChkFiltrarPorMonto?.IsChecked == true)
                 {
                     if (decimal.TryParse(TxtMontoMin?.Text, out decimal montoMin))
@@ -426,6 +535,7 @@ namespace costbenefi.Views
                         ventasFiltradas = ventasFiltradas
                             .Where(v => v.Total >= montoMin)
                             .ToList();
+                        System.Diagnostics.Debug.WriteLine($"💰 Filtro monto mín ${montoMin}: {ventasFiltradas.Count} ventas");
                     }
 
                     if (decimal.TryParse(TxtMontoMax?.Text, out decimal montoMax))
@@ -433,10 +543,11 @@ namespace costbenefi.Views
                         ventasFiltradas = ventasFiltradas
                             .Where(v => v.Total <= montoMax)
                             .ToList();
+                        System.Diagnostics.Debug.WriteLine($"💰 Filtro monto máx ${montoMax}: {ventasFiltradas.Count} ventas");
                     }
                 }
 
-                // Filtrar por rango de margen
+                // ✅ FILTRAR POR RANGO DE MARGEN
                 if (ChkFiltrarPorMargen?.IsChecked == true)
                 {
                     if (decimal.TryParse(TxtMargenMin?.Text, out decimal margenMin))
@@ -444,6 +555,7 @@ namespace costbenefi.Views
                         ventasFiltradas = ventasFiltradas
                             .Where(v => v.MargenNeto >= margenMin)
                             .ToList();
+                        System.Diagnostics.Debug.WriteLine($"📈 Filtro margen mín {margenMin}%: {ventasFiltradas.Count} ventas");
                     }
 
                     if (decimal.TryParse(TxtMargenMax?.Text, out decimal margenMax))
@@ -451,36 +563,73 @@ namespace costbenefi.Views
                         ventasFiltradas = ventasFiltradas
                             .Where(v => v.MargenNeto <= margenMax)
                             .ToList();
+                        System.Diagnostics.Debug.WriteLine($"📈 Filtro margen máx {margenMax}%: {ventasFiltradas.Count} ventas");
                     }
                 }
 
-                // Filtrar solo ventas con comisión
+                // ✅ FILTRAR SOLO VENTAS CON COMISIÓN
                 if (ChkSoloConComision?.IsChecked == true)
                 {
                     ventasFiltradas = ventasFiltradas
                         .Where(v => v.ComisionTotal > 0)
                         .ToList();
+                    System.Diagnostics.Debug.WriteLine($"🏦 Filtro solo con comisión: {ventasFiltradas.Count} ventas");
                 }
 
-                // Filtrar solo ventas rentables
+                // ✅ FILTRAR SOLO VENTAS RENTABLES
                 if (ChkSoloRentables?.IsChecked == true)
                 {
                     ventasFiltradas = ventasFiltradas
                         .Where(v => v.GananciaNeta > 0)
                         .ToList();
+                    System.Diagnostics.Debug.WriteLine($"📈 Filtro solo rentables: {ventasFiltradas.Count} ventas");
                 }
 
+                // ✅ FILTRAR POR FORMA DE PAGO
+                var formaPagoSeleccionada = CmbFormaPago?.SelectedItem?.ToString();
+                if (!string.IsNullOrEmpty(formaPagoSeleccionada) && formaPagoSeleccionada != "Todas las formas")
+                {
+                    ventasFiltradas = ventasFiltradas.Where(v =>
+                    {
+                        return formaPagoSeleccionada switch
+                        {
+                            "💵 Solo Efectivo" => v.MontoEfectivo > 0 && v.MontoTarjeta == 0 && v.MontoTransferencia == 0,
+                            "💳 Solo Tarjeta" => v.MontoTarjeta > 0 && v.MontoEfectivo == 0 && v.MontoTransferencia == 0,
+                            "📱 Solo Transferencia" => v.MontoTransferencia > 0 && v.MontoEfectivo == 0 && v.MontoTarjeta == 0,
+                            "🔄 Pago Combinado" => (v.MontoEfectivo > 0 ? 1 : 0) + (v.MontoTarjeta > 0 ? 1 : 0) + (v.MontoTransferencia > 0 ? 1 : 0) > 1,
+                            _ => true
+                        };
+                    }).ToList();
+                    System.Diagnostics.Debug.WriteLine($"💳 Filtro forma pago {formaPagoSeleccionada}: {ventasFiltradas.Count} ventas");
+                }
+
+                // ===== APLICAR FILTROS FINALES =====
                 _ventasFiltradas = ventasFiltradas;
+
+                System.Diagnostics.Debug.WriteLine($"🎯 RESULTADO FINAL: {ventasFiltradas.Count} de {totalInicial} ventas mostradas");
+
+                // ✅ CALCULAR ESTADÍSTICAS DE DESCUENTOS PARA DEBUG
+                var ventasConDescuento = ventasFiltradas.Count(v => v.TieneDescuentosAplicados);
+                var totalDescuentos = ventasFiltradas.Sum(v => v.TotalDescuentosAplicados);
+                var promedioDescuento = ventasConDescuento > 0 ? totalDescuentos / ventasConDescuento : 0;
+
+                System.Diagnostics.Debug.WriteLine($"🎁 ESTADÍSTICAS DESCUENTOS:");
+                System.Diagnostics.Debug.WriteLine($"   • Ventas con descuento: {ventasConDescuento}");
+                System.Diagnostics.Debug.WriteLine($"   • Total descuentos: ${totalDescuentos:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Promedio descuento: ${promedioDescuento:F2}");
+
                 ActualizarDataGrid();
                 ActualizarEstadisticas();
+
+                System.Diagnostics.Debug.WriteLine("✅ Filtros aplicados y interfaz actualizada");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"❌ Error aplicando filtros: {ex}");
                 MessageBox.Show($"Error al aplicar filtros: {ex.Message}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
         private void LimpiarFiltros()
         {
             if (!_cargaCompleta) return;
@@ -573,30 +722,46 @@ namespace costbenefi.Views
                     Usuario = v.Usuario ?? "Sin usuario",
                     SubTotal = v.SubTotal,
                     Total = v.Total,
-
-                    // ✅ NUEVAS PROPIEDADES PARA MÉTODOS DE PAGO DETALLADOS
                     TipoPago = DeterminarTipoPago(v),
                     MontoEfectivo = v.MontoEfectivo,
                     MontoTarjeta = v.MontoTarjeta,
                     MontoTransferencia = v.MontoTransferencia,
-
                     Ganancia = v.GananciaNeta,
                     Margen = v.MargenNeto,
-                    Comision = v.ComisionTotal
+                    Comision = v.ComisionTotal,
+
+                    // ✅ COLUMNAS DE DESCUENTOS USANDO PROPIEDADES EXISTENTES
+                    TieneDescuento = v.TieneDescuentosAplicados ? "🎁 Sí" : "❌ No",
+                    TotalDescuento = v.TotalDescuentosAplicados,
+                    PorcentajeDescuento = v.PorcentajeDescuentoTotal,
+                    AutorizadoPor = v.UsuarioAutorizadorDescuento ?? "",
+                    TipoAutorizador = v.TipoUsuarioAutorizador ?? "",
+                    MotivoDescuento = v.MotivoDescuentoGeneral ?? "",
+                    ItemsConDescuento = v.CantidadItemsConDescuento,
+                    FechaDescuento = v.FechaHoraDescuento?.ToString("dd/MM/yyyy HH:mm") ?? "",
+                    ResumenCompleto = v.ResumenDescuentos
                 }).ToList();
 
                 DgVentas.ItemsSource = datosReporte;
 
-                // Actualizar resumen detalle
+                // ✅ ACTUALIZAR RESUMEN CON ESTADÍSTICAS DE DESCUENTOS
+                var totalDescuentos = _ventasFiltradas.Sum(v => v.TotalDescuentosAplicados);
+                var ventasConDescuento = _ventasFiltradas.Count(v => v.TieneDescuentosAplicados);
+                var porcentajeVentasConDescuento = _ventasFiltradas.Any()
+                    ? (decimal)ventasConDescuento / _ventasFiltradas.Count * 100
+                    : 0;
+
                 if (TxtResumenDetalle != null)
                 {
-                    TxtResumenDetalle.Text = $"Mostrando {datosReporte.Count} de {_todasLasVentas.Count} ventas";
+                    TxtResumenDetalle.Text = $"Mostrando {datosReporte.Count} de {_todasLasVentas.Count} ventas | " +
+                                           $"{ventasConDescuento} con descuentos ({porcentajeVentasConDescuento:F1}%) | " +
+                                           $"Total desc.: ${totalDescuentos:F2}";
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al actualizar datos: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                              MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         private string DeterminarTipoPago(Venta venta)

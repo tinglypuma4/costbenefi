@@ -74,21 +74,19 @@ namespace costbenefi.Views
         private void ConfigurarEventos()
         {
             // Evento peso recibido de báscula
-            _basculaService.PesoRecibido += BasculaService_PesoRecibido;
-            _basculaService.ErrorOcurrido += BasculaService_ErrorOcurrido;
-            _basculaService.EstadoConexionCambiado += BasculaService_EstadoConexionCambiado;
+            _basculaService.PesoRecibido += BasculaService_PesoRecibido;  // ✅ CORRECTO
+            _basculaService.ErrorOcurrido += BasculaService_ErrorOcurrido;  // ✅ CORRECTO
+            _basculaService.EstadoConexionCambiado += BasculaService_EstadoConexionCambiado;  // ✅ CORRECTO
 
             // ✅ AGREGAR: Configurar eventos de radio buttons
             if (RbPorCantidad != null)
             {
                 RbPorCantidad.Checked += RbPorCantidad_Checked;
             }
-
             if (RbPorDinero != null)
             {
                 RbPorDinero.Checked += RbPorDinero_Checked;
             }
-
             System.Diagnostics.Debug.WriteLine("✅ Eventos de modos configurados correctamente");
         }
         private void ActualizarEstadoBascula()
@@ -656,7 +654,7 @@ namespace costbenefi.Views
                 Margin = new Thickness(10, 5, 10, 5),
                 VerticalAlignment = VerticalAlignment.Center
             };
-            RbPorCantidad.Checked += RbPorCantidad_Checked;
+           
 
             RbPorDinero = new RadioButton
             {
@@ -668,7 +666,7 @@ namespace costbenefi.Views
                 Margin = new Thickness(10, 5, 10, 5),
                 VerticalAlignment = VerticalAlignment.Center
             };
-            RbPorDinero.Checked += RbPorDinero_Checked;
+            
 
             Grid.SetColumn(RbPorCantidad, 0);
             Grid.SetColumn(RbPorDinero, 1);

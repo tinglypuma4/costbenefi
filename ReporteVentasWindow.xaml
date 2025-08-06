@@ -175,7 +175,7 @@
                         <TextBlock Text="Reporte de Ventas" 
                                    FontSize="20" FontWeight="Bold" 
                                    Foreground="#1E293B"/>
-                        <TextBlock x:Name="TxtSubtitulo" Text="Análisis de ventas y rentabilidad" 
+                        <TextBlock x:Name="TxtSubtitulo" Text="Análisis de ventas y rentabilidad con auditoría de descuentos" 
                                    FontSize="12" Foreground="#64748B"/>
                     </StackPanel>
                 </StackPanel>
@@ -388,9 +388,14 @@
                             </StackPanel>
                         </Grid>
 
-                        <!-- Segunda fila - Rangos numéricos -->
+                        <!-- Segunda fila - Rangos numéricos y nuevos filtros -->
                         <Grid Grid.Row="1" Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
                                 <ColumnDefinition Width="1*"/>
                                 <ColumnDefinition Width="1*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -456,8 +461,109 @@
                                 </Grid>
                             </StackPanel>
 
+                            <!-- FILTROS DE DESCUENTOS -->
+                            <StackPanel Grid.Column="2" Margin="8,0">
+                                <TextBlock Text="🎁 Descuentos" FontSize="12" FontWeight="SemiBold" 
+                                          Foreground="#374151" Margin="0,0,0,6"/>
+
+                                <CheckBox x:Name="ChkSoloConDescuentos" Content="Solo con descuentos" 
+                                         FontSize="11" Margin="0,2" Checked="FiltroCheckbox_Changed" 
+                                         Unchecked="FiltroCheckbox_Changed"/>
+
+                                <CheckBox x:Name="ChkSoloDescuentosAltoImpacto" Content="Alto impacto (>15%)" 
+                                         FontSize="11" Margin="0,2" Checked="FiltroCheckbox_Changed" 
+                                         Unchecked="FiltroCheckbox_Changed"/>
+
+                                <ComboBox x:Name="CmbTipoAutorizador" FontSize="11" Margin="0,4,0,2"
+                                         SelectionChanged="FiltroCheckbox_Changed">
+                                    <ComboBoxItem Content="Todos" IsSelected="True"/>
+                                    <ComboBoxItem Content="Soporte"/>
+                                    <ComboBoxItem Content="Dueño"/>
+                                    <ComboBoxItem Content="Encargado"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- FILTROS ADICIONALES -->
+                            <StackPanel Grid.Column="3" Margin="8,0">
+                                <TextBlock Text="📊 Porcentaje Descuento" FontSize="12" FontWeight="SemiBold" 
+                                          Foreground="#374151" Margin="0,0,0,6"/>
+
+                                <CheckBox x:Name="ChkFiltrarPorPorcentajeDescuento" Content="Filtrar por %" 
+                                         FontSize="11" Margin="0,2" Checked="FiltroCheckbox_Changed" 
+                                         Unchecked="FiltroCheckbox_Changed"/>
+
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBox Grid.Column="0" x:Name="TxtPorcentajeDescuentoMin" 
+                                            Style="{StaticResource CompactTextBox}"
+                                            IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorPorcentajeDescuento}"/>
+
+                                    <TextBlock Grid.Column="1" Text="—" Margin="4,0" VerticalAlignment="Center"/>
+
+                                    <TextBox Grid.Column="2" x:Name="TxtPorcentajeDescuentoMax" 
+                                            Style="{StaticResource CompactTextBox}"
+                                            IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorPorcentajeDescuento}"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- FILTRO POR MONTO DE DESCUENTO -->
+                            <StackPanel Grid.Column="4" Margin="8,0">
+                                <TextBlock Text="💰 Monto Descuento" FontSize="12" FontWeight="SemiBold" 
+                                          Foreground="#374151" Margin="0,0,0,6"/>
+
+                                <CheckBox x:Name="ChkFiltrarPorMontoDescuento" Content="Filtrar por monto" 
+                                         FontSize="11" Margin="0,2" Checked="FiltroCheckbox_Changed" 
+                                         Unchecked="FiltroCheckbox_Changed"/>
+
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBox Grid.Column="0" x:Name="TxtMontoDescuentoMin" 
+                                            Style="{StaticResource CompactTextBox}"
+                                            IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorMontoDescuento}"/>
+
+                                    <TextBlock Grid.Column="1" Text="—" Margin="4,0" VerticalAlignment="Center"/>
+
+                                    <TextBox Grid.Column="2" x:Name="TxtMontoDescuentoMax" 
+                                            Style="{StaticResource CompactTextBox}"
+                                            IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorMontoDescuento}"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- BÚSQUEDA POR MOTIVO -->
+                            <StackPanel Grid.Column="5" Margin="8,0">
+                                <TextBlock Text="🔍 Motivo Descuento" FontSize="12" FontWeight="SemiBold" 
+                                          Foreground="#374151" Margin="0,0,0,6"/>
+
+                                <TextBox x:Name="TxtBuscarMotivoDescuento" Style="{StaticResource CompactTextBox}"
+                                        TextChanged="FiltroCheckbox_Changed"/>
+                            </StackPanel>
+
+                            <!-- FILTRO POR FORMA DE PAGO -->
+                            <StackPanel Grid.Column="6" Margin="8,0">
+                                <TextBlock Text="💳 Forma de Pago" FontSize="12" FontWeight="SemiBold" 
+                                          Foreground="#374151" Margin="0,0,0,6"/>
+
+                                <ComboBox x:Name="CmbFormaPago" FontSize="11" SelectionChanged="FiltroCheckbox_Changed">
+                                    <ComboBoxItem Content="Todas las formas" IsSelected="True"/>
+                                    <ComboBoxItem Content="💵 Solo Efectivo"/>
+                                    <ComboBoxItem Content="💳 Solo Tarjeta"/>
+                                    <ComboBoxItem Content="📱 Solo Transferencia"/>
+                                    <ComboBoxItem Content="🔄 Pago Combinado"/>
+                                </ComboBox>
+                            </StackPanel>
+
                             <!-- Botón aplicar -->
-                            <Button Grid.Column="2" x:Name="BtnAplicarFiltros" Content="🔍 Aplicar Filtros" 
+                            <Button Grid.Column="7" x:Name="BtnAplicarFiltros" Content="🔍 Aplicar Filtros" 
                                    Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom"
                                    Click="BtnAplicarFiltros_Click" Margin="16,0,0,0"/>
                         </Grid>
@@ -484,192 +590,345 @@
             </StackPanel>
         </Border>
 
-        <!-- DataGrid de Ventas -->
+        <!-- DataGrid de Ventas con Columnas de Descuentos -->
         <Border Grid.Row="2" Style="{StaticResource ModernCard}" Margin="20,8,20,8">
-            <DataGrid x:Name="DgVentas" AutoGenerateColumns="False" 
-                     GridLinesVisibility="Horizontal" HeadersVisibility="Column"
-                     RowBackground="White" AlternatingRowBackground="#FAFBFC"
-                     BorderThickness="0" FontSize="13" RowHeight="32">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                  VerticalScrollBarVisibility="Disabled"
+                  CanContentScroll="True">
+                <DataGrid x:Name="DgVentas" AutoGenerateColumns="False" 
+                 GridLinesVisibility="Horizontal" HeadersVisibility="Column"
+                 RowBackground="White" AlternatingRowBackground="#FAFBFC"
+                 BorderThickness="0" FontSize="13" RowHeight="32"
+                 HorizontalScrollBarVisibility="Visible"
+                 VerticalScrollBarVisibility="Auto"
+                 CanUserSortColumns="True"
+                 CanUserReorderColumns="True"
+                 CanUserResizeColumns="True">
 
-                <DataGrid.ColumnHeaderStyle>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="#F0FDF4"/>
-                        <Setter Property="Foreground" Value="#1E293B"/>
-                        <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="FontSize" Value="12"/>
-                        <Setter Property="Padding" Value="12,8"/>
-                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
-                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
-                    </Style>
-                </DataGrid.ColumnHeaderStyle>
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#F0FDF4"/>
+                            <Setter Property="Foreground" Value="#1E293B"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="FontSize" Value="12"/>
+                            <Setter Property="Padding" Value="12,8"/>
+                            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
 
-                <DataGrid.RowStyle>
-                    <Style TargetType="DataGridRow">
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#F0FDF4"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </DataGrid.RowStyle>
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#F0FDF4"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
 
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="🎫 Ticket" Binding="{Binding Ticket}" Width="100">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="FontWeight" Value="Medium"/>
-                                <Setter Property="Padding" Value="12,6"/>
-                                <Setter Property="Foreground" Value="#1E293B"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                    <DataGrid.Columns>
+                        <!-- ===== COLUMNAS BÁSICAS ===== -->
+                        <DataGridTextColumn Header="🎫 Ticket" Binding="{Binding Ticket}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontWeight" Value="Medium"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#1E293B"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="📅 Fecha" Binding="{Binding Fecha}" Width="140">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Padding" Value="12,6"/>
-                                <Setter Property="Foreground" Value="#64748B"/>
-                                <Setter Property="FontSize" Value="11"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="📅 Fecha" Binding="{Binding Fecha}" Width="140">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#64748B"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="👥 Cliente" Binding="{Binding Cliente}" Width="*" MinWidth="150">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Padding" Value="12,6"/>
-                                <Setter Property="Foreground" Value="#1E293B"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="👥 Cliente" Binding="{Binding Cliente}" Width="*" MinWidth="150">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#1E293B"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="👤 Usuario" Binding="{Binding Usuario}" Width="120">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Padding" Value="12,6"/>
-                                <Setter Property="Foreground" Value="#64748B"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="👤 Usuario" Binding="{Binding Usuario}" Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#64748B"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="💰 SubTotal" Binding="{Binding SubTotal, StringFormat=C2}" Width="110">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="TextAlignment" Value="Right"/>
-                                <Setter Property="Padding" Value="12,6"/>
-                                <Setter Property="Foreground" Value="#1E293B"/>
-                                <Setter Property="FontSize" Value="12"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        <!-- ===== COLUMNAS DE DESCUENTOS - DISEÑO ORIGINAL ===== -->
+                        <DataGridTextColumn Header="🎁 Desc." Binding="{Binding TieneDescuento}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TieneDescuento}" Value="🎁 Sí">
+                                            <Setter Property="Foreground" Value="#10B981"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding TieneDescuento}" Value="❌ No">
+                                            <Setter Property="Foreground" Value="#6B7280"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="💎 Total" Binding="{Binding Total, StringFormat=C2}" Width="110">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="TextAlignment" Value="Right"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
-                                <Setter Property="Foreground" Value="#059669"/>
-                                <Setter Property="Padding" Value="12,6"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="💰 Desc. $" Binding="{Binding TotalDescuento, StringFormat=C2}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="Foreground" Value="#10B981"/>
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TotalDescuento}" Value="0">
+                                            <Setter Property="Foreground" Value="#6B7280"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="💳 Método" Binding="{Binding TipoPago}" Width="100">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="TextAlignment" Value="Center"/>
-                                <Setter Property="Padding" Value="8,6"/>
-                                <Setter Property="FontWeight" Value="Medium"/>
-                                <Setter Property="FontSize" Value="11"/>
-                                <Setter Property="Foreground" Value="#64748B"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="📊 % Desc." Binding="{Binding PorcentajeDescuento, StringFormat=F1}" Width="90">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                    <Setter Property="FontWeight" Value="Medium"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding PorcentajeDescuento}" Value="0">
+                                            <Setter Property="Foreground" Value="#6B7280"/>
+                                        </DataTrigger>
+                                        <!-- Descuentos altos en rojo -->
+                                        <DataTrigger Binding="{Binding PorcentajeDescuento}" Value="15">
+                                            <Setter Property="Foreground" Value="#DC2626"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                        </DataTrigger>
+                                        <!-- Descuentos medianos en amarillo -->
+                                        <DataTrigger Binding="{Binding PorcentajeDescuento}" Value="10">
+                                            <Setter Property="Foreground" Value="#F59E0B"/>
+                                            <Setter Property="FontWeight" Value="Medium"/>
+                                        </DataTrigger>
+                                        <!-- Descuentos bajos en verde -->
+                                        <DataTrigger Binding="{Binding PorcentajeDescuento}" Value="5">
+                                            <Setter Property="Foreground" Value="#10B981"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="💵 Efectivo" Binding="{Binding MontoEfectivo, StringFormat=C2}" Width="85">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="TextAlignment" Value="Right"/>
-                                <Setter Property="Padding" Value="8,6"/>
-                                <Setter Property="FontSize" Value="11"/>
-                                <Setter Property="Foreground" Value="#059669"/>
-                                <Setter Property="FontWeight" Value="Medium"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="👤 Autorizado por" Binding="{Binding AutorizadoPor}" Width="140">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                    <Setter Property="FontWeight" Value="Medium"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TipoAutorizador}" Value="Soporte">
+                                            <Setter Property="Foreground" Value="#8B5CF6"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding TipoAutorizador}" Value="Dueño">
+                                            <Setter Property="Foreground" Value="#DC2626"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding TipoAutorizador}" Value="Encargado">
+                                            <Setter Property="Foreground" Value="#F59E0B"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding AutorizadoPor}" Value="">
+                                            <Setter Property="Foreground" Value="#6B7280"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="💳 Tarjeta" Binding="{Binding MontoTarjeta, StringFormat=C2}" Width="85">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="TextAlignment" Value="Right"/>
-                                <Setter Property="Padding" Value="8,6"/>
-                                <Setter Property="FontSize" Value="11"/>
-                                <Setter Property="Foreground" Value="#3B82F6"/>
-                                <Setter Property="FontWeight" Value="Medium"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="🏷️ Tipo" Binding="{Binding TipoAutorizador}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontSize" Value="10"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TipoAutorizador}" Value="Soporte">
+                                            <Setter Property="Foreground" Value="#8B5CF6"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding TipoAutorizador}" Value="Dueño">
+                                            <Setter Property="Foreground" Value="#DC2626"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding TipoAutorizador}" Value="Encargado">
+                                            <Setter Property="Foreground" Value="#F59E0B"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding TipoAutorizador}" Value="">
+                                            <Setter Property="Foreground" Value="#6B7280"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="📱 Transfer." Binding="{Binding MontoTransferencia, StringFormat=C2}" Width="85">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="TextAlignment" Value="Right"/>
-                                <Setter Property="Padding" Value="8,6"/>
-                                <Setter Property="FontSize" Value="11"/>
-                                <Setter Property="Foreground" Value="#8B5CF6"/>
-                                <Setter Property="FontWeight" Value="Medium"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="📝 Motivo" Binding="{Binding MotivoDescuento}" Width="*" MinWidth="200">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                    <Setter Property="Foreground" Value="#374151"/>
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding MotivoDescuento}" Value="">
+                                            <Setter Property="Foreground" Value="#6B7280"/>
+                                            <Setter Property="Text" Value="Sin motivo"/>
+                                            <Setter Property="FontStyle" Value="Italic"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="📈 Ganancia" Binding="{Binding Ganancia, StringFormat=C2}" Width="110">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="TextAlignment" Value="Right"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
-                                <Setter Property="Padding" Value="12,6"/>
-                                <Style.Triggers>
-                                    <!-- ✅ CAMBIADO: Uso triggers simples con valores directos -->
-                                    <DataTrigger Binding="{Binding Ganancia, Converter={StaticResource ValueToColorConverter}}" Value="True">
-                                        <Setter Property="Foreground" Value="#059669"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        <!-- ===== COLUMNAS DE MONTOS ===== -->
+                        <DataGridTextColumn Header="💰 SubTotal" Binding="{Binding SubTotal, StringFormat=C2}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#1E293B"/>
+                                    <Setter Property="FontSize" Value="12"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="📊 Margen" Binding="{Binding Margen, StringFormat=F1}" Width="80">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="TextAlignment" Value="Right"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
-                                <Setter Property="Padding" Value="12,6"/>
-                                <Style.Triggers>
-                                    <!-- ✅ CAMBIADO: Triggers simplificados -->
-                                    <DataTrigger Binding="{Binding Margen, Converter={StaticResource PercentageToTextConverter}}" Value="Alto">
-                                        <Setter Property="Foreground" Value="#059669"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Margen, Converter={StaticResource PercentageToTextConverter}}" Value="Bajo">
-                                        <Setter Property="Foreground" Value="#DC2626"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="💎 Total" Binding="{Binding Total, StringFormat=C2}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="Foreground" Value="#059669"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="💳 Comisión" Binding="{Binding Comision, StringFormat=C2}" Width="100">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="TextAlignment" Value="Right"/>
-                                <Setter Property="Padding" Value="12,6"/>
-                                <Setter Property="Foreground" Value="#F59E0B"/>
-                                <Setter Property="FontSize" Value="11"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-                </DataGrid.Columns>
-            </DataGrid>
+                        <!-- ===== COLUMNAS DE FORMAS DE PAGO ===== -->
+                        <DataGridTextColumn Header="💳 Método" Binding="{Binding TipoPago}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontWeight" Value="Medium"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                    <Setter Property="Foreground" Value="#64748B"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="💵 Efectivo" Binding="{Binding MontoEfectivo, StringFormat=C2}" Width="90">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                    <Setter Property="Foreground" Value="#059669"/>
+                                    <Setter Property="FontWeight" Value="Medium"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="💳 Tarjeta" Binding="{Binding MontoTarjeta, StringFormat=C2}" Width="90">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                    <Setter Property="Foreground" Value="#3B82F6"/>
+                                    <Setter Property="FontWeight" Value="Medium"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="📱 Transfer." Binding="{Binding MontoTransferencia, StringFormat=C2}" Width="90">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                    <Setter Property="Foreground" Value="#8B5CF6"/>
+                                    <Setter Property="FontWeight" Value="Medium"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- ===== COLUMNAS DE RENTABILIDAD ===== -->
+                        <DataGridTextColumn Header="📈 Ganancia" Binding="{Binding Ganancia, StringFormat=C2}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#059669"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="📊 Margen" Binding="{Binding Margen, StringFormat=F1}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#059669"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="💳 Comisión" Binding="{Binding Comision, StringFormat=C2}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#F59E0B"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- ===== COLUMNA ADICIONAL: FECHA DE DESCUENTO ===== -->
+                        <DataGridTextColumn Header="🕐 Fecha Desc." Binding="{Binding FechaDescuento}" Width="130">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontSize" Value="10"/>
+                                    <Setter Property="Foreground" Value="#64748B"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding FechaDescuento}" Value="">
+                                            <Setter Property="Text" Value="—"/>
+                                            <Setter Property="TextAlignment" Value="Center"/>
+                                            <Setter Property="Foreground" Value="#9CA3AF"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </ScrollViewer>
         </Border>
 
         <!-- Panel de Acciones Inferior -->
@@ -686,7 +945,7 @@
                               Foreground="#475569" Margin="0,0,8,0"/>
 
                     <TextBlock x:Name="TxtResumenDetalle" 
-                              Text="Ventas mostradas vs total filtrado" 
+                              Text="Ventas mostradas vs total filtrado con información de descuentos" 
                               FontSize="11" Foreground="#64748B"/>
                 </StackPanel>
 

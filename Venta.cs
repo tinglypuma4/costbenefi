@@ -71,6 +71,28 @@ namespace costbenefi.Models
         [Column(TypeName = "decimal(18,4)")]
         public decimal ComisionTotal { get; set; } = 0;
 
+
+        public bool TieneDescuentosAplicados { get; set; } = false;
+        public string UsuarioAutorizadorDescuento { get; set; } = "";
+        public string TipoUsuarioAutorizador { get; set; } = ""; // "Dueño", "Encargado", "Soporte"
+        public string MotivoDescuentoGeneral { get; set; } = "";
+        public decimal TotalDescuentosAplicados { get; set; } = 0;
+        public DateTime? FechaHoraDescuento { get; set; }
+
+        [NotMapped]
+        public string ResumenDescuentos => TieneDescuentosAplicados
+               ? $"${TotalDescuentosAplicados:F2} - {UsuarioAutorizadorDescuento} ({TipoUsuarioAutorizador})"
+               : "Sin descuentos";
+
+        [NotMapped]
+        public decimal PorcentajeDescuentoTotal => Total > 0 ? (TotalDescuentosAplicados / (Total + TotalDescuentosAplicados)) * 100 : 0;
+
+        [NotMapped]
+        public int CantidadItemsConDescuento => DetallesVenta?.Count(d => d.TieneDescuentoManual) ?? 0;
+
+
+
+
         // ===== NAVEGACIÓN =====
         public virtual ICollection<DetalleVenta> DetallesVenta { get; set; } = new List<DetalleVenta>();
 
@@ -177,6 +199,32 @@ namespace costbenefi.Models
                 IVAComision = 0;
                 ComisionTotal = ComisionTarjeta;
             }
+        }
+
+        public void ActualizarTotalDescuentos()
+        {
+            if (DetallesVenta?.Any() == true)
+            {
+                TotalDescuentosAplicados = DetallesVenta.Sum(d => d.TotalDescuentoLinea);
+                TieneDescuentosAplicados = TotalDescuentosAplicados > 0;
+
+                System.Diagnostics.Debug.WriteLine($"💰 Total descuentos actualizados: ${TotalDescuentosAplicados:F2}");
+            }
+        }
+
+
+        public void EstablecerAuditoriaDescuento(string usuarioAutorizador, string tipoUsuario, string motivo)
+        {
+            UsuarioAutorizadorDescuento = usuarioAutorizador;
+            TipoUsuarioAutorizador = tipoUsuario;
+            MotivoDescuentoGeneral = motivo;
+            FechaHoraDescuento = DateTime.Now;
+            ActualizarTotalDescuentos();
+
+            System.Diagnostics.Debug.WriteLine($"🔍 Auditoría de descuento establecida:");
+            System.Diagnostics.Debug.WriteLine($"   • Usuario: {usuarioAutorizador} ({tipoUsuario})");
+            System.Diagnostics.Debug.WriteLine($"   • Motivo: {motivo}");
+            System.Diagnostics.Debug.WriteLine($"   • Total: ${TotalDescuentosAplicados:F2}");
         }
 
         /// <summary>

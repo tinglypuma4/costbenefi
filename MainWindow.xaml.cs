@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using costbenefi.Views;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,7 +11,6 @@ using System.Windows.Media;
 using Microsoft.EntityFrameworkCore;
 using costbenefi.Data;
 using costbenefi.Models;
-using costbenefi.Views;
 using costbenefi.Services;
 using System.ComponentModel;
 using costbenefi.Managers;
@@ -39,6 +39,8 @@ namespace costbenefi
         private CorteCajaService _corteCajaService;
         private RawMaterial _ultimoProductoEscaneado = null;
         private DateTime _tiempoUltimoEscaneo = DateTime.MinValue;
+
+        private DescuentoAplicadoInfo _descuentoInfo = null;
 
         // Servicios POS
         private TicketPrinter _ticketPrinter;
@@ -1449,71 +1451,70 @@ namespace costbenefi
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-        private async void ActualizarTotalesCarrito()
+       
+        private void ActualizarTotalesCarrito()
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("🔍 DEBUG: ActualizarTotalesCarrito() iniciado");
+                System.Diagnostics.Debug.WriteLine("🔍 === ActualizarTotalesCarrito ===");
 
                 if (_carritoItems.Any())
                 {
+                    // ✅ Calcular subtotal
                     decimal subtotal = _carritoItems.Sum(i => i.SubTotal);
-                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Subtotal calculado: ${subtotal}");
+                    System.Diagnostics.Debug.WriteLine($"🔍 Subtotal: ${subtotal:F2}");
 
-                    // ✅ NUEVO: Calcular descuentos por promociones
-                    System.Diagnostics.Debug.WriteLine("🔍 DEBUG: Llamando CalcularDescuentoPromociones()...");
-                    decimal descuentoPromociones = await CalcularDescuentoPromociones();
-                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Descuento promociones resultado: ${descuentoPromociones}");
-
+                    // ✅ Descuentos automáticos por productos
                     decimal descuentoProductos = _carritoItems.Sum(i => i.DescuentoAplicado * i.Cantidad);
-                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Descuento productos: ${descuentoProductos}");
+                    System.Diagnostics.Debug.WriteLine($"🔍 Descuentos productos: ${descuentoProductos:F2}");
 
+                    // ✅ Descuentos por promociones (llamar método sin await)
+                    decimal descuentoPromociones = 0;
+                    try
+                    {
+                        // Llamar método de promociones de forma sincrónica
+                        var task = CalcularDescuentoPromociones();
+                        descuentoPromociones = task.Result; // ⚠️ Solo para simplificar - no ideal pero funciona
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"⚠️ Error calculando promociones: {ex.Message}");
+                        descuentoPromociones = 0;
+                    }
+
+                    // ✅ Total de descuentos
                     decimal descuentoTotal = descuentoProductos + descuentoPromociones;
-                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Descuento TOTAL calculado: ${descuentoTotal}");
+                    System.Diagnostics.Debug.WriteLine($"🔍 Descuento total: ${descuentoTotal:F2}");
 
-                    // IVA es solo informativo (muestra cuánto IVA está incluido en los precios)
+                    // ✅ IVA incluido
                     decimal ivaIncluido = subtotal - (subtotal / 1.16m);
 
-                    // Total = subtotal - descuentos (incluyendo promociones)
-                    decimal total = subtotal - descuentoTotal;
-                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Total final: ${total}");
+                    // ✅ Total final
+                    decimal totalFinal = Math.Max(0, subtotal - descuentoTotal);
+                    System.Diagnostics.Debug.WriteLine($"🔍 Total final: ${totalFinal:F2}");
 
-                    // ✅ AGREGAR DEBUG AQUÍ - JUSTO ANTES DE ACTUALIZAR LA INTERFAZ
-                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Actualizando interfaz...");
-                    System.Diagnostics.Debug.WriteLine($"   - TxtSubTotal: ${subtotal:C2}");
-                    System.Diagnostics.Debug.WriteLine($"   - TxtDescuento: ${descuentoTotal:C2}");
-                    System.Diagnostics.Debug.WriteLine($"   - TxtTotal: ${total:C2}");
-
-                    // Actualizar textos
+                    // ✅ Actualizar interfaz
                     TxtSubTotal.Text = subtotal.ToString("C2");
-                    TxtDescuento.Text = descuentoTotal.ToString("C2"); // ← ✅ Ahora incluye promociones
+                    TxtDescuento.Text = descuentoTotal.ToString("C2");
                     TxtIVA.Text = $"{ivaIncluido:C2} (incluido)";
-                    TxtTotal.Text = total.ToString("C2");
+                    TxtTotal.Text = totalFinal.ToString("C2");
 
-                    // ✅ VERIFICAR QUE SÍ SE ACTUALIZÓ
-                    System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Interfaz actualizada. Verificando...");
-                    System.Diagnostics.Debug.WriteLine($"   - TxtDescuento.Text actual: '{TxtDescuento.Text}'");
-
-                    // Calcular análisis costo-beneficio
+                    // Análisis costo-beneficio
                     var gananciaTotal = _carritoItems.Sum(i => i.GananciaLinea);
-                    var margenPromedio = _carritoItems.Any() ?
-                        _carritoItems.Average(i => i.MargenPorcentaje) : 0;
+                    var margenPromedio = _carritoItems.Any() ? _carritoItems.Average(i => i.MargenPorcentaje) : 0;
 
                     TxtGananciaPrevista.Text = $"Ganancia: {gananciaTotal:C2}";
                     TxtMargenPromedio.Text = $"Margen: {margenPromedio:F1}%";
 
-                    // ✅ NUEVO: Mostrar info de promociones en el status
-                    if (descuentoPromociones > 0)
+                    // Status
+                    if (descuentoTotal > 0)
                     {
-                        TxtStatusPOS.Text = $"🎁 Promoción aplicada - Descuento: ${descuentoPromociones:F2}";
-                        System.Diagnostics.Debug.WriteLine($"🎁 DEBUG: Status actualizado con promoción");
+                        TxtStatusPOS.Text = $"🎁 Descuentos aplicados - Total: ${descuentoTotal:F2}";
                     }
                 }
                 else
                 {
-                    // Resetear totales
-                    System.Diagnostics.Debug.WriteLine("🔍 DEBUG: Carrito vacío, reseteando totales");
+                    // Carrito vacío
                     TxtSubTotal.Text = "$0.00";
                     TxtDescuento.Text = "$0.00";
                     TxtIVA.Text = "$0.00 (incluido)";
@@ -1521,14 +1522,21 @@ namespace costbenefi
                     TxtGananciaPrevista.Text = "Ganancia: $0.00";
                     TxtMargenPromedio.Text = "Margen: 0%";
                 }
+
+                System.Diagnostics.Debug.WriteLine("✅ ActualizarTotalesCarrito completado");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ DEBUG: Error en ActualizarTotalesCarrito: {ex.Message}");
-                TxtStatusPOS.Text = "❌ Error al calcular totales";
+                System.Diagnostics.Debug.WriteLine($"❌ Error en ActualizarTotalesCarrito: {ex.Message}");
+                TxtStatusPOS.Text = $"❌ Error al calcular totales";
+
+                // Valores seguros en caso de error
+                TxtSubTotal.Text = "Error";
+                TxtDescuento.Text = "Error";
+                TxtIVA.Text = "Error";
+                TxtTotal.Text = "Error";
             }
         }
-
         // ✅ MÉTODO ÚNICO - PROCESAMIENTO DE VENTA (CORREGIDO)
         private async Task<bool> ProcesarVentaUnico()
         {
@@ -1537,6 +1545,9 @@ namespace costbenefi
 
             try
             {
+                System.Diagnostics.Debug.WriteLine("🏪 === INICIANDO PROCESAMIENTO DE VENTA ===");
+
+                // ✅ VALIDAR CARRITO NO VACÍO Y VERIFICAR COHERENCIA
                 if (!_carritoItems.Any())
                 {
                     MessageBox.Show("El carrito está vacío.", "Carrito Vacío",
@@ -1544,20 +1555,63 @@ namespace costbenefi
                     return false;
                 }
 
-                // Calcular total
-                decimal subtotal = _carritoItems.Sum(i => i.SubTotal);
-                decimal descuentoPromociones = await CalcularDescuentoPromociones();
-                decimal descuentoProductos = _carritoItems.Sum(i => i.DescuentoAplicado * i.Cantidad);
-                decimal totalFinal = subtotal - descuentoPromociones - descuentoProductos;
+                // ✅ VERIFICAR ESTADO COMPLETO DEL CARRITO ANTES DE PROCESAR
+                System.Diagnostics.Debug.WriteLine("🔍 Verificando estado del carrito antes de procesar venta...");
+                VerificarEstadoCarritoCompleto();
 
-                // Abrir ventana de pago
-                var pagoWindow = new ProcesarPagoWindow(totalFinal, TxtCliente.Text.Trim());
-                if (pagoWindow.ShowDialog() != true)
+                if (!ValidarCoherenciaCarrito())
                 {
+                    MessageBox.Show("❌ Se detectaron inconsistencias en el carrito.\n\n" +
+                                   "Por favor, revise los productos y descuentos aplicados.\n" +
+                                   "Consulte la consola de debug para más detalles.",
+                                   "Error de Validación", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
+                // ✅ VALIDAR DESCUENTOS ANTES DE PROCESAR
+                System.Diagnostics.Debug.WriteLine("🔍 Validando descuentos aplicados...");
+                foreach (var item in _carritoItems)
+                {
+                    if (item.TieneDescuentoManual && !item.ValidarDescuento())
+                    {
+                        MessageBox.Show($"❌ Descuento inválido en {item.NombreProducto}.\n\n" +
+                                       "Por favor, revise los descuentos aplicados.",
+                                       "Error de Validación", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return false;
+                    }
+                }
+
+                // ✅ CALCULAR TOTALES CORRECTAMENTE
+                // IMPORTANTE: SubTotal ya incluye los descuentos aplicados con AplicarDescuentoConAuditoria
+                decimal subtotal = _carritoItems.Sum(i => i.SubTotal);
+                decimal descuentoPromociones = await CalcularDescuentoPromociones();
+
+                // ✅ NO restar descuentos de productos porque ya están incluidos en SubTotal
+                decimal totalFinal = subtotal - descuentoPromociones;
+
+                // ✅ CALCULAR DESCUENTOS TOTALES PARA INFORMACIÓN
+                decimal totalDescuentosAplicados = _carritoItems.Sum(i => i.TotalDescuentoLinea);
+                decimal totalOriginalSinDescuentos = _carritoItems.Sum(i => i.PrecioOriginal * i.Cantidad);
+
+                System.Diagnostics.Debug.WriteLine($"💰 CÁLCULOS DE VENTA CORREGIDOS:");
+                System.Diagnostics.Debug.WriteLine($"   • Total original (sin desc.): ${totalOriginalSinDescuentos:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Descuentos aplicados: ${totalDescuentosAplicados:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Subtotal (ya con desc.): ${subtotal:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Desc. promocionales: ${descuentoPromociones:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Total final: ${totalFinal:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Verificación: ${totalOriginalSinDescuentos - totalDescuentosAplicados - descuentoPromociones:F2}");
+
+                // ✅ ABRIR VENTANA DE PAGO
+                var pagoWindow = new ProcesarPagoWindow(totalFinal, TxtCliente.Text.Trim());
+                if (pagoWindow.ShowDialog() != true)
+                {
+                    System.Diagnostics.Debug.WriteLine("❌ Pago cancelado por usuario");
+                    return false;
+                }
+
+               
                 // ✅ VERIFICAR STOCK - productos y servicios por separado
+                System.Diagnostics.Debug.WriteLine("📦 Verificando disponibilidad de stock...");
                 var productosParaActualizar = new List<(RawMaterial producto, decimal cantidad)>();
                 var serviciosParaActualizar = new List<(ServicioVenta servicio, decimal cantidad)>();
 
@@ -1578,6 +1632,7 @@ namespace costbenefi
                         }
 
                         productosParaActualizar.Add((producto, item.Cantidad));
+                        System.Diagnostics.Debug.WriteLine($"✅ Producto verificado: {item.NombreProducto} x{item.Cantidad}");
                     }
                     else if (item.EsServicio)
                     {
@@ -1592,7 +1647,6 @@ namespace costbenefi
                             throw new InvalidOperationException($"Servicio no encontrado: {item.NombreProducto}");
                         }
 
-                        // ✅ TEMPORAL: DEBUG para verificar materiales (DESPUÉS de verificar que no es null)
                         System.Diagnostics.Debug.WriteLine($"🔍 SERVICIO: {servicio.NombreServicio}");
                         System.Diagnostics.Debug.WriteLine($"🔍 MATERIALES ENCONTRADOS: {servicio.MaterialesNecesarios?.Count ?? 0}");
                         foreach (var mat in servicio.MaterialesNecesarios ?? new List<MaterialServicio>())
@@ -1606,10 +1660,12 @@ namespace costbenefi
                         }
 
                         serviciosParaActualizar.Add((servicio, item.Cantidad));
+                        System.Diagnostics.Debug.WriteLine($"✅ Servicio verificado: {item.NombreProducto} x{item.Cantidad}");
                     }
                 }
 
                 // ✅ CREAR LA VENTA
+                System.Diagnostics.Debug.WriteLine("📝 Creando registro de venta...");
                 var venta = new Venta
                 {
                     Cliente = pagoWindow.NombreCliente,
@@ -1619,7 +1675,7 @@ namespace costbenefi
                     Observaciones = pagoWindow.DetallesPago
                 };
 
-                // Configurar pagos y comisiones
+                // ✅ CONFIGURAR FORMAS DE PAGO Y COMISIONES
                 venta.EstablecerFormasPago(
                     pagoWindow.MontoEfectivo,
                     pagoWindow.MontoTarjeta,
@@ -1630,36 +1686,87 @@ namespace costbenefi
                 {
                     venta.CalcularComisiones(pagoWindow.PorcentajeComisionTarjeta);
                     venta.CalcularIVAComision(pagoWindow.IVAComision > 0);
+                    System.Diagnostics.Debug.WriteLine($"🏦 Comisiones calculadas: ${venta.ComisionTotal:F2}");
                 }
 
-                // ✅ AGREGAR DETALLES (los campos ya están correctos)
+                // ✅ AGREGAR DETALLES DE VENTA CON INFORMACIÓN DE DESCUENTOS CORREGIDA
+                System.Diagnostics.Debug.WriteLine("📋 Agregando detalles de venta...");
                 foreach (var item in _carritoItems)
                 {
                     var detalleVenta = new DetalleVenta
                     {
-                        RawMaterialId = item.RawMaterialId, // Ya es nullable
-                        ServicioVentaId = item.ServicioVentaId, // Ya contiene el ID correcto
+                        RawMaterialId = item.RawMaterialId,
+                        ServicioVentaId = item.ServicioVentaId,
                         NombreProducto = item.NombreProducto,
                         Cantidad = item.Cantidad,
-                        PrecioUnitario = item.PrecioUnitario,
+                        PrecioUnitario = item.PrecioUnitario, // Ya incluye descuento si se aplicó
                         UnidadMedida = item.UnidadMedida,
                         CostoUnitario = item.CostoUnitario,
                         PorcentajeIVA = item.PorcentajeIVA,
-                        DescuentoAplicado = item.DescuentoAplicado
+
+                        // ✅ IMPORTANTE: DescuentoAplicado debe ser 0 si ya se aplicó descuento manual
+                        DescuentoAplicado = item.TieneDescuentoManual ? 0 : item.DescuentoAplicado,
+
+                        // ✅ INFORMACIÓN DE AUDITORÍA DE DESCUENTOS
+                        PrecioOriginal = item.PrecioOriginal > 0 ? item.PrecioOriginal : item.PrecioUnitario,
+                        DescuentoUnitario = item.DescuentoUnitario,
+                        MotivoDescuentoDetalle = item.MotivoDescuentoDetalle ?? "",
+                        TieneDescuentoManual = item.TieneDescuentoManual
                     };
 
                     detalleVenta.CalcularSubTotal();
                     venta.AgregarDetalle(detalleVenta);
+
+                    // ✅ DEBUG INFORMACIÓN DETALLADA
+                    System.Diagnostics.Debug.WriteLine($"📦 {item.NombreProducto}:");
+                    System.Diagnostics.Debug.WriteLine($"   • Cantidad: {item.Cantidad:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   • Precio unitario: ${item.PrecioUnitario:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   • SubTotal: ${detalleVenta.SubTotal:F2}");
+
+                    if (item.TieneDescuentoManual)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"   🎁 DESCUENTO MANUAL:");
+                        System.Diagnostics.Debug.WriteLine($"      • Precio original: ${item.PrecioOriginal:F2}");
+                        System.Diagnostics.Debug.WriteLine($"      • Descuento unitario: ${item.DescuentoUnitario:F2}");
+                        System.Diagnostics.Debug.WriteLine($"      • Total descuento línea: ${item.TotalDescuentoLinea:F2}");
+                        System.Diagnostics.Debug.WriteLine($"      • Motivo: {item.MotivoDescuentoDetalle}");
+                        System.Diagnostics.Debug.WriteLine($"      • Ahorro: ${(item.PrecioOriginal - item.PrecioUnitario) * item.Cantidad:F2}");
+                    }
                 }
 
+                // ✅ REGISTRAR INFORMACIÓN DE AUDITORÍA DE DESCUENTOS EN LA VENTA
+                if (_descuentoInfo != null)
+                {
+                    System.Diagnostics.Debug.WriteLine("🔍 Registrando auditoría de descuentos...");
+                    venta.EstablecerAuditoriaDescuento(
+                        _descuentoInfo.UsuarioAutorizador,
+                        _descuentoInfo.TipoUsuario,
+                        _descuentoInfo.Motivo
+                    );
+
+                    System.Diagnostics.Debug.WriteLine($"🎁 Auditoría registrada:");
+                    System.Diagnostics.Debug.WriteLine($"   • Usuario: {venta.UsuarioAutorizadorDescuento} ({venta.TipoUsuarioAutorizador})");
+                    System.Diagnostics.Debug.WriteLine($"   • Motivo: {venta.MotivoDescuentoGeneral}");
+                    System.Diagnostics.Debug.WriteLine($"   • Total descuentos: ${venta.TotalDescuentosAplicados:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   • Porcentaje: {venta.PorcentajeDescuentoTotal:F2}%");
+                    System.Diagnostics.Debug.WriteLine($"   • Items con descuento: {venta.CantidadItemsConDescuento}");
+                }
+
+                // ✅ CALCULAR TOTALES Y GENERAR TICKET
                 venta.CalcularTotales();
                 venta.GenerarNumeroTicket();
 
-                // ✅ AGREGAR VENTA PRIMERO
+                System.Diagnostics.Debug.WriteLine($"🎫 Ticket generado: #{venta.NumeroTicket}");
+                System.Diagnostics.Debug.WriteLine($"💰 Total venta: ${venta.Total:F2}");
+                System.Diagnostics.Debug.WriteLine($"📈 Ganancia: ${venta.GananciaBruta:F2}");
+
+                // ✅ AGREGAR VENTA A LA BASE DE DATOS
                 ventaContext.Ventas.Add(venta);
                 await ventaContext.SaveChangesAsync();
+                System.Diagnostics.Debug.WriteLine("✅ Venta guardada en base de datos");
 
-                // ✅ ACTUALIZAR STOCK PRODUCTOS
+                // ✅ ACTUALIZAR STOCK DE PRODUCTOS
+                System.Diagnostics.Debug.WriteLine("📦 Actualizando stock de productos...");
                 foreach (var (producto, cantidad) in productosParaActualizar)
                 {
                     if (!producto.ReducirStock(cantidad))
@@ -1678,9 +1785,11 @@ namespace costbenefi
                         venta.Cliente);
 
                     ventaContext.Movimientos.Add(movimiento);
+                    System.Diagnostics.Debug.WriteLine($"📦 Stock reducido: {producto.NombreArticulo} -{cantidad}");
                 }
 
-                // ✅ ACTUALIZAR STOCK SERVICIOS Y CONSUMIR MATERIALES
+                // ✅ ACTUALIZAR STOCK DE SERVICIOS Y CONSUMIR MATERIALES
+                System.Diagnostics.Debug.WriteLine("🛍️ Procesando servicios y consumiendo materiales...");
                 foreach (var (servicio, cantidad) in serviciosParaActualizar)
                 {
                     System.Diagnostics.Debug.WriteLine($"🔄 PROCESANDO SERVICIO: {servicio.NombreServicio} x{cantidad}");
@@ -1695,9 +1804,9 @@ namespace costbenefi
                     foreach (var materialServicio in servicio.MaterialesNecesarios)
                     {
                         var cantidadNecesaria = materialServicio.CantidadNecesaria * cantidad;
-                        // ✅ NUEVO DEBUG
                         System.Diagnostics.Debug.WriteLine($"  🔹 Consumiendo: {materialServicio.RawMaterial?.NombreArticulo} - {cantidadNecesaria:F2} {materialServicio.UnidadMedida}");
                         System.Diagnostics.Debug.WriteLine($"  🔹 Stock actual: {materialServicio.RawMaterial?.StockTotal:F2}");
+
                         if (materialServicio.RawMaterial.StockTotal < cantidadNecesaria)
                         {
                             throw new InvalidOperationException(
@@ -1722,58 +1831,87 @@ namespace costbenefi
                             venta.Cliente);
 
                         ventaContext.Movimientos.Add(movimientoMaterial);
+                        System.Diagnostics.Debug.WriteLine($"  ✅ Material consumido: {materialServicio.RawMaterial.NombreArticulo} -{cantidadNecesaria:F2}");
                     }
                 }
 
                 // ✅ GUARDAR TODOS LOS CAMBIOS
                 await ventaContext.SaveChangesAsync();
                 await transaction.CommitAsync();
+                System.Diagnostics.Debug.WriteLine("✅ Transacción confirmada exitosamente");
 
-                // ✅ LIMPIAR INTERFAZ
-                _carritoItems.Clear();
-                UpdateContadoresPOS();
+                // ✅ LIMPIAR INTERFAZ Y VARIABLES COMPLETAMENTE
+                LimpiarCarritoCompleto(); // Usa el método completo en lugar de solo .Clear()
                 await LoadEstadisticasDelDia();
                 await RefrescarProductosAutomatico("stock actualizado después de venta");
 
-                // Imprimir ticket
+                System.Diagnostics.Debug.WriteLine("🔄 Interfaz actualizada y limpiada");
+
+                // ✅ IMPRIMIR TICKET
                 try
                 {
+                    System.Diagnostics.Debug.WriteLine("🖨️ Intentando imprimir ticket...");
                     await _ticketPrinter.ImprimirTicket(venta, "Impresora_POS");
+                    System.Diagnostics.Debug.WriteLine("✅ Ticket impreso correctamente");
                 }
                 catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Error al imprimir: {ex.Message}");
                     MessageBox.Show($"Venta procesada correctamente.\nAdvertencia al imprimir: {ex.Message}",
                                   "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
 
-                // Mostrar confirmación
+                // ✅ MOSTRAR CONFIRMACIÓN CON INFORMACIÓN DE DESCUENTOS
                 string mensaje = $"✅ VENTA PROCESADA EXITOSAMENTE!\n\n" +
                                 $"📄 Ticket: #{venta.NumeroTicket}\n" +
                                 $"👤 Cliente: {venta.Cliente}\n" +
                                 $"💰 Total: {venta.Total:C2}\n" +
                                 $"📊 Ganancia: {venta.GananciaBruta:C2}";
 
+                // ✅ AGREGAR INFORMACIÓN DE COMISIONES
                 if (venta.ComisionTotal > 0)
                 {
                     mensaje += $"\n🏦 Comisión: {venta.ComisionTotal:C2}\n" +
                               $"💵 Neto recibido: {venta.TotalRealRecibido:C2}";
                 }
 
+                // ✅ AGREGAR INFORMACIÓN DE DESCUENTOS SI APLICA
+                if (venta.TieneDescuentosAplicados)
+                {
+                    mensaje += $"\n\n🎁 DESCUENTOS APLICADOS:";
+                    mensaje += $"\n   • Total descuentos: ${venta.TotalDescuentosAplicados:C2}";
+                    mensaje += $"\n   • Porcentaje: {venta.PorcentajeDescuentoTotal:F1}%";
+                    mensaje += $"\n   • Items con descuento: {venta.CantidadItemsConDescuento}";
+                    mensaje += $"\n   • Autorizado por: {venta.UsuarioAutorizadorDescuento} ({venta.TipoUsuarioAutorizador})";
+                    mensaje += $"\n   • Motivo: {venta.MotivoDescuentoGeneral}";
+                    mensaje += $"\n   • Fecha: {venta.FechaHoraDescuento?.ToString("dd/MM/yyyy HH:mm")}";
+                }
+
                 MessageBox.Show(mensaje, "Venta Completada",
                                MessageBoxButton.OK, MessageBoxImage.Information);
 
-                TxtStatusPOS.Text = $"✅ Venta #{venta.NumeroTicket} completada - {venta.Total:C2}";
+                // ✅ ACTUALIZAR STATUS CON INFORMACIÓN DE DESCUENTOS
+                var statusDescuento = venta.TieneDescuentosAplicados
+                    ? $" (Desc: ${venta.TotalDescuentosAplicados:F2})"
+                    : "";
+
+                TxtStatusPOS.Text = $"✅ Venta #{venta.NumeroTicket} completada - {venta.Total:C2}{statusDescuento}";
+
+                System.Diagnostics.Debug.WriteLine("🎉 === VENTA PROCESADA EXITOSAMENTE ===");
                 return true;
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"💥 ERROR EN PROCESAMIENTO: {ex}");
+
                 try
                 {
                     await transaction.RollbackAsync();
+                    System.Diagnostics.Debug.WriteLine("🔄 Transacción revertida exitosamente");
                 }
                 catch (Exception rollbackEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error en rollback: {rollbackEx.Message}");
+                    System.Diagnostics.Debug.WriteLine($"💥 ERROR EN ROLLBACK: {rollbackEx.Message}");
                 }
 
                 string errorMsg = ex.InnerException?.Message ?? ex.Message;
@@ -1784,6 +1922,230 @@ namespace costbenefi
                 return false;
             }
         }
+
+        // ===== AGREGAR ESTOS MÉTODOS A MainWindow.xaml.cs =====
+
+        #region Métodos de Debug y Validación del Carrito
+
+        /// <summary>
+        /// Muestra información detallada del carrito para debugging
+        /// </summary>
+        private void MostrarInfoDebugCarrito(string momento = "")
+        {
+            if (!System.Diagnostics.Debugger.IsAttached) return;
+
+            System.Diagnostics.Debug.WriteLine($"🛒 === INFO CARRITO {momento.ToUpper()} ===");
+
+            if (!_carritoItems.Any())
+            {
+                System.Diagnostics.Debug.WriteLine("   Carrito vacío");
+                return;
+            }
+
+            decimal totalOriginal = 0;
+            decimal totalDescuentos = 0;
+            decimal totalFinal = 0;
+
+            foreach (var item in _carritoItems)
+            {
+                var precioOriginalReal = item.PrecioOriginal > 0 ? item.PrecioOriginal : item.PrecioUnitario;
+                var subtotalOriginal = precioOriginalReal * item.Cantidad;
+                var descuentoLinea = item.TotalDescuentoLinea;
+
+                totalOriginal += subtotalOriginal;
+                totalDescuentos += descuentoLinea;
+                totalFinal += item.SubTotal;
+
+                System.Diagnostics.Debug.WriteLine($"📦 {item.NombreProducto}:");
+                System.Diagnostics.Debug.WriteLine($"   • Cantidad: {item.Cantidad:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Precio original: ${precioOriginalReal:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Precio actual: ${item.PrecioUnitario:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • SubTotal original: ${subtotalOriginal:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • SubTotal actual: ${item.SubTotal:F2}");
+
+                if (item.TieneDescuentoManual)
+                {
+                    System.Diagnostics.Debug.WriteLine($"   🎁 Descuento unitario: ${item.DescuentoUnitario:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   🎁 Total descuento línea: ${descuentoLinea:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   🎁 Motivo: {item.MotivoDescuentoDetalle}");
+                }
+
+                if (item.DescuentoAplicado > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"   ⚠️  DescuentoAplicado: ${item.DescuentoAplicado:F2} (debería ser 0)");
+                }
+
+                System.Diagnostics.Debug.WriteLine("");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"💰 TOTALES:");
+            System.Diagnostics.Debug.WriteLine($"   • Total original: ${totalOriginal:F2}");
+            System.Diagnostics.Debug.WriteLine($"   • Total descuentos: ${totalDescuentos:F2}");
+            System.Diagnostics.Debug.WriteLine($"   • Total final: ${totalFinal:F2}");
+            System.Diagnostics.Debug.WriteLine($"   • Verificación: ${totalOriginal - totalDescuentos:F2}");
+            System.Diagnostics.Debug.WriteLine($"   • Diferencia: ${Math.Abs(totalFinal - (totalOriginal - totalDescuentos)):F2}");
+
+            if (Math.Abs(totalFinal - (totalOriginal - totalDescuentos)) > 0.01m)
+            {
+                System.Diagnostics.Debug.WriteLine("   ❌ INCONSISTENCIA DETECTADA");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("   ✅ Cálculos coherentes");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"🛒 === FIN INFO CARRITO ===\n");
+        }
+
+        /// <summary>
+        /// Valida la coherencia de todos los items del carrito
+        /// </summary>
+        private bool ValidarCoherenciaCarrito()
+        {
+            bool esCoherente = true;
+
+            System.Diagnostics.Debug.WriteLine("🔍 === VALIDANDO COHERENCIA DEL CARRITO ===");
+
+            foreach (var item in _carritoItems)
+            {
+                // ✅ VALIDAR PRECIOS
+                if (item.PrecioUnitario <= 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ {item.NombreProducto}: Precio unitario inválido (${item.PrecioUnitario:F2})");
+                    esCoherente = false;
+                }
+
+                // ✅ VALIDAR CANTIDADES
+                if (item.Cantidad <= 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ {item.NombreProducto}: Cantidad inválida ({item.Cantidad:F2})");
+                    esCoherente = false;
+                }
+
+                // ✅ VALIDAR SUBTOTAL
+                var subtotalEsperado = item.PrecioUnitario * item.Cantidad - item.DescuentoAplicado;
+                if (Math.Abs(item.SubTotal - subtotalEsperado) > 0.01m)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ {item.NombreProducto}: SubTotal inconsistente");
+                    System.Diagnostics.Debug.WriteLine($"   • Esperado: ${subtotalEsperado:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   • Actual: ${item.SubTotal:F2}");
+                    esCoherente = false;
+                }
+
+                // ✅ VALIDAR DESCUENTOS MANUALES
+                if (item.TieneDescuentoManual)
+                {
+                    if (!item.ValidarDescuento())
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ {item.NombreProducto}: Descuento manual inválido");
+                        esCoherente = false;
+                    }
+
+                    // ✅ VERIFICAR QUE NO HAYA DOBLE DESCUENTO
+                    if (item.DescuentoAplicado > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"⚠️  {item.NombreProducto}: Tiene descuento manual Y DescuentoAplicado");
+                        System.Diagnostics.Debug.WriteLine($"   • DescuentoAplicado: ${item.DescuentoAplicado:F2} (debería ser 0)");
+                        System.Diagnostics.Debug.WriteLine($"   • DescuentoUnitario: ${item.DescuentoUnitario:F2}");
+                    }
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine($"🔍 Validación completa: {(esCoherente ? "✅ COHERENTE" : "❌ INCOHERENTE")}");
+            return esCoherente;
+        }
+
+        /// <summary>
+        /// Llama a este método después de aplicar descuentos para verificar todo
+        /// </summary>
+        private void VerificarEstadoCarritoCompleto()
+        {
+            System.Diagnostics.Debug.WriteLine("\n🔍 === VERIFICACIÓN COMPLETA DEL CARRITO ===");
+
+            MostrarInfoDebugCarrito("VERIFICACIÓN FINAL");
+
+            if (ValidarCoherenciaCarrito())
+            {
+                System.Diagnostics.Debug.WriteLine("✅ El carrito está en estado coherente");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("❌ Se detectaron inconsistencias en el carrito");
+            }
+
+            System.Diagnostics.Debug.WriteLine("🔍 === FIN VERIFICACIÓN COMPLETA ===\n");
+        }
+
+        /// <summary>
+        /// Limpia completamente el carrito después de una venta exitosa
+        /// </summary>
+        private void LimpiarCarritoCompleto()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("🧹 === LIMPIANDO CARRITO COMPLETAMENTE ===");
+
+                // ✅ MOSTRAR ESTADO ANTES DE LIMPIAR
+                MostrarInfoDebugCarrito("ANTES DE LIMPIAR");
+
+                // ✅ LIMPIAR ITEMS DEL CARRITO
+                foreach (var item in _carritoItems.ToList())
+                {
+                    System.Diagnostics.Debug.WriteLine($"🗑️ Limpiando: {item.NombreProducto}");
+
+                    // ✅ RESETEAR VALORES DE DESCUENTO SI FUERON APLICADOS
+                    if (item.TieneDescuentoManual)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"   • Tenía descuento manual: ${item.DescuentoUnitario:F2}");
+                        item.RemoverDescuento(); // Esto restaura el precio original
+                    }
+
+                    // ✅ LIMPIAR CUALQUIER OTRO DESCUENTO
+                    if (item.DescuentoAplicado > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"   • Tenía descuento tradicional: ${item.DescuentoAplicado:F2}");
+                        item.DescuentoAplicado = 0;
+                        item.CalcularSubTotal();
+                    }
+                }
+
+                // ✅ VACIAR LA LISTA COMPLETAMENTE
+                _carritoItems.Clear();
+
+                // ✅ LIMPIAR INFORMACIÓN DE DESCUENTOS GLOBALES
+                if (_descuentoInfo != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🧹 Limpiando info descuento global: {_descuentoInfo}");
+                    _descuentoInfo = null;
+                }
+
+                // ✅ ACTUALIZAR INTERFAZ
+                ActualizarTotalesCarrito();
+                UpdateContadoresPOS();
+
+                // ✅ LIMPIAR CAMPOS DE CLIENTE SI ES NECESARIO
+                if (TxtCliente != null)
+                {
+                    TxtCliente.Text = "";
+                }
+
+                System.Diagnostics.Debug.WriteLine("✅ Carrito limpiado completamente");
+                System.Diagnostics.Debug.WriteLine($"   • Items en carrito: {_carritoItems.Count}");
+                System.Diagnostics.Debug.WriteLine($"   • Info descuento: {(_descuentoInfo != null ? "Presente" : "null")}");
+
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error limpiando carrito: {ex.Message}");
+                // No lanzar excepción aquí, solo registrar el error
+            }
+        }
+
+        #endregion
+        // <summary>
+        /// Limpia completamente el carrito después de una venta exitosa
+        /// </summary>
+       
         private async Task LimpiarContextoPrincipal()
         {
             try
@@ -2175,11 +2537,10 @@ namespace costbenefi
                 // ✅ MANEJAR PRODUCTOS (funcionalidad original)
                 if (LstProductosPOS.SelectedItem is RawMaterial producto)
                 {
-                    // Verificar si es producto por peso (funcionalidad original)
-                    if (producto.UnidadMedida.ToLower().Contains("kg") ||
-                        producto.UnidadMedida.ToLower().Contains("gr"))
+                    // ✅ CORRECCIÓN: Usar método universal para detectar productos a granel
+                    if (EsProductoAGranel(producto.UnidadMedida))
                     {
-                        // Abrir ventana para ingresar peso
+                        // Abrir ventana para ingresar peso/volumen/longitud
                         var pesoWindow = new IngresarPesoWindow(_context, producto, _basculaService);
                         if (pesoWindow.ShowDialog() == true)
                         {
@@ -2206,14 +2567,60 @@ namespace costbenefi
             }
         }
 
-
-        private void BtnEliminarDelCarrito_Click(object sender, RoutedEventArgs e)
+        private async void BtnEliminarDelCarrito_Click_ConAutorizacion(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn && btn.Tag is DetalleVenta item)
+            try
             {
-                _carritoItems.Remove(item);
-                UpdateContadoresPOS();
-                TxtStatusPOS.Text = $"✅ Eliminado: {item.NombreProducto}";
+                if (!(sender is Button btn) || !(btn.Tag is DetalleVenta item))
+                    return;
+
+                System.Diagnostics.Debug.WriteLine($"🗑️ Solicitando autorización para eliminar: {item.NombreProducto}");
+
+                // ✅ REQUERIR AUTORIZACIÓN
+                var autorizacionWindow = new AutorizacionDescuentoWindow($"eliminar '{item.NombreProducto}' del carrito")
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                if (autorizacionWindow.ShowDialog() != true || !autorizacionWindow.AutorizacionExitosa)
+                {
+                    TxtStatusPOS.Text = $"❌ Autorización para eliminar '{item.NombreProducto}' cancelada";
+                    return;
+                }
+
+                // ✅ CONFIRMACIÓN ADICIONAL
+                var mensaje = $"🗑️ ELIMINAR PRODUCTO\n\n" +
+                             $"Producto: {item.NombreProducto}\n" +
+                             $"Cantidad: {item.Cantidad:F2} {item.UnidadMedida}\n" +
+                             $"Subtotal: {item.SubTotal:C2}\n\n" +
+                             $"Autorizado por: {autorizacionWindow.UsuarioAutorizador.NombreCompleto}\n\n" +
+                             $"¿Confirmar eliminación?";
+
+                var resultado = MessageBox.Show(mensaje, "Confirmar Eliminación",
+                                              MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (resultado == MessageBoxResult.Yes)
+                {
+                    _carritoItems.Remove(item);
+                    UpdateContadoresPOS();
+
+                    TxtStatusPOS.Text = $"🗑️ Eliminado: {item.NombreProducto} - Autorizado por: {autorizacionWindow.UsuarioAutorizador.NombreCompleto}";
+
+                    System.Diagnostics.Debug.WriteLine($"✅ Producto eliminado por autorización de: {autorizacionWindow.UsuarioAutorizador.NombreCompleto}");
+                }
+                else
+                {
+                    TxtStatusPOS.Text = "❌ Eliminación de producto cancelada";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error en BtnEliminarDelCarrito_Click_ConAutorizacion: {ex.Message}");
+                TxtStatusPOS.Text = $"❌ Error al eliminar producto: {ex.Message}";
+
+                MessageBox.Show($"Error al eliminar producto del carrito:\n\n{ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -2222,21 +2629,74 @@ namespace costbenefi
             await ProcesarVentaUnico();
         }
 
-        private void BtnLimpiarCarrito_Click(object sender, RoutedEventArgs e)
+        private void BtnLimpiarCarrito_Click_ConAutorizacion(object sender, RoutedEventArgs e)
         {
-            if (_carritoItems.Any())
+            try
             {
-                var result = MessageBox.Show("¿Limpiar el carrito de compras?",
-                                           "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                if (result == MessageBoxResult.Yes)
+                if (!_carritoItems.Any())
                 {
+                    MessageBox.Show("El carrito ya está vacío.", "Carrito Vacío",
+                                  MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine("🗑️ Solicitando autorización para limpiar carrito");
+
+                // ✅ REQUERIR AUTORIZACIÓN
+                var autorizacionWindow = new AutorizacionDescuentoWindow("limpiar el carrito")
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                if (autorizacionWindow.ShowDialog() != true || !autorizacionWindow.AutorizacionExitosa)
+                {
+                    TxtStatusPOS.Text = "❌ Autorización para limpiar carrito cancelada";
+                    return;
+                }
+
+                // ✅ CONFIRMACIÓN ADICIONAL
+                var itemsCount = _carritoItems.Count;
+                var totalCarrito = _carritoItems.Sum(i => i.SubTotal);
+
+                var mensaje = $"🗑️ LIMPIAR CARRITO\n\n" +
+                             $"Se eliminarán {itemsCount} productos\n" +
+                             $"Total del carrito: {totalCarrito:C2}\n\n" +
+                             $"Autorizado por: {autorizacionWindow.UsuarioAutorizador.NombreCompleto}\n\n" +
+                             $"¿Confirmar la limpieza del carrito?";
+
+                var resultado = MessageBox.Show(mensaje, "Confirmar Limpieza",
+                                              MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (resultado == MessageBoxResult.Yes)
+                {
+                    // Limpiar carrito
                     _carritoItems.Clear();
+
+                    // Limpiar cliente
+                    TxtCliente.Text = "Cliente General";
+
+                    // Actualizar interfaz
                     UpdateContadoresPOS();
-                    TxtStatusPOS.Text = "✅ Carrito limpiado";
+
+                    TxtStatusPOS.Text = $"🗑️ Carrito limpiado - Autorizado por: {autorizacionWindow.UsuarioAutorizador.NombreCompleto}";
+
+                    System.Diagnostics.Debug.WriteLine($"✅ Carrito limpiado por autorización de: {autorizacionWindow.UsuarioAutorizador.NombreCompleto}");
+                }
+                else
+                {
+                    TxtStatusPOS.Text = "❌ Limpieza de carrito cancelada";
                 }
             }
-        }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error en BtnLimpiarCarrito_Click_ConAutorizacion: {ex.Message}");
+                TxtStatusPOS.Text = $"❌ Error al limpiar carrito: {ex.Message}";
 
+                MessageBox.Show($"Error al limpiar carrito:\n\n{ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private async void ActualizarPromocionesACombinables()
         {
             try
@@ -2805,7 +3265,26 @@ namespace costbenefi
                               "Selección Requerida", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
+        private string DeterminarTipoUsuario(string nombreUsuario)
+        {
+            try
+            {
+                // Verificar si es usuario soporte
+                if (SoporteSystem.EsUsuarioSoporte(nombreUsuario))
+                    return "Soporte";
 
+                // Buscar en base de datos
+                using var context = new AppDbContext();
+                var usuario = context.Users.FirstOrDefault(u => u.NombreUsuario == nombreUsuario);
+
+                return usuario?.Rol ?? "Desconocido";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error determinando tipo usuario: {ex.Message}");
+                return "Desconocido";
+            }
+        }
         private async void BtnEliminar_Click(object sender, RoutedEventArgs e)
         {
             if (DgMateriales.SelectedItem is RawMaterial selectedMaterial)
@@ -3377,6 +3856,287 @@ namespace costbenefi
                           "Permitirá configurar parámetros generales del sistema.",
                           "Próximamente", MessageBoxButton.OK, MessageBoxImage.Information);
         }
+        private async void BtnAplicarDescuento_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!_carritoItems.Any())
+                {
+                    MessageBox.Show("No hay productos en el carrito para aplicar descuento.",
+                                  "Carrito Vacío", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                decimal totalActual = _carritoItems.Sum(i => i.SubTotal);
+
+                if (totalActual <= 0)
+                {
+                    MessageBox.Show("El total del carrito debe ser mayor a $0.00 para aplicar descuento.",
+                                  "Total Inválido", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Autorización
+                var autorizacionWindow = new AutorizacionDescuentoWindow("aplicar descuento")
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                if (autorizacionWindow.ShowDialog() != true || !autorizacionWindow.AutorizacionExitosa)
+                {
+                    TxtStatusPOS.Text = "❌ Autorización de descuento cancelada";
+                    return;
+                }
+
+                // Configurar descuento
+                var descuentoWindow = new AplicarDescuentoWindow(totalActual, autorizacionWindow.UsuarioAutorizador.NombreCompleto)
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                if (descuentoWindow.ShowDialog() == true && descuentoWindow.DescuentoAplicado)
+                {
+                    // Aplicar descuento
+                    await AplicarDescuentoAlCarrito(descuentoWindow);
+
+                    TxtStatusPOS.Text = $"🎁 Descuento aplicado: {descuentoWindow.DescuentoCalculado:C2}";
+
+                    MessageBox.Show(
+                        $"🎁 Descuento aplicado exitosamente!\n\n" +
+                        $"Descuento: {descuentoWindow.DescuentoCalculado:C2}\n" +
+                        $"Autorizado por: {descuentoWindow.UsuarioAutorizador}",
+                        "Descuento Aplicado", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    TxtStatusPOS.Text = "❌ Aplicación de descuento cancelada";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error en BtnAplicarDescuento_Click: {ex.Message}");
+                TxtStatusPOS.Text = $"❌ Error al aplicar descuento: {ex.Message}";
+
+                MessageBox.Show($"Error al aplicar descuento:\n\n{ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private async void BtnCancelarVenta_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!_carritoItems.Any())
+                {
+                    MessageBox.Show("No hay venta activa para cancelar.", "Sin Venta Activa",
+                                  MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine("❌ Solicitando autorización para cancelar venta completa");
+
+                // ✅ REQUERIR AUTORIZACIÓN
+                var autorizacionWindow = new AutorizacionDescuentoWindow("cancelar la venta completa")
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                if (autorizacionWindow.ShowDialog() != true || !autorizacionWindow.AutorizacionExitosa)
+                {
+                    TxtStatusPOS.Text = "❌ Autorización para cancelar venta cancelada";
+                    return;
+                }
+
+                // ✅ CONFIRMACIÓN ADICIONAL
+                var itemsCount = _carritoItems.Count;
+                var totalVenta = _carritoItems.Sum(i => i.SubTotal);
+
+                var mensaje = $"❌ CANCELAR VENTA COMPLETA\n\n" +
+                             $"Se cancelará la venta con:\n" +
+                             $"• {itemsCount} productos\n" +
+                             $"• Total: {totalVenta:C2}\n\n" +
+                             $"Autorizado por: {autorizacionWindow.UsuarioAutorizador.NombreCompleto}\n\n" +
+                             $"Esta acción no se puede deshacer.\n" +
+                             $"¿Confirmar cancelación de la venta?";
+
+                var resultado = MessageBox.Show(mensaje, "Confirmar Cancelación de Venta",
+                                              MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                if (resultado == MessageBoxResult.Yes)
+                {
+                    // Limpiar carrito
+                    _carritoItems.Clear();
+
+                    // Limpiar cliente
+                    TxtCliente.Text = "Cliente General";
+
+                    // Actualizar interfaz
+                    UpdateContadoresPOS();
+
+                    TxtStatusPOS.Text = $"❌ Venta cancelada - Autorizado por: {autorizacionWindow.UsuarioAutorizador.NombreCompleto}";
+
+                    System.Diagnostics.Debug.WriteLine($"✅ Venta cancelada por autorización de: {autorizacionWindow.UsuarioAutorizador.NombreCompleto}");
+
+                    MessageBox.Show(
+                        $"❌ Venta cancelada exitosamente\n\n" +
+                        $"Total cancelado: {totalVenta:C2}\n" +
+                        $"Autorizado por: {autorizacionWindow.UsuarioAutorizador.NombreCompleto}",
+                        "Venta Cancelada", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    TxtStatusPOS.Text = "✅ Cancelación de venta abortada";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error en BtnCancelarVenta_Click: {ex.Message}");
+                TxtStatusPOS.Text = $"❌ Error al cancelar venta: {ex.Message}";
+
+                MessageBox.Show($"Error al cancelar venta:\n\n{ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task AplicarDescuentoAlCarrito(AplicarDescuentoWindow descuentoInfo)
+        {
+            try
+            {
+                if (!descuentoInfo.DescuentoAplicado || descuentoInfo.DescuentoCalculado <= 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("❌ No hay descuento para aplicar");
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"🎁 === APLICANDO DESCUENTO CON AUDITORÍA CORREGIDA ===");
+                System.Diagnostics.Debug.WriteLine($"   • Descuento total: ${descuentoInfo.DescuentoCalculado:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Autorizado por: {descuentoInfo.UsuarioAutorizador}");
+                System.Diagnostics.Debug.WriteLine($"   • Motivo: {descuentoInfo.MotivoDescuento}");
+
+                // ✅ CALCULAR TOTAL ORIGINAL (PRECIOS ACTUALES * CANTIDADES)
+                decimal totalOriginalActual = _carritoItems.Sum(i => i.PrecioUnitario * i.Cantidad);
+                decimal descuentoTotal = descuentoInfo.DescuentoCalculado;
+                decimal descuentoAplicado = 0;
+
+                System.Diagnostics.Debug.WriteLine($"💰 TOTALES PARA CÁLCULO:");
+                System.Diagnostics.Debug.WriteLine($"   • Total actual carrito: ${totalOriginalActual:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Descuento a aplicar: ${descuentoTotal:F2}");
+
+                // ✅ APLICAR DESCUENTO PROPORCIONAL A CADA ITEM
+                for (int i = 0; i < _carritoItems.Count; i++)
+                {
+                    var item = _carritoItems[i];
+
+                    // ✅ CALCULAR PROPORCIÓN BASADA EN PRECIO ACTUAL
+                    decimal proporcion = totalOriginalActual > 0 ? (item.PrecioUnitario * item.Cantidad) / totalOriginalActual : 0;
+                    decimal descuentoItem;
+
+                    // ✅ ASEGURAR QUE EL ÚLTIMO ITEM RECIBA EL DESCUENTO EXACTO
+                    if (i == _carritoItems.Count - 1)
+                    {
+                        descuentoItem = descuentoTotal - descuentoAplicado;
+                    }
+                    else
+                    {
+                        descuentoItem = Math.Round(descuentoTotal * proporcion, 2);
+                        descuentoAplicado += descuentoItem;
+                    }
+
+                    decimal descuentoPorUnidad = item.Cantidad > 0 ? descuentoItem / item.Cantidad : 0;
+
+                    System.Diagnostics.Debug.WriteLine($"📦 {item.NombreProducto}:");
+                    System.Diagnostics.Debug.WriteLine($"   • Precio actual: ${item.PrecioUnitario:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   • Cantidad: {item.Cantidad:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   • Subtotal actual: ${item.PrecioUnitario * item.Cantidad:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   • Proporción: {proporcion:P2}");
+                    System.Diagnostics.Debug.WriteLine($"   • Descuento total línea: ${descuentoItem:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   • Descuento por unidad: ${descuentoPorUnidad:F2}");
+
+                    // ✅ APLICAR DESCUENTO CON AUDITORÍA CORREGIDA
+                    item.AplicarDescuentoConAuditoria(
+                        descuentoPorUnidad,
+                        descuentoInfo.MotivoDescuento,
+                        descuentoInfo.UsuarioAutorizador
+                    );
+
+                    System.Diagnostics.Debug.WriteLine($"   ✅ RESULTADO:");
+                    System.Diagnostics.Debug.WriteLine($"      • Precio final: ${item.PrecioUnitario:F2}");
+                    System.Diagnostics.Debug.WriteLine($"      • SubTotal final: ${item.SubTotal:F2}");
+                    System.Diagnostics.Debug.WriteLine($"      • Validación: {(item.ValidarDescuento() ? "✅ Válido" : "❌ Inválido")}");
+                }
+
+                // ✅ GUARDAR INFORMACIÓN PARA LA VENTA
+                _descuentoInfo = new DescuentoAplicadoInfo
+                {
+                    TotalDescuento = descuentoTotal,
+                    UsuarioAutorizador = descuentoInfo.UsuarioAutorizador,
+                    TipoUsuario = DeterminarTipoUsuario(descuentoInfo.UsuarioAutorizador),
+                    Motivo = descuentoInfo.MotivoDescuento,
+                    FechaHoraAplicacion = DateTime.Now
+                };
+
+                // ✅ ACTUALIZAR INTERFAZ Y VERIFICAR
+                ActualizarTotalesCarrito();
+                UpdateContadoresPOS();
+
+                // ✅ VERIFICACIÓN COMPLETA DEL ESTADO FINAL
+                VerificarEstadoCarritoCompleto();
+
+                // ✅ VERIFICACIÓN FINAL
+                var totalFinalCarrito = _carritoItems.Sum(i => i.SubTotal);
+                var descuentoRealAplicado = _carritoItems.Sum(i => i.TotalDescuentoLinea);
+
+                System.Diagnostics.Debug.WriteLine($"🎉 DESCUENTO APLICADO EXITOSAMENTE:");
+                System.Diagnostics.Debug.WriteLine($"   • Total original: ${totalOriginalActual:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Descuento aplicado: ${descuentoRealAplicado:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Total final: ${totalFinalCarrito:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Verificación: ${totalOriginalActual - descuentoRealAplicado:F2}");
+                System.Diagnostics.Debug.WriteLine($"   • Diferencia: ${Math.Abs(totalFinalCarrito - (totalOriginalActual - descuentoRealAplicado)):F2}");
+
+                // ✅ VALIDAR QUE TODOS LOS DESCUENTOS SEAN COHERENTES
+                bool todosValidos = true;
+                foreach (var item in _carritoItems)
+                {
+                    if (item.TieneDescuentoManual && !item.ValidarDescuento())
+                    {
+                        todosValidos = false;
+                        System.Diagnostics.Debug.WriteLine($"❌ Descuento inválido en: {item.NombreProducto}");
+                        System.Diagnostics.Debug.WriteLine(item.ObtenerInfoDebugDescuento());
+                    }
+                }
+
+                if (!todosValidos)
+                {
+                    throw new InvalidOperationException("Se detectaron descuentos inválidos después de la aplicación");
+                }
+
+                System.Diagnostics.Debug.WriteLine("✅ Todos los descuentos validados correctamente");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"💥 ERROR en AplicarDescuentoAlCarrito: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+
+                MessageBox.Show($"Error al aplicar descuento:\n\n{ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                throw;
+            }
+        }
+        public class DescuentoAplicadoInfo
+        {
+            public decimal TotalDescuento { get; set; }
+            public string UsuarioAutorizador { get; set; }
+            public string TipoUsuario { get; set; }
+            public string Motivo { get; set; }
+            public DateTime FechaHoraAplicacion { get; set; }
+
+            public override string ToString()
+            {
+                return $"${TotalDescuento:F2} - {UsuarioAutorizador} ({TipoUsuario}) - {Motivo}";
+            }
+        }
 
         private void BtnAbrirInformacion_Click(object sender, RoutedEventArgs e)
         {
@@ -3539,6 +4299,10 @@ namespace costbenefi
             }
         }
 
+       
+        
+
+       
         private async Task ProcesarCodigo(string codigo)
         {
             if (string.IsNullOrWhiteSpace(codigo))
