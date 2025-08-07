@@ -1,0 +1,465 @@
+﻿<Window x:Class="costbenefi.FabricacionProceso"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🏭 Gestión de Fabricación" Height="900" Width="1400"
+        WindowStartupLocation="CenterScreen" 
+        Background="#F5F7FA"
+        WindowState="Normal"
+        ResizeMode="CanResize"
+        MinHeight="600" MinWidth="1000">
+
+    <Window.Resources>
+        <!-- Estilo para botones principales -->
+        <Style x:Key="MainButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#059669"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#047857"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Estilo para botones secundarios -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#6B7280"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#4B5563"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Estilo para botones de acción en grilla -->
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- Estilo para inputs -->
+        <Style x:Key="InputStyle" TargetType="TextBox">
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <!-- Estilo para centrar texto -->
+        <Style x:Key="CenterAlignedStyle" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="20" Margin="0,0,0,20" 
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="🏭 Gestión de Fabricación" FontSize="24" FontWeight="Bold" 
+                              Foreground="#1F2937"/>
+                    <TextBlock Text="Crea recetas, controla procesos y fabrica productos desde materias primas" 
+                              FontSize="14" Foreground="#6B7280" Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="🆕 Nuevo Proceso" Style="{StaticResource MainButtonStyle}" 
+                           x:Name="BtnNuevoProceso" Click="BtnNuevoProceso_Click"/>
+                    <Button Content="🔄 Actualizar" Style="{StaticResource SecondaryButtonStyle}" 
+                           x:Name="BtnActualizar" Click="BtnActualizar_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Estadísticas Rápidas -->
+        <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="20" Margin="0,0,0,20" 
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Total Procesos -->
+                <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                    <TextBlock x:Name="TxtTotalProcesos" Text="0" FontSize="28" FontWeight="Bold" 
+                              Foreground="#059669" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Total Procesos" FontSize="12" Foreground="#6B7280" 
+                              HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Procesos Activos -->
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                    <TextBlock x:Name="TxtProcesosActivos" Text="0" FontSize="28" FontWeight="Bold" 
+                              Foreground="#3B82F6" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Activos" FontSize="12" Foreground="#6B7280" 
+                              HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Lotes Hoy -->
+                <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                    <TextBlock x:Name="TxtLotesHoy" Text="0" FontSize="28" FontWeight="Bold" 
+                              Foreground="#F59E0B" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Fabricados Hoy" FontSize="12" Foreground="#6B7280" 
+                              HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- En Proceso -->
+                <StackPanel Grid.Column="3" HorizontalAlignment="Center">
+                    <TextBlock x:Name="TxtLotesEnProceso" Text="0" FontSize="28" FontWeight="Bold" 
+                              Foreground="#EF4444" HorizontalAlignment="Center"/>
+                    <TextBlock Text="En Proceso" FontSize="12" Foreground="#6B7280" 
+                              HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Procesos Fabricables -->
+                <StackPanel Grid.Column="4" HorizontalAlignment="Center">
+                    <TextBlock x:Name="TxtProcesosFabricables" Text="0" FontSize="28" FontWeight="Bold" 
+                              Foreground="#8B5CF6" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Fabricables" FontSize="12" Foreground="#6B7280" 
+                              HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Contenido Principal -->
+        <Border Grid.Row="2" Background="White" CornerRadius="10" Padding="20" 
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Filtros y Búsqueda -->
+                <Grid Grid.Row="0" Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="300"/>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Búsqueda -->
+                    <TextBox Grid.Column="0" x:Name="TxtBuscar" 
+                            Style="{StaticResource InputStyle}"
+                            TextChanged="TxtBuscar_TextChanged"
+                            ToolTip="Buscar por nombre, descripción o categoría"/>
+                    
+                    <!-- Filtro por Categoría -->
+                    <ComboBox Grid.Column="1" x:Name="CmbCategoria" 
+                              Padding="10" Margin="5" FontSize="14"
+                              SelectionChanged="CmbCategoria_SelectionChanged">
+                        <ComboBoxItem Content="Todas las categorías" IsSelected="True"/>
+                        <ComboBoxItem Content="Líquidos"/>
+                        <ComboBoxItem Content="Polvos"/>
+                        <ComboBoxItem Content="Alimentos"/>
+                        <ComboBoxItem Content="Cosméticos"/>
+                        <ComboBoxItem Content="Químicos"/>
+                        <ComboBoxItem Content="Otros"/>
+                    </ComboBox>
+
+                    <!-- Filtro por Estado -->
+                    <ComboBox Grid.Column="2" x:Name="CmbEstado" 
+                              Padding="10" Margin="5" FontSize="14"
+                              SelectionChanged="CmbEstado_SelectionChanged">
+                        <ComboBoxItem Content="Todos" IsSelected="True"/>
+                        <ComboBoxItem Content="Activos"/>
+                        <ComboBoxItem Content="Inactivos"/>
+                        <ComboBoxItem Content="Fabricables"/>
+                    </ComboBox>
+
+                    <!-- Información de Filtros -->
+                    <TextBlock Grid.Column="3" x:Name="TxtInfoFiltros" 
+                              Text="Mostrando todos los procesos" 
+                              VerticalAlignment="Center" Margin="15,0,0,0" 
+                              FontSize="12" Foreground="#6B7280"/>
+
+                    <!-- Botones de Acción Rápida -->
+                    <StackPanel Grid.Column="4" Orientation="Horizontal">
+                        <Button Content="📊 Ver Historial" Style="{StaticResource SecondaryButtonStyle}" 
+                               x:Name="BtnVerHistorial" Click="BtnVerHistorial_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Grilla de Procesos -->
+                <DataGrid Grid.Row="1" x:Name="DgProcesos" 
+                         AutoGenerateColumns="False" 
+                         CanUserAddRows="False" 
+                         CanUserDeleteRows="False"
+                         SelectionMode="Single"
+                         GridLinesVisibility="Horizontal"
+                         HeadersVisibility="Column"
+                         Background="White"
+                         AlternatingRowBackground="#F9FAFB">
+                    
+                    <DataGrid.Columns>
+                        <!-- Nombre del Proceso -->
+                        <DataGridTextColumn Header="🏭 Proceso" Binding="{Binding NombreProducto}" 
+                                           Width="200" FontWeight="SemiBold"/>
+
+                        <!-- Categoría -->
+                        <DataGridTextColumn Header="📂 Categoría" Binding="{Binding CategoriaProducto}" 
+                                           Width="120"/>
+
+                        <!-- Rendimiento -->
+                        <DataGridTemplateColumn Header="⚖️ Rendimiento" Width="130">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Run Text="{Binding RendimientoEsperado, StringFormat='{}{0:F1}'}" FontWeight="Bold"/>
+                                        <Run Text=" "/>
+                                        <Run Text="{Binding UnidadMedidaProducto}" FontSize="11" Foreground="#6B7280"/>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Costo Estimado -->
+                        <DataGridTextColumn Header="💰 Costo" Binding="{Binding CostoUnitarioEstimado, StringFormat='{}{0:C4}'}" 
+                                           Width="100" ElementStyle="{StaticResource CenterAlignedStyle}"/>
+
+                        <!-- Precio Sugerido -->
+                        <DataGridTextColumn Header="🏷️ P. Sugerido" Binding="{Binding PrecioSugeridoVenta, StringFormat='{}{0:C2}'}" 
+                                           Width="110" ElementStyle="{StaticResource CenterAlignedStyle}"/>
+
+                        <!-- Estado -->
+                        <DataGridTemplateColumn Header="📊 Estado" Width="110">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Ellipse Width="8" Height="8" Margin="0,0,5,0">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Activo}" Value="True">
+                                                            <Setter Property="Fill" Value="#059669"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Activo}" Value="False">
+                                                            <Setter Property="Fill" Value="#EF4444"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+                                        <TextBlock FontSize="11" FontWeight="SemiBold">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Activo}" Value="True">
+                                                            <Setter Property="Text" Value="ACTIVO"/>
+                                                            <Setter Property="Foreground" Value="#059669"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Activo}" Value="False">
+                                                            <Setter Property="Text" Value="INACTIVO"/>
+                                                            <Setter Property="Foreground" Value="#EF4444"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Puede Fabricarse -->
+                        <DataGridTemplateColumn Header="✅ Fabricable" Width="100">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding PuedeFabricarse}" Value="True">
+                                                        <Setter Property="Foreground" Value="#059669"/>
+                                                        <Setter Property="Text" Value="SÍ"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding PuedeFabricarse}" Value="False">
+                                                        <Setter Property="Foreground" Value="#EF4444"/>
+                                                        <Setter Property="Text" Value="NO"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Última Actualización -->
+                        <DataGridTextColumn Header="📅 Actualizado" Binding="{Binding FechaActualizacion, StringFormat='{}{0:dd/MM/yy HH:mm}'}" 
+                                           Width="120" FontSize="11"/>
+
+                        <!-- Acciones -->
+                        <DataGridTemplateColumn Header="🔧 Acciones" Width="200">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <!-- Ver Detalles -->
+                                        <Button Content="👁️" ToolTip="Ver detalles" 
+                                               Style="{StaticResource ActionButtonStyle}"
+                                               Background="#3B82F6" Foreground="White"
+                                               Click="BtnVerDetalles_Click" Tag="{Binding}"/>
+                                        
+                                        <!-- Editar -->
+                                        <Button Content="✏️" ToolTip="Editar proceso" 
+                                               Style="{StaticResource ActionButtonStyle}"
+                                               Background="#F59E0B" Foreground="White"
+                                               Click="BtnEditar_Click" Tag="{Binding}"/>
+                                        
+                                        <!-- Fabricar -->
+                                        <Button Style="{StaticResource ActionButtonStyle}"
+                                               Background="#059669" Foreground="White"
+                                               Click="BtnFabricar_Click" Tag="{Binding}"
+                                               IsEnabled="{Binding Activo}">
+                                            <Button.Content>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding PuedeFabricarse}" Value="True">
+                                                                    <Setter Property="Text" Value="🏭"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding PuedeFabricarse}" Value="False">
+                                                                    <Setter Property="Text" Value="⏸️"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Button.Content>
+                                            <Button.ToolTip>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding PuedeFabricarse}" Value="True">
+                                                                    <Setter Property="Text" Value="Fabricar producto"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding PuedeFabricarse}" Value="False">
+                                                                    <Setter Property="Text" Value="Sin stock suficiente"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Button.ToolTip>
+                                        </Button>
+                                        
+                                        <!-- Activar/Desactivar - ✅ CORRECCIÓN APLICADA -->
+                                        <Button Foreground="White" 
+                                               Click="BtnActivarDesactivar_Click" 
+                                               Tag="{Binding}">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Activo}" Value="True">
+                                                            <Setter Property="Background" Value="#EF4444"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Activo}" Value="False">
+                                                            <Setter Property="Background" Value="#059669"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                            <Button.Content>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Activo}" Value="True">
+                                                                    <Setter Property="Text" Value="⏸️"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Activo}" Value="False">
+                                                                    <Setter Property="Text" Value="▶️"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Button.Content>
+                                            <Button.ToolTip>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Activo}" Value="True">
+                                                                    <Setter Property="Text" Value="Desactivar proceso"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Activo}" Value="False">
+                                                                    <Setter Property="Text" Value="Activar proceso"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Button.ToolTip>
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <!-- Footer -->
+        <Border Grid.Row="3" Background="White" CornerRadius="10" Padding="15" Margin="0,20,0,0" 
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" x:Name="TxtEstadoVentana" 
+                          Text="✅ Gestión de Fabricación cargada correctamente" 
+                          FontSize="14" VerticalAlignment="Center" Foreground="#059669"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="📋 Exportar Lista" Style="{StaticResource SecondaryButtonStyle}" 
+                           x:Name="BtnExportar" Click="BtnExportar_Click"/>
+                    <Button Content="❓ Ayuda" Style="{StaticResource SecondaryButtonStyle}" 
+                           x:Name="BtnAyuda" Click="BtnAyuda_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

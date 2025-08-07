@@ -32,22 +32,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{46
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9-E21E-492B-83DD-6A5046CA4BA3}"
 	ProjectSection(SolutionItems) = preProject
-		AplicarDescuentoWindow.xaml = AplicarDescuentoWindow.xaml
-		AplicarDescuentoWindow.xaml.cs = AplicarDescuentoWindow.xaml.cs
-		AutorizacionDescuentoWindow.xaml = AutorizacionDescuentoWindow.xaml
-		AutorizacionDescuentoWindow.xaml.cs = AutorizacionDescuentoWindow.xaml.cs
-		CrearEditarPromocionWindow.xaml = CrearEditarPromocionWindow.xaml
-		CrearEditarPromocionWindow.xaml.cs = CrearEditarPromocionWindow.xaml.cs
-		CrearEditarServicioWindow.xaml = CrearEditarServicioWindow.xaml
-		CrearEditarServicioWindow.xaml.cs = CrearEditarServicioWindow.xaml.cs
+		CompletarProductoTerminadoWindow.xaml = CompletarProductoTerminadoWindow.xaml
+		CompletarProductoTerminadoWindow.xaml.cs = CompletarProductoTerminadoWindow.xaml.cs
+		CrearEditarProcesoWindow.xaml = CrearEditarProcesoWindow.xaml
+		CrearEditarProcesoWindow.xaml.cs = CrearEditarProcesoWindow.xaml.cs
+		EjecutarFabricacionWindow.xaml = EjecutarFabricacionWindow.xaml
+		EjecutarFabricacionWindow.xaml.cs = EjecutarFabricacionWindow.xaml.cs
+		FabricacionProceso.xaml = FabricacionProceso.xaml
+		FabricacionProceso.xaml.cs = FabricacionProceso.xaml.cs
 		FabricacionWindow.xaml = FabricacionWindow.xaml
 		FabricacionWindow.xaml.cs = FabricacionWindow.xaml.cs
-		IngresarCantidadWindow.xaml = IngresarCantidadWindow.xaml
-		IngresarCantidadWindow.xaml.cs = IngresarCantidadWindow.xaml.cs
-		MateriaPrimaWindow.xaml = MateriaPrimaWindow.xaml
-		MateriaPrimaWindow.xaml.cs = MateriaPrimaWindow.xaml.cs
-		ProcesosMainControl.xaml = ProcesosMainControl.xaml
-		ProcesosMainControl.xaml.cs = ProcesosMainControl.xaml.cs
 		ServiciosVentaWindow.xaml = ServiciosVentaWindow.xaml
 		ServiciosVentaWindow.xaml.cs = ServiciosVentaWindow.xaml.cs
 	EndProjectSection
@@ -57,13 +51,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{CB0EA2
 		ConfiguracionBascula.cs = ConfiguracionBascula.cs
 		Converters.cs = Converters.cs
 		CorteCaja.cs = CorteCaja.cs
+		DatosProductoTerminado.cs = DatosProductoTerminado.cs
 		DetalleVenta.cs = DetalleVenta.cs
+		EstadoLote.cs = EstadoLote.cs
+		FabricacionEnums.cs = FabricacionEnums.cs
+		LoteFabricacion.cs = LoteFabricacion.cs
 		MaterialCalculator.cs = MaterialCalculator.cs
 		MaterialServicio.cs = MaterialServicio.cs
 		Movimiento.cs = Movimiento.cs
+		ProcesoFabricacion.cs = ProcesoFabricacion.cs
 		ProductoSeleccionable.cs = ProductoSeleccionable.cs
 		PromocionVenta.cs = PromocionVenta.cs
 		RawMaterial.cs = RawMaterial.cs
+		RecetaDetalle.cs = RecetaDetalle.cs
 		ServicioVenta.cs = ServicioVenta.cs
 		StartupManager.cs = StartupManager.cs
 		TypeHelper.cs = TypeHelper.cs
@@ -129,14 +129,25 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reporte_auditoria", "Report
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "punto de venta", "punto de venta", "{E64E27AA-6F65-436E-9C78-DD7412632F90}"
 	ProjectSection(SolutionItems) = preProject
+		AplicarDescuentoWindow.xaml = AplicarDescuentoWindow.xaml
+		AplicarDescuentoWindow.xaml.cs = AplicarDescuentoWindow.xaml.cs
+		AutorizacionDescuentoWindow.xaml = AutorizacionDescuentoWindow.xaml
+		AutorizacionDescuentoWindow.xaml.cs = AutorizacionDescuentoWindow.xaml.cs
 		ConfigurarBasculaWindow.xaml.cs = ConfigurarBasculaWindow.xaml.cs
 		ConfigurarComisionesWindow.xaml.cs = ConfigurarComisionesWindow.xaml.cs
 		ConfigurarImpresoraWindow.xaml.cs = ConfigurarImpresoraWindow.xaml.cs
 		ConfigurarPrecioVentaWindow.xaml.cs = ConfigurarPrecioVentaWindow.xaml.cs
 		CorteCajaWindow.xaml = CorteCajaWindow.xaml
 		CorteCajaWindow.xaml.cs = CorteCajaWindow.xaml.cs
+		CrearEditarPromocionWindow.xaml = CrearEditarPromocionWindow.xaml
+		CrearEditarPromocionWindow.xaml.cs = CrearEditarPromocionWindow.xaml.cs
+		CrearEditarServicioWindow.xaml = CrearEditarServicioWindow.xaml
+		CrearEditarServicioWindow.xaml.cs = CrearEditarServicioWindow.xaml.cs
+		IngresarCantidadWindow.xaml = IngresarCantidadWindow.xaml
+		IngresarCantidadWindow.xaml.cs = IngresarCantidadWindow.xaml.cs
 		IngresarPesoWindow.xaml.cs = IngresarPesoWindow.xaml.cs
 		ProcesarPagoWindow.xaml.cs = ProcesarPagoWindow.xaml.cs
+		ServiciosVentaWindow.xaml.cs = ServiciosVentaWindow.xaml.cs
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "usuarios", "usuarios", "{8866BB46-638D-4F6C-8D8D-06548F85F15B}"
@@ -156,6 +167,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "usuarios", "usuarios", "{88
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UserControls", "UserControls", "{5548DE8E-3FC1-4470-9CAC-65EB4DE23161}"
+	ProjectSection(SolutionItems) = preProject
+		MateriaPrimaWindow.xaml = MateriaPrimaWindow.xaml
+		MateriaPrimaWindow.xaml.cs = MateriaPrimaWindow.xaml.cs
+		ProcesosMainControl.xaml = ProcesosMainControl.xaml
+		ProcesosMainControl.xaml.cs = ProcesosMainControl.xaml.cs
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

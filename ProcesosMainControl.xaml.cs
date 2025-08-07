@@ -42,28 +42,15 @@ namespace costbenefi.Views
         {
             try
             {
-                TxtStatusProcesos.Text = "🏭 Abriendo Procesos de Fabricación...";
-
-                var fabricationWindow = new FabricacionWindow()  // ← Faltaba esta línea
-                {
-                    Owner = Window.GetWindow(this),
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner
-                };
-
-                fabricationWindow.ShowDialog();
-
-                // Actualizar estadísticas después de cerrar la ventana
-                _ = CargarEstadisticasProcesos();
-                TxtStatusProcesos.Text = "🏭 Ventana de Fabricación cerrada";
+                // Abrir ventana de fabricación
+                FabricacionProceso.AbrirFabricacion(Window.GetWindow(this));
             }
             catch (Exception ex)
             {
-                TxtStatusProcesos.Text = "❌ Error al abrir Fabricación";
-                MessageBox.Show($"Error al abrir Procesos de Fabricación:\n\n{ex.Message}",
+                MessageBox.Show($"Error al abrir fabricación:\n\n{ex.Message}",
                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
         /// <summary>
         /// Abre la ventana de Servicios de Venta
         /// </summary>

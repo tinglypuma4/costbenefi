@@ -1,0 +1,548 @@
+﻿<Window x:Class="costbenefi.CrearEditarProcesoWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🏭 Crear/Editar Proceso de Fabricación" Height="900" Width="1300"
+        WindowStartupLocation="CenterOwner" 
+        Background="#F5F7FA">
+
+    <Window.Resources>
+        <!-- Convertidor para Bool a Sí/No -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        
+        <!-- Convertidor personalizado para Bool a ✅/❌ -->
+        <Style x:Key="BoolToIconStyle" TargetType="TextBlock">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding PuedeUsarse}" Value="True">
+                    <Setter Property="Text" Value="✅"/>
+                    <Setter Property="Foreground" Value="#059669"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding PuedeUsarse}" Value="False">
+                    <Setter Property="Text" Value="❌"/>
+                    <Setter Property="Foreground" Value="#EF4444"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Estilo para botones principales -->
+        <Style x:Key="MainButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#059669"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#047857"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Estilo para botones secundarios -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#6B7280"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#4B5563"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Estilo para inputs -->
+        <Style x:Key="InputStyle" TargetType="TextBox">
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Height" Value="35"/>
+        </Style>
+
+        <!-- Estilo para TextBox con placeholder -->
+        <Style x:Key="PlaceholderTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource InputStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" 
+                                   BorderBrush="{TemplateBinding BorderBrush}" 
+                                   BorderThickness="{TemplateBinding BorderThickness}">
+                                <ScrollViewer x:Name="PART_ContentHost" Margin="10"/>
+                            </Border>
+                            <TextBlock x:Name="PlaceholderText" 
+                                     Text="{TemplateBinding Tag}"
+                                     Foreground="#999"
+                                     Margin="15,0,0,0"
+                                     VerticalAlignment="Center"
+                                     IsHitTestVisible="False"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter TargetName="PlaceholderText" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="Text" Value="{x:Null}">
+                                <Setter TargetName="PlaceholderText" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="PlaceholderText" Property="Visibility" Value="Hidden"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="Text" Value=""/>
+                                    <Condition Property="IsFocused" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="PlaceholderText" Property="Visibility" Value="Visible"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Estilo para labels -->
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="5,8,5,3"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#374151"/>
+        </Style>
+
+        <!-- Estilo para DataGrid centrado -->
+        <Style x:Key="CenterAlignedCell" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Estilo para CheckBox -->
+        <Style x:Key="CheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="Margin" Value="5,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="20" Margin="0,0,0,20" 
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="🏭 Crear Nuevo Proceso de Fabricación" FontSize="24" FontWeight="Bold" 
+                              Foreground="#1F2937" x:Name="TxtTituloVentana"/>
+                    <TextBlock Text="Define la receta, ingredientes y costos para fabricar un producto" 
+                              FontSize="14" Foreground="#6B7280" Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="🧪 Probar Receta" Style="{StaticResource SecondaryButtonStyle}" 
+                           x:Name="BtnProbarReceta" Click="BtnProbarReceta_Click"/>
+                    <Button Content="💾 Guardar" Style="{StaticResource MainButtonStyle}" 
+                           x:Name="BtnGuardar" Click="BtnGuardar_Click"/>
+                    <Button Content="❌ Cancelar" Style="{StaticResource SecondaryButtonStyle}" 
+                           x:Name="BtnCancelar" Click="BtnCancelar_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Contenido Principal -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="420"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Panel Izquierdo - Información del Proceso -->
+            <Border Grid.Column="0" Background="White" CornerRadius="10" Padding="20" 
+                    BorderBrush="#E5E7EB" BorderThickness="1">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="📋 Información del Proceso" FontSize="18" FontWeight="Bold" 
+                                  Foreground="#1F2937" Margin="0,0,0,20"/>
+
+                        <!-- Información básica -->
+                        <TextBlock Text="* Nombre del Producto" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtNombreProducto" Style="{StaticResource InputStyle}" 
+                                TextChanged="OnCampoChanged"/>
+
+                        <TextBlock Text="* Categoría" Style="{StaticResource LabelStyle}"/>
+                        <ComboBox x:Name="CmbCategoriaProducto" Margin="5" Padding="10" FontSize="14" Height="35"
+                                 SelectionChanged="OnCampoChanged">
+                            <ComboBoxItem Content="Líquidos"/>
+                            <ComboBoxItem Content="Polvos"/>
+                            <ComboBoxItem Content="Alimentos"/>
+                            <ComboBoxItem Content="Cosméticos"/>
+                            <ComboBoxItem Content="Químicos"/>
+                            <ComboBoxItem Content="Otros"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Descripción del Proceso" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtDescripcion" Style="{StaticResource InputStyle}" 
+                                TextWrapping="Wrap" Height="60" AcceptsReturn="True"
+                                TextChanged="OnCampoChanged"/>
+
+                        <!-- Rendimiento y especificaciones -->
+                        <TextBlock Text="⚖️ Rendimiento y Especificaciones" FontSize="16" FontWeight="Bold" 
+                                  Foreground="#1F2937" Margin="0,20,0,15"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="* Rendimiento Esperado" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtRendimientoEsperado" Style="{StaticResource InputStyle}" 
+                                        TextChanged="OnCampoChanged"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="* Unidad de Medida" Style="{StaticResource LabelStyle}"/>
+                                <ComboBox x:Name="CmbUnidadMedidaProducto" Margin="5" Padding="10" FontSize="14" Height="35"
+                                         SelectionChanged="OnCampoChanged">
+                                    <ComboBoxItem Content="Litros"/>
+                                    <ComboBoxItem Content="Mililitros"/>
+                                    <ComboBoxItem Content="Kilogramos"/>
+                                    <ComboBoxItem Content="Gramos"/>
+                                    <ComboBoxItem Content="Piezas"/>
+                                    <ComboBoxItem Content="Metros"/>
+                                    <ComboBoxItem Content="Centímetros"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Tiempo Fabricación (min)" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtTiempoFabricacionMinutos" Style="{StaticResource InputStyle}" 
+                                        Text="60" TextChanged="OnCampoChanged"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Merma Esperada (%)" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtPorcentajeMerma" Style="{StaticResource InputStyle}" 
+                                        Text="0" TextChanged="OnCampoChanged"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Costos base -->
+                        <TextBlock Text="💰 Costos Base" FontSize="16" FontWeight="Bold" 
+                                  Foreground="#1F2937" Margin="0,20,0,15"/>
+
+                        <TextBlock Text="Costo de Mano de Obra por Lote" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtCostoManoObra" Style="{StaticResource InputStyle}" 
+                                Text="0" TextChanged="OnCampoChanged"/>
+
+                        <TextBlock Text="Margen Objetivo (%)" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtMargenObjetivo" Style="{StaticResource InputStyle}" 
+                                Text="30" TextChanged="OnCampoChanged"/>
+
+                        <!-- Costos opcionales -->
+                        <TextBlock Text="💡 Costos Opcionales" FontSize="16" FontWeight="Bold" 
+                                  Foreground="#1F2937" Margin="0,20,0,10"/>
+
+                        <Border Background="#FFF3CD" CornerRadius="8" Padding="15" Margin="0,5,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Selecciona solo los costos que apliquen a tu proceso:" 
+                                          FontSize="12" Foreground="#856404" FontStyle="Italic" Margin="0,0,0,10"/>
+
+                                <!-- Costo Energía -->
+                                <CheckBox x:Name="ChkIncluirCostoEnergia" Content="💡 Energía (electricidad, gas)" 
+                                         Style="{StaticResource CheckBoxStyle}" Checked="OnCostoOpcionalChanged" Unchecked="OnCostoOpcionalChanged"/>
+                                <TextBox x:Name="TxtCostoEnergia" Style="{StaticResource InputStyle}" Text="0" 
+                                        IsEnabled="False" Height="30" TextChanged="OnCampoChanged"/>
+
+                                <!-- Costo Transporte -->
+                                <CheckBox x:Name="ChkIncluirCostoTransporte" Content="🚚 Transporte y logística" 
+                                         Style="{StaticResource CheckBoxStyle}" Checked="OnCostoOpcionalChanged" Unchecked="OnCostoOpcionalChanged"/>
+                                <TextBox x:Name="TxtCostoTransporte" Style="{StaticResource InputStyle}" Text="0" 
+                                        IsEnabled="False" Height="30" TextChanged="OnCampoChanged"/>
+
+                                <!-- Costo Empaque -->
+                                <CheckBox x:Name="ChkIncluirCostoEmpaque" Content="📦 Empaque y etiquetado" 
+                                         Style="{StaticResource CheckBoxStyle}" Checked="OnCostoOpcionalChanged" Unchecked="OnCostoOpcionalChanged"/>
+                                <TextBox x:Name="TxtCostoEmpaque" Style="{StaticResource InputStyle}" Text="0" 
+                                        IsEnabled="False" Height="30" TextChanged="OnCampoChanged"/>
+
+                                <!-- Otros Costos -->
+                                <CheckBox x:Name="ChkIncluirOtrosCostos" Content="🔧 Otros costos específicos" 
+                                         Style="{StaticResource CheckBoxStyle}" Checked="OnCostoOpcionalChanged" Unchecked="OnCostoOpcionalChanged"/>
+                                <TextBox x:Name="TxtOtrosCostos" Style="{StaticResource InputStyle}" Text="0" 
+                                        IsEnabled="False" Height="30" TextChanged="OnCampoChanged"/>
+                                <TextBox x:Name="TxtDescripcionOtrosCostos" Style="{StaticResource PlaceholderTextBoxStyle}" 
+                                        Tag="Describe estos costos..." IsEnabled="False" Height="30"
+                                        TextChanged="OnCampoChanged"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tipo de fabricación -->
+                        <TextBlock Text="🏗️ Tipo de Fabricación" FontSize="16" FontWeight="Bold" 
+                                  Foreground="#1F2937" Margin="0,20,0,10"/>
+
+                        <ComboBox x:Name="CmbTipoFabricacion" Margin="5" Padding="10" FontSize="14" Height="35"
+                                 SelectionChanged="OnCampoChanged">
+                            <ComboBoxItem Content="Lote" IsSelected="True"/>
+                            <ComboBoxItem Content="Cantidad"/>
+                            <ComboBoxItem Content="Presupuesto"/>
+                            <ComboBoxItem Content="Fecha"/>
+                            <ComboBoxItem Content="Continua"/>
+                        </ComboBox>
+
+                        <!-- Configuración -->
+                        <TextBlock Text="⚙️ Configuración" FontSize="16" FontWeight="Bold" 
+                                  Foreground="#1F2937" Margin="0,20,0,15"/>
+
+                        <CheckBox x:Name="ChkActivoProceso" Content="Proceso activo para fabricación" 
+                                 Margin="5,10" IsChecked="True" FontSize="14"/>
+
+                        <!-- Notas especiales -->
+                        <TextBlock Text="Notas Especiales" Style="{StaticResource LabelStyle}"/>
+                        <TextBox x:Name="TxtNotasEspeciales" Style="{StaticResource InputStyle}" 
+                                TextWrapping="Wrap" Height="60" AcceptsReturn="True"/>
+
+                        <!-- Resumen de costos -->
+                        <Border Background="#F0F9FF" CornerRadius="8" Padding="15" Margin="0,20,0,0">
+                            <StackPanel>
+                                <TextBlock Text="📊 Resumen de Costos" FontWeight="Bold" FontSize="14" 
+                                          Foreground="#0369A1" Margin="0,0,0,10"/>
+                                
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="2"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Costo Materiales:" FontSize="12"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" x:Name="TxtResumenMateriales" 
+                                              Text="$0.00" FontSize="12" FontWeight="Bold"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Costo Mano de Obra:" FontSize="12"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TxtResumenManoObra" 
+                                              Text="$0.00" FontSize="12" FontWeight="Bold"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Costos Adicionales:" FontSize="12"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" x:Name="TxtResumenCostosAdicionales" 
+                                              Text="$0.00" FontSize="12" FontWeight="Bold"/>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Costo Total por Lote:" FontSize="12"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" x:Name="TxtResumenCostoTotal" 
+                                              Text="$0.00" FontSize="12" FontWeight="Bold"/>
+
+                                    <Border Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" 
+                                           Height="1" Background="#BFDBFE" Margin="0,5"/>
+
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Costo Unitario:" FontSize="12"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="1" x:Name="TxtResumenCostoUnitario" 
+                                              Text="$0.00" FontSize="12" FontWeight="Bold" Foreground="#059669"/>
+
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Precio Sugerido:" FontSize="12"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="1" x:Name="TxtResumenPrecioSugerido" 
+                                              Text="$0.00" FontSize="12" FontWeight="Bold" Foreground="#059669"/>
+
+                                    <TextBlock Grid.Row="7" Grid.Column="0" Text="¿Puede Fabricarse?" FontSize="12"/>
+                                    <TextBlock Grid.Row="7" Grid.Column="1" x:Name="TxtResumenPuedeFabricarse" 
+                                              Text="✅ SÍ" FontSize="12" FontWeight="Bold" Foreground="#059669"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Panel Derecho - Ingredientes -->
+            <Border Grid.Column="2" Background="White" CornerRadius="10" Padding="20" 
+                    BorderBrush="#E5E7EB" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="20"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Materias Primas Disponibles -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="📦 Materias Primas Disponibles en Inventario" 
+                                  FontSize="16" FontWeight="Bold" Foreground="#1F2937"/>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <TextBox x:Name="TxtBuscarMaterial" Width="200" Padding="8" 
+                                    Style="{StaticResource PlaceholderTextBoxStyle}"
+                                    Tag="Buscar por nombre o categoría"
+                                    TextChanged="TxtBuscarMaterial_TextChanged"/>
+                            <Button Content="🔍" Style="{StaticResource SecondaryButtonStyle}" 
+                                   Width="40" Margin="5,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <DataGrid Grid.Row="1" x:Name="DgMaterialesDisponibles" 
+                             AutoGenerateColumns="False" 
+                             CanUserAddRows="False" 
+                             CanUserDeleteRows="False"
+                             SelectionMode="Single"
+                             GridLinesVisibility="Horizontal"
+                             HeadersVisibility="Column"
+                             Background="White"
+                             Margin="0,10,0,0"
+                             MouseDoubleClick="DgMaterialesDisponibles_MouseDoubleClick">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Material" Binding="{Binding NombreArticulo}" Width="*"/>
+                            <DataGridTextColumn Header="Stock" Binding="{Binding StockTotal, StringFormat='{}{0:F2}'}" 
+                                               Width="80" ElementStyle="{StaticResource CenterAlignedCell}"/>
+                            <DataGridTextColumn Header="Unidad" Binding="{Binding UnidadMedida}" Width="60"/>
+                            <DataGridTextColumn Header="Costo" Binding="{Binding PrecioConIVA, StringFormat='{}{0:C2}'}" 
+                                               Width="80" ElementStyle="{StaticResource CenterAlignedCell}"/>
+                            <DataGridTemplateColumn Header="⚡" Width="50">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="➕" FontSize="12" Padding="5" 
+                                               Background="#059669" Foreground="White" BorderThickness="0"
+                                               Click="BtnAgregarIngrediente_Click" 
+                                               Tag="{Binding}" Cursor="Hand"
+                                               ToolTip="Agregar a la receta"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Separador -->
+                    <Border Grid.Row="2" Height="1" Background="#E5E7EB" Margin="0,10"/>
+
+                    <!-- Ingredientes Seleccionados -->
+                    <Grid Grid.Row="3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="🧪 Ingredientes de la Receta" 
+                                  FontSize="16" FontWeight="Bold" Foreground="#1F2937"/>
+
+                        <TextBlock Grid.Column="1" x:Name="TxtCountIngredientes" 
+                                  Text="0 ingredientes" FontSize="12" Foreground="#6B7280"/>
+                    </Grid>
+
+                    <DataGrid Grid.Row="4" x:Name="DgIngredientesSeleccionados" 
+                             AutoGenerateColumns="False" 
+                             CanUserAddRows="False" 
+                             CanUserDeleteRows="False"
+                             SelectionMode="Single"
+                             GridLinesVisibility="Horizontal"
+                             HeadersVisibility="Column"
+                             Background="White"
+                             Margin="0,10,0,0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding OrdenAdicion}" Width="40" 
+                                               ElementStyle="{StaticResource CenterAlignedCell}"/>
+                            <DataGridTextColumn Header="Ingrediente" Binding="{Binding NombreIngrediente}" Width="*"/>
+                            
+                            <DataGridTemplateColumn Header="Cantidad" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding CantidadRequerida, StringFormat='{}{0:F2}', UpdateSourceTrigger=PropertyChanged}" 
+                                                Padding="5" TextAlignment="Center" 
+                                                TextChanged="CantidadIngrediente_TextChanged"
+                                                GotFocus="CantidadTextBox_GotFocus"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            
+                            <DataGridTextColumn Header="Unidad" Binding="{Binding UnidadMedida}" Width="60"/>
+                            <DataGridTextColumn Header="Stock" Binding="{Binding StockDisponible, StringFormat='{}{0:F2}'}" 
+                                               Width="70" ElementStyle="{StaticResource CenterAlignedCell}"/>
+                            
+                            <DataGridTemplateColumn Header="✅" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                                  FontWeight="Bold" Style="{StaticResource BoolToIconStyle}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="Costo" Binding="{Binding CostoTotal, StringFormat='{}{0:C2}'}" 
+                                               Width="80" ElementStyle="{StaticResource CenterAlignedCell}"/>
+                            
+                            <DataGridTemplateColumn Header="🗑️" Width="50">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="🗑️" FontSize="10" Padding="5" 
+                                               Background="#DC2626" Foreground="White" BorderThickness="0"
+                                               Click="BtnQuitarIngrediente_Click" 
+                                               Tag="{Binding}" Cursor="Hand"
+                                               ToolTip="Quitar de la receta"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="White" CornerRadius="10" Padding="15" Margin="0,20,0,0" 
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" x:Name="TxtEstadoFormulario" 
+                          Text="✅ Listo para configurar proceso de fabricación" 
+                          FontSize="14" VerticalAlignment="Center" Foreground="#059669"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="🔄 Recalcular Costos" Style="{StaticResource SecondaryButtonStyle}" 
+                           x:Name="BtnRecalcularCostos" Click="BtnRecalcularCostos_Click"/>
+                    <Button Content="👁️ Vista Previa" Style="{StaticResource SecondaryButtonStyle}" 
+                           x:Name="BtnVistaPrevia" Click="BtnVistaPrevia_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

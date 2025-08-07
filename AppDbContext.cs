@@ -15,6 +15,10 @@ namespace costbenefi.Data
         public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<RawMaterial> RawMaterials { get; set; }
         public DbSet<Movimiento> Movimientos { get; set; }
+        public DbSet<ProcesoFabricacion> ProcesosFabricacion { get; set; }
+        public DbSet<RecetaDetalle> RecetaDetalles { get; set; }
+        public DbSet<LoteFabricacion> LotesFabricacion { get; set; }
+
 
         // ========== ✅ DbSets PARA POS ==========
         public DbSet<CorteCaja> CortesCaja { get; set; }
@@ -669,6 +673,215 @@ namespace costbenefi.Data
                 entity.HasIndex(e => e.IntegradaPOS);
                 entity.HasIndex(e => e.Eliminado);
             });
+
+            modelBuilder.Entity<ProcesoFabricacion>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.NombreProducto)
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entity.Property(e => e.Descripcion)
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.CategoriaProducto)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.UnidadMedidaProducto)
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasDefaultValue("L");
+
+                entity.Property(e => e.RendimientoEsperado)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.TiempoFabricacionMinutos)
+                    .HasDefaultValue(60);
+
+                entity.Property(e => e.PorcentajeMerma)
+                    .HasColumnType("decimal(5,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.CostoManoObra)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                // Costos opcionales
+                entity.Property(e => e.IncluirCostoEnergia)
+                    .HasDefaultValue(false);
+                entity.Property(e => e.CostoEnergia)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.IncluirCostoTransporte)
+                    .HasDefaultValue(false);
+                entity.Property(e => e.CostoTransporte)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.IncluirCostoEmpaque)
+                    .HasDefaultValue(false);
+                entity.Property(e => e.CostoEmpaque)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.IncluirOtrosCostos)
+                    .HasDefaultValue(false);
+                entity.Property(e => e.OtrosCostos)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+                entity.Property(e => e.DescripcionOtrosCostos)
+                    .HasMaxLength(200);
+
+                entity.Property(e => e.TipoFabricacion)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("Lote");
+
+                entity.Property(e => e.MargenObjetivo)
+                    .HasColumnType("decimal(5,2)")
+                    .HasDefaultValue(30);
+
+                entity.Property(e => e.Activo)
+                    .HasDefaultValue(true);
+
+                entity.Property(e => e.NotasEspeciales)
+                    .HasMaxLength(1000);
+
+                entity.Property(e => e.FechaCreacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.FechaActualizacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.UsuarioCreador)
+                    .HasMaxLength(100);
+
+                // Índices para ProcesoFabricacion
+                entity.HasIndex(e => e.NombreProducto);
+                entity.HasIndex(e => e.CategoriaProducto);
+                entity.HasIndex(e => e.Activo);
+                entity.HasIndex(e => e.TipoFabricacion);
+                entity.HasIndex(e => e.FechaCreacion);
+                entity.HasIndex(e => e.UsuarioCreador);
+            });
+            modelBuilder.Entity<RecetaDetalle>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.CantidadRequerida)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.UnidadMedida)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.CostoUnitario)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.EsIngredientePrincipal)
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.OrdenAdicion)
+                    .HasDefaultValue(1);
+
+                entity.Property(e => e.NotasIngrediente)
+                    .HasMaxLength(300);
+
+                entity.Property(e => e.FechaCreacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.FechaActualizacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                // Relaciones para RecetaDetalle
+                entity.HasOne(e => e.ProcesoFabricacion)
+                      .WithMany(p => p.Ingredientes)
+                      .HasForeignKey(e => e.ProcesoFabricacionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.RawMaterial)
+                      .WithMany()
+                      .HasForeignKey(e => e.RawMaterialId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Índices para RecetaDetalle
+                entity.HasIndex(e => e.ProcesoFabricacionId);
+                entity.HasIndex(e => e.RawMaterialId);
+                entity.HasIndex(e => e.EsIngredientePrincipal);
+                entity.HasIndex(e => e.OrdenAdicion);
+            });
+            modelBuilder.Entity<LoteFabricacion>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.NumeroLote)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.CantidadPlanificada)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.CantidadObtenida)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.FechaInicio)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.Estado)
+                    .HasMaxLength(20)
+                    .HasDefaultValue("Planificado");
+
+                entity.Property(e => e.CostoMaterialesReal)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.CostoManoObraReal)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.CostosAdicionalesReal)
+                    .HasColumnType("decimal(18,4)")
+                    .HasDefaultValue(0);
+
+                entity.Property(e => e.OperadorResponsable)
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.NotasProduccion)
+                    .HasMaxLength(1000);
+
+                entity.Property(e => e.FechaCreacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                // Relaciones para LoteFabricacion
+                entity.HasOne(e => e.ProcesoFabricacion)
+                      .WithMany(p => p.LotesFabricados)
+                      .HasForeignKey(e => e.ProcesoFabricacionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.ProductoResultante)
+                      .WithMany()
+                      .HasForeignKey(e => e.ProductoResultanteId)
+                      .OnDelete(DeleteBehavior.SetNull)
+                      .IsRequired(false);
+
+                // Índices para LoteFabricacion
+                entity.HasIndex(e => e.NumeroLote).IsUnique();
+                entity.HasIndex(e => e.ProcesoFabricacionId);
+                entity.HasIndex(e => e.Estado);
+                entity.HasIndex(e => e.FechaInicio);
+                entity.HasIndex(e => e.FechaFin);
+                entity.HasIndex(e => e.OperadorResponsable);
+                entity.HasIndex(e => e.ProductoResultanteId);
+            });
+
+
 
             // ========== ✅ CONFIGURACIÓN PARA ConfiguracionBascula ==========
             modelBuilder.Entity<ConfiguracionBascula>(entity =>
@@ -1334,6 +1547,77 @@ namespace costbenefi.Data
             }
         }
 
+        public IQueryable<ProcesoFabricacion> GetProcesosActivos()
+        {
+            return ProcesosFabricacion.Where(p => p.Activo);
+        }
+        public async Task<List<ProcesoFabricacion>> GetProcesosFabricablesAsync()
+        {
+            return await ProcesosFabricacion
+                .Include(p => p.Ingredientes)
+                    .ThenInclude(i => i.RawMaterial)
+                .Where(p => p.Activo)
+                .ToListAsync()
+                .ContinueWith(task => task.Result.Where(p => p.PuedeFabricarse).ToList());
+        }
+        public async Task<bool> PuedeFabricarCantidadAsync(int procesoId, decimal cantidad)
+        {
+            var proceso = await ProcesosFabricacion
+                .Include(p => p.Ingredientes)
+                    .ThenInclude(i => i.RawMaterial)
+                .FirstOrDefaultAsync(p => p.Id == procesoId && p.Activo);
+
+            return proceso?.PuedeFabricar(cantidad) ?? false;
+        }
+        public async Task<decimal> GetCantidadMaximaFabricableAsync(int procesoId)
+        {
+            var proceso = await ProcesosFabricacion
+                .Include(p => p.Ingredientes)
+                    .ThenInclude(i => i.RawMaterial)
+                .FirstOrDefaultAsync(p => p.Id == procesoId && p.Activo);
+
+            if (proceso?.Ingredientes == null || !proceso.Ingredientes.Any())
+                return 0;
+
+            var cantidadesMaximas = proceso.Ingredientes
+                .Where(i => i.RawMaterial != null && i.CantidadRequerida > 0)
+                .Select(i => i.ObtenerMaximaCantidadPosible())
+                .ToList();
+
+            return cantidadesMaximas.Any() ? cantidadesMaximas.Min() : 0;
+        }
+        public IQueryable<LoteFabricacion> GetLotesEnProceso()
+        {
+            return LotesFabricacion.Where(l => l.Estado == "En Proceso");
+        }
+
+        public async Task<dynamic> GetEstadisticasFabricacionAsync()
+        {
+            var totalProcesos = await ProcesosFabricacion.CountAsync();
+            var procesosActivos = await ProcesosFabricacion.CountAsync(p => p.Activo);
+            var lotesHoy = await LotesFabricacion.CountAsync(l => l.FechaInicio.Date == DateTime.Today);
+            var lotesEnProceso = await LotesFabricacion.CountAsync(l => l.Estado == "En Proceso");
+
+            return new
+            {
+                TotalProcesos = totalProcesos,
+                ProcesosActivos = procesosActivos,
+                LotesHoy = lotesHoy,
+                LotesEnProceso = lotesEnProceso
+            };
+        }
+        public IQueryable<ProcesoFabricacion> BuscarProcesos(string texto)
+        {
+            texto = texto.ToLower();
+            return ProcesosFabricacion.Where(p =>
+                p.NombreProducto.ToLower().Contains(texto) ||
+                p.Descripcion.ToLower().Contains(texto) ||
+                p.CategoriaProducto.ToLower().Contains(texto));
+        }
+        public IQueryable<ProcesoFabricacion> GetProcesosPorCategoria(string categoria)
+        {
+            return ProcesosFabricacion.Where(p => p.CategoriaProducto == categoria && p.Activo);
+        }
         // ===== MÉTODOS EXISTENTES DE SaveChanges =====
         public override int SaveChanges()
         {
@@ -1480,6 +1764,7 @@ namespace costbenefi.Data
                 }
             }
 
+
             var promocionEntries = ChangeTracker.Entries<PromocionVenta>();
             foreach (var entry in promocionEntries)
             {
@@ -1491,6 +1776,47 @@ namespace costbenefi.Data
                 else if (entry.State == EntityState.Modified)
                 {
                     entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+            }
+
+            var procesoEntries = ChangeTracker.Entries<ProcesoFabricacion>();
+            foreach (var entry in procesoEntries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.FechaCreacion = DateTime.Now;
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+            }
+
+            var recetaEntries = ChangeTracker.Entries<RecetaDetalle>();
+            foreach (var entry in recetaEntries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.FechaCreacion = DateTime.Now;
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.FechaActualizacion = DateTime.Now;
+                }
+            }
+
+            var loteEntries = ChangeTracker.Entries<LoteFabricacion>();
+            foreach (var entry in loteEntries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.FechaCreacion = DateTime.Now;
+                    if (string.IsNullOrEmpty(entry.Entity.NumeroLote))
+                    {
+                        entry.Entity.NumeroLote = LoteFabricacion.GenerarNumeroLote();
+                    }
                 }
             }
         }

@@ -553,7 +553,7 @@ namespace costbenefi
         }
 
         // ========== CARGA DE DATOS POS ==========
-        private async Task LoadDataPuntoVenta()
+        public async Task LoadDataPuntoVenta()
         {
             try
             {
@@ -2360,7 +2360,7 @@ namespace costbenefi
                 TxtStatusPOS.Text = "❌ Error al configurar comisiones";
             }
         }
-        private async Task RefrescarProductosAutomatico(string motivo = "")
+        public async Task RefrescarProductosAutomatico(string motivo = "")
         {
             try
             {
@@ -3143,7 +3143,7 @@ namespace costbenefi
         {
             await RefreshData();
         }
-        private async Task RefreshData()
+        public async Task RefreshData()
         {
             try
             {
