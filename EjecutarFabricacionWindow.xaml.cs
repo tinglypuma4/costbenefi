@@ -641,6 +641,128 @@ namespace costbenefi
 
         #region Lógica de Fabricación
 
+        private async Task NotificarVentanaFabricacion(string motivo)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔄 Buscando ventana de fabricación para actualizar: {motivo}");
+
+                // ✅ BUSCAR VENTANA DE GESTIÓN DE FABRICACIÓN
+                // Ajustar el nombre según tu ventana (puede ser GestionFabricacionWindow, FabricacionWindow, etc.)
+                var fabricacionWindow = Application.Current.Windows
+                    .OfType<Window>()
+                    .FirstOrDefault(w => w.GetType().Name.Contains("Fabricacion") && w != this);
+
+                if (fabricacionWindow != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"✅ Ventana fabricación encontrada: {fabricacionWindow.GetType().Name}");
+
+                    // ✅ USAR REFLECTION PARA LLAMAR MÉTODOS DE ACTUALIZACIÓN
+                    var windowType = fabricacionWindow.GetType();
+
+                    // Buscar métodos de actualización comunes
+                    var cargarProcesosMethod = windowType.GetMethod("CargarProcesos",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
+
+                    var actualizarEstadisticasMethod = windowType.GetMethod("ActualizarEstadisticas",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
+
+                    // ✅ EJECUTAR EN EL HILO DE LA VENTANA
+                    await fabricacionWindow.Dispatcher.InvokeAsync(async () =>
+                    {
+                        try
+                        {
+                            // Llamar CargarProcesos si existe
+                            if (cargarProcesosMethod != null)
+                            {
+                                System.Diagnostics.Debug.WriteLine("🔄 Llamando CargarProcesos...");
+
+                                if (cargarProcesosMethod.ReturnType == typeof(Task))
+                                {
+                                    await (Task)cargarProcesosMethod.Invoke(fabricacionWindow, null);
+                                }
+                                else
+                                {
+                                    cargarProcesosMethod.Invoke(fabricacionWindow, null);
+                                }
+                            }
+
+                            // Llamar ActualizarEstadisticas si existe
+                            if (actualizarEstadisticasMethod != null)
+                            {
+                                System.Diagnostics.Debug.WriteLine("📊 Llamando ActualizarEstadisticas...");
+
+                                if (actualizarEstadisticasMethod.ReturnType == typeof(Task))
+                                {
+                                    await (Task)actualizarEstadisticasMethod.Invoke(fabricacionWindow, null);
+                                }
+                                else
+                                {
+                                    actualizarEstadisticasMethod.Invoke(fabricacionWindow, null);
+                                }
+                            }
+
+                            // ✅ ACTUALIZAR STATUS EN LA VENTANA
+                            var txtEstadoProperty = windowType.GetProperty("TxtEstadoVentana",
+                                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
+
+                            if (txtEstadoProperty != null)
+                            {
+                                var txtEstado = txtEstadoProperty.GetValue(fabricacionWindow) as TextBlock;
+                                if (txtEstado != null)
+                                {
+                                    txtEstado.Text = $"✅ Actualizado: {motivo}";
+                                }
+                            }
+
+                            System.Diagnostics.Debug.WriteLine("🎉 Ventana fabricación actualizada exitosamente");
+                        }
+                        catch (Exception invokeEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"❌ Error invocando métodos: {invokeEx.Message}");
+                        }
+                    });
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ Ventana de fabricación no encontrada");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error notificando ventana fabricación: {ex.Message}");
+                // No lanzar excepción, solo registrar el error
+            }
+        }
+
+        public async Task ActualizarDespuesDeFabricacion(string motivo)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔄 FabricacionProceso actualizándose: {motivo}");
+
+                // ✅ RECARGAR TODO AUTOMÁTICAMENTE
+                try
+                {
+                    await NotificarVentanaFabricacion($"Producto fabricado: {_proceso.NombreProducto}");
+                    System.Diagnostics.Debug.WriteLine("🔄 Ventana fabricación notificada");
+                }
+                catch (Exception fabricNotifEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Error notificando fabricación: {fabricNotifEx.Message}");
+                }
+                // ✅ ACTUALIZAR STATUS
+                TxtEstadoVentana.Text = $"✅ Actualizado: {motivo} - {DateTime.Now:HH:mm:ss}";
+
+                System.Diagnostics.Debug.WriteLine("🎉 FabricacionProceso actualizado automáticamente");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error actualizando FabricacionProceso: {ex.Message}");
+                TxtEstadoVentana.Text = "❌ Error en actualización automática";
+            }
+        }
+
         /// <summary>
         /// Ejecuta el proceso completo de fabricación
         /// </summary>
@@ -728,12 +850,22 @@ namespace costbenefi
                 try
                 {
                     await NotificarActualizacionMainWindow($"Producto fabricado: {productoTerminado.NombreArticulo}");
+
                     System.Diagnostics.Debug.WriteLine("🔄 MainWindow notificado para actualización automática");
                 }
                 catch (Exception notifEx)
                 {
                     System.Diagnostics.Debug.WriteLine($"⚠️ Error al notificar MainWindow: {notifEx.Message}");
                     // No lanzar excepción por esto, la fabricación fue exitosa
+                }
+                try
+                {
+                    await NotificarVentanaFabricacion($"Producto fabricado: {productoTerminado.NombreArticulo}");
+                    System.Diagnostics.Debug.WriteLine("🔄 Ventana fabricación notificada");
+                }
+                catch (Exception fabricNotifEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Error notificando fabricación: {fabricNotifEx.Message}");
                 }
 
                 return lote;
@@ -845,93 +977,189 @@ namespace costbenefi
         /// </summary>
         private async Task<RawMaterial> CrearProductoResultante(AppDbContext context, LoteFabricacion lote, ProcesoFabricacion proceso, decimal cantidadFabricar)
         {
-            // ✅ CALCULAR CANTIDADES Y COSTOS
-            decimal cantidadFinal = cantidadFabricar * (1 - proceso.PorcentajeMerma / 100);
-            decimal costoUnitario = cantidadFinal > 0 ? lote.CostoTotalReal / cantidadFinal : 0;
-
-            // ✅ PREGUNTAR POR CÓDIGO DE BARRAS Y DATOS ADICIONALES
-            var datosProducto = await SolicitarDatosProductoTerminado(proceso, lote.NumeroLote, cantidadFinal, costoUnitario);
-
-            if (datosProducto == null)
+            try
             {
-                throw new OperationCanceledException("Creación de producto cancelada por el usuario");
+                // ✅ CALCULAR CANTIDADES Y COSTOS
+                decimal cantidadFinal = cantidadFabricar * (1 - proceso.PorcentajeMerma / 100);
+                decimal costoUnitario = cantidadFinal > 0 ? lote.CostoTotalReal / cantidadFinal : 0;
+
+                System.Diagnostics.Debug.WriteLine($"🏭 CREANDO PRODUCTO TERMINADO UNIFICADO");
+                System.Diagnostics.Debug.WriteLine($"   📦 Proceso: {proceso.NombreProducto}");
+                System.Diagnostics.Debug.WriteLine($"   📊 Cantidad final: {cantidadFinal:F2} {proceso.UnidadMedidaProducto}");
+                System.Diagnostics.Debug.WriteLine($"   💰 Costo unitario: ${costoUnitario:F4}");
+
+                // ✅ PASO 1: BUSCAR PRODUCTO EXISTENTE PARA ESTE PROCESO
+                // Usar nombre base sin número de lote para unificar productos
+                string nombreProductoBase = $"{proceso.NombreProducto}";
+                string categoriaBase = $"Fabricados - {proceso.CategoriaProducto}";
+
+                var productoExistente = await context.RawMaterials
+                    .FirstOrDefaultAsync(p =>
+                        p.NombreArticulo == nombreProductoBase &&
+                        p.Categoria == categoriaBase &&
+                        p.Proveedor == "Fabricación Propia" &&
+                        !p.Eliminado);
+
+                RawMaterial productoFinal;
+
+                if (productoExistente != null)
+                {
+                    // ✅ CASO 1: PRODUCTO YA EXISTE - AGREGAR STOCK
+                    System.Diagnostics.Debug.WriteLine($"✅ PRODUCTO EXISTENTE ENCONTRADO: {productoExistente.NombreArticulo}");
+                    System.Diagnostics.Debug.WriteLine($"   📦 Stock actual: {productoExistente.StockTotal:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   📦 Agregando: {cantidadFinal:F2}");
+                    System.Diagnostics.Debug.WriteLine($"   📦 Stock nuevo: {productoExistente.StockTotal + cantidadFinal:F2}");
+
+                    // ✅ ACTUALIZAR STOCK EXISTENTE
+                    productoExistente.StockAntiguo = productoExistente.StockNuevo;
+                    productoExistente.StockNuevo = productoExistente.StockTotal + cantidadFinal;
+
+                    // ✅ ACTUALIZAR COSTOS SI EL NUEVO ES MEJOR
+                    if (costoUnitario > 0 && costoUnitario != productoExistente.PrecioConIVA)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"   💰 Actualizando costos:");
+                        System.Diagnostics.Debug.WriteLine($"      • Costo anterior: ${productoExistente.PrecioConIVA:F4}");
+                        System.Diagnostics.Debug.WriteLine($"      • Costo nuevo: ${costoUnitario:F4}");
+
+                        // Usar promedio ponderado de costos
+                        decimal stockAnterior = productoExistente.StockAntiguo;
+                        decimal costoAnterior = productoExistente.PrecioConIVA;
+                        decimal stockTotal = stockAnterior + cantidadFinal;
+
+                        decimal costoPromedio = stockTotal > 0
+                            ? ((stockAnterior * costoAnterior) + (cantidadFinal * costoUnitario)) / stockTotal
+                            : costoUnitario;
+
+                        productoExistente.PrecioPorUnidad = costoPromedio;
+                        productoExistente.PrecioConIVA = costoPromedio;
+                        productoExistente.PrecioSinIVA = costoPromedio / 1.16m;
+                        productoExistente.PrecioBaseConIVA = costoPromedio;
+                        productoExistente.PrecioBaseSinIVA = costoPromedio / 1.16m;
+
+                        System.Diagnostics.Debug.WriteLine($"      • Costo promedio final: ${costoPromedio:F4}");
+                    }
+
+                    // ✅ ACTUALIZAR INFORMACIÓN DE FABRICACIÓN
+                    productoExistente.FechaActualizacion = DateTime.Now;
+
+                    // ✅ AGREGAR INFORMACIÓN DEL LOTE A OBSERVACIONES
+                    var infoLote = $"\n[{DateTime.Now:dd/MM/yyyy HH:mm}] Lote {lote.NumeroLote}: +{cantidadFinal:F2} {proceso.UnidadMedidaProducto} " +
+                                  $"(Costo: ${costoUnitario:F4}) - {lote.OperadorResponsable}";
+
+                    if (productoExistente.Observaciones == null || productoExistente.Observaciones.Length > 2000)
+                    {
+                        // Si las observaciones son muy largas, mantener solo las últimas
+                        productoExistente.Observaciones = $"Producto fabricado - Histórico truncado{infoLote}";
+                    }
+                    else
+                    {
+                        productoExistente.Observaciones += infoLote;
+                    }
+
+                    productoFinal = productoExistente;
+
+                    System.Diagnostics.Debug.WriteLine($"✅ STOCK AGREGADO AL PRODUCTO EXISTENTE");
+                }
+                else
+                {
+                    // ✅ CASO 2: PRODUCTO NUEVO - SOLICITAR DATOS Y CREAR
+                    System.Diagnostics.Debug.WriteLine($"🆕 PRODUCTO NUEVO - Solicitando datos al usuario");
+
+                    var datosProducto = await SolicitarDatosProductoTerminado(proceso, lote.NumeroLote, cantidadFinal, costoUnitario);
+
+                    if (datosProducto == null)
+                    {
+                        throw new OperationCanceledException("Creación de producto cancelada por el usuario");
+                    }
+
+                    // ✅ CREAR PRODUCTO NUEVO
+                    productoFinal = new RawMaterial
+                    {
+                        NombreArticulo = nombreProductoBase, // ✅ SIN número de lote para unificar
+                        Categoria = categoriaBase,
+                        UnidadMedida = proceso.UnidadMedidaProducto,
+
+                        // ✅ STOCK INICIAL
+                        StockAntiguo = 0,
+                        StockNuevo = cantidadFinal,
+
+                        // ✅ PRECIOS Y COSTOS
+                        PrecioPorUnidad = costoUnitario,
+                        PrecioConIVA = costoUnitario,
+                        PrecioSinIVA = costoUnitario / 1.16m,
+                        PrecioBaseConIVA = costoUnitario,
+                        PrecioBaseSinIVA = costoUnitario / 1.16m,
+
+                        // ✅ DATOS DEL PROVEEDOR Y ORIGEN
+                        Proveedor = "Fabricación Propia",
+                        CodigoBarras = datosProducto.CodigoBarras,
+
+                        // ✅ OBSERVACIONES DETALLADAS
+                        Observaciones = $"Producto fabricado el {DateTime.Now:dd/MM/yyyy HH:mm}\n" +
+                                       $"Primer lote: {lote.NumeroLote}\n" +
+                                       $"Operador: {lote.OperadorResponsable}\n" +
+                                       $"Proceso origen: {proceso.NombreProducto}\n" +
+                                       $"Cantidad inicial: {cantidadFinal:F2} {proceso.UnidadMedidaProducto}\n" +
+                                       $"Costo unitario: ${costoUnitario:F4}",
+
+                        // ✅ CONFIGURACIÓN PARA VENTA
+                        ActivoParaVenta = datosProducto.ActivoParaVenta,
+                        PrecioVenta = datosProducto.PrecioVenta,
+                        PrecioVentaConIVA = datosProducto.PrecioVenta * 1.16m,
+                        MargenObjetivo = datosProducto.MargenObjetivo,
+                        StockMinimoVenta = datosProducto.StockMinimoVenta,
+
+                        // ✅ ALERTAS
+                        AlertaStockBajo = Math.Max(1, cantidadFinal * 0.1m),
+
+                        // ✅ FECHAS
+                        FechaCreacion = DateTime.Now,
+                        FechaActualizacion = DateTime.Now,
+                        FechaVencimiento = datosProducto.FechaVencimiento
+                    };
+
+                    // ✅ AGREGAR A LA BASE DE DATOS
+                    context.RawMaterials.Add(productoFinal);
+                    System.Diagnostics.Debug.WriteLine($"🆕 PRODUCTO NUEVO CREADO: {productoFinal.NombreArticulo}");
+                }
+
+                // ✅ GUARDAR CAMBIOS
+                await context.SaveChangesAsync();
+
+                // ✅ CREAR MOVIMIENTO DE ENTRADA (SIEMPRE)
+                var movimientoEntrada = new Movimiento
+                {
+                    RawMaterialId = productoFinal.Id,
+                    TipoMovimiento = productoExistente != null ? "Entrada por Fabricación (Stock)" : "Entrada por Fabricación (Nuevo)",
+                    Cantidad = cantidadFinal,
+                    PrecioConIVA = costoUnitario,
+                    PrecioSinIVA = costoUnitario / 1.16m,
+                    UnidadMedida = productoFinal.UnidadMedida,
+                    Motivo = $"Lote {lote.NumeroLote} - {proceso.NombreProducto} ({lote.OperadorResponsable})",
+                    Usuario = lote.OperadorResponsable,
+                    FechaMovimiento = DateTime.Now,
+                    NumeroDocumento = lote.NumeroLote,
+                    Proveedor = "Fabricación Propia",
+                    StockAnterior = productoFinal.StockAntiguo,
+                    StockPosterior = productoFinal.StockNuevo
+                };
+
+                context.Movimientos.Add(movimientoEntrada);
+                await context.SaveChangesAsync();
+
+                System.Diagnostics.Debug.WriteLine($"✅ PRODUCTO TERMINADO PROCESADO:");
+                System.Diagnostics.Debug.WriteLine($"   📦 Producto: {productoFinal.NombreArticulo} (ID: {productoFinal.Id})");
+                System.Diagnostics.Debug.WriteLine($"   📊 Stock final: {productoFinal.StockNuevo:F2} {productoFinal.UnidadMedida}");
+                System.Diagnostics.Debug.WriteLine($"   💰 Costo final: ${productoFinal.PrecioConIVA:F4}");
+                System.Diagnostics.Debug.WriteLine($"   🔄 Movimiento: #{movimientoEntrada.Id}");
+
+                return productoFinal;
             }
-
-            // ✅ CREAR PRODUCTO EN RawMaterial
-            var productoFinal = new RawMaterial
+            catch (Exception ex)
             {
-                NombreArticulo = datosProducto.NombreProducto,
-                Categoria = datosProducto.Categoria,
-                UnidadMedida = proceso.UnidadMedidaProducto,
-
-                // ✅ STOCK INICIAL
-                StockAntiguo = 0,
-                StockNuevo = cantidadFinal,
-
-                // ✅ PRECIOS Y COSTOS
-                PrecioPorUnidad = costoUnitario,
-                PrecioConIVA = costoUnitario,
-                PrecioSinIVA = costoUnitario / 1.16m,
-                PrecioBaseConIVA = costoUnitario,
-                PrecioBaseSinIVA = costoUnitario / 1.16m,
-
-                // ✅ DATOS DEL PROVEEDOR Y ORIGEN
-                Proveedor = "Fabricación Propia",
-                CodigoBarras = datosProducto.CodigoBarras,
-
-                // ✅ OBSERVACIONES DETALLADAS
-                Observaciones = $"Producto fabricado el {DateTime.Now:dd/MM/yyyy HH:mm}\n" +
-                               $"Lote: {lote.NumeroLote}\n" +
-                               $"Operador: {lote.OperadorResponsable}\n" +
-                               $"Proceso origen: {proceso.NombreProducto}\n" +
-                               $"Cantidad planificada: {cantidadFabricar:F2}\n" +
-                               $"Merma aplicada: {proceso.PorcentajeMerma:F1}%\n" +
-                               $"Costo total lote: {lote.CostoTotalReal:C2}",
-
-                // ✅ CONFIGURACIÓN PARA VENTA
-                ActivoParaVenta = datosProducto.ActivoParaVenta,
-                PrecioVenta = datosProducto.PrecioVenta,
-                PrecioVentaConIVA = datosProducto.PrecioVenta * 1.16m,
-                MargenObjetivo = datosProducto.MargenObjetivo,
-                StockMinimoVenta = datosProducto.StockMinimoVenta,
-
-                // ✅ ALERTAS
-                AlertaStockBajo = Math.Max(1, cantidadFinal * 0.1m), // 10% como alerta
-
-                // ✅ FECHAS
-                FechaCreacion = DateTime.Now,
-                FechaActualizacion = DateTime.Now,
-                FechaVencimiento = datosProducto.FechaVencimiento
-            };
-
-            // ✅ AGREGAR A LA BASE DE DATOS
-            context.RawMaterials.Add(productoFinal);
-            await context.SaveChangesAsync();
-
-            // ✅ CREAR MOVIMIENTO DE ENTRADA
-            var movimientoEntrada = new Movimiento
-            {
-                RawMaterialId = productoFinal.Id,
-                TipoMovimiento = "Entrada por Fabricación",
-                Cantidad = cantidadFinal,
-                PrecioConIVA = costoUnitario,
-                PrecioSinIVA = costoUnitario / 1.16m,
-                UnidadMedida = productoFinal.UnidadMedida,
-                Motivo = $"Producto fabricado - Lote {lote.NumeroLote}",
-                Usuario = lote.OperadorResponsable,
-                FechaMovimiento = DateTime.Now,
-                NumeroDocumento = lote.NumeroLote,
-                Proveedor = "Fabricación Propia",
-                StockAnterior = 0,
-                StockPosterior = cantidadFinal
-            };
-
-            context.Movimientos.Add(movimientoEntrada);
-            await context.SaveChangesAsync();
-
-            System.Diagnostics.Debug.WriteLine($"✅ Producto creado: {productoFinal.NombreArticulo} (ID: {productoFinal.Id})");
-
-            return productoFinal;
+                System.Diagnostics.Debug.WriteLine($"💥 ERROR en CrearProductoResultante: {ex.Message}");
+                throw;
+            }
         }
         /// <summary>
         /// Actualiza el lote con el producto creado y lo completa

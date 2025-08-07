@@ -3,7 +3,7 @@ namespace costbenefi.Models
     /// <summary>
     /// Estados posibles de un lote de fabricación
     /// </summary>
-    public enum EstadoLote
+    public enum estatusLote
     {
         Planificado = 0,
         EnProceso = 1,

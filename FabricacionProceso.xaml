@@ -326,8 +326,8 @@
                         <DataGridTextColumn Header="📅 Actualizado" Binding="{Binding FechaActualizacion, StringFormat='{}{0:dd/MM/yy HH:mm}'}" 
                                            Width="120" FontSize="11"/>
 
-                        <!-- Acciones -->
-                        <DataGridTemplateColumn Header="🔧 Acciones" Width="200">
+                        <!-- ✅ ACCIONES - CORREGIDAS -->
+                        <DataGridTemplateColumn Header="🔧 Acciones" Width="250">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -382,7 +382,13 @@
                                             </Button.ToolTip>
                                         </Button>
                                         
-                                        <!-- Activar/Desactivar - ✅ CORRECCIÓN APLICADA -->
+                                        <!-- ✅ ELIMINAR PROCESO -->
+                                        <Button Content="🗑️" ToolTip="Eliminar proceso" 
+                                               Style="{StaticResource ActionButtonStyle}"
+                                               Background="#DC2626" Foreground="White"
+                                               Click="BtnEliminarProceso_Click" Tag="{Binding}"/>
+                                        
+                                        <!-- Activar/Desactivar -->
                                         <Button Foreground="White" 
                                                Click="BtnActivarDesactivar_Click" 
                                                Tag="{Binding}">
@@ -431,6 +437,7 @@
                                                 </TextBlock>
                                             </Button.ToolTip>
                                         </Button>
+                                        
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

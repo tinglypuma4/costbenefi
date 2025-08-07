@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using Microsoft.EntityFrameworkCore;
 using costbenefi.Data;
 using costbenefi.Models;
-
+using System.Threading.Tasks;
 namespace costbenefi
 {
     public partial class FabricacionProceso : Window
@@ -57,10 +57,14 @@ namespace costbenefi
             }
         }
 
-        private async System.Threading.Tasks.Task CargarProcesos()
+        public async Task CargarProcesos() // ✅ CAMBIAR private por public
         {
             try
             {
+                // ✅ ACTUALIZAR STATUS
+                if (TxtEstadoVentana != null)
+                    TxtEstadoVentana.Text = "⏳ Recargando procesos...";
+
                 // ✅ VERIFICAR QUE DgProcesos ESTÉ INICIALIZADO
                 if (DgProcesos == null)
                 {
@@ -68,9 +72,14 @@ namespace costbenefi
                     return;
                 }
 
-                _procesosOriginales = await _context.ProcesosFabricacion
+                // ✅ USAR CONTEXTO FRESCO PARA EVITAR CONFLICTOS
+                using var context = new AppDbContext();
+
+                // ✅ CARGAR PROCESOS NO ELIMINADOS (AGREGAR FILTRO IMPORTANTE)
+                _procesosOriginales = await context.ProcesosFabricacion
                     .Include(p => p.Ingredientes)
                         .ThenInclude(i => i.RawMaterial)
+                   
                     .OrderByDescending(p => p.FechaActualizacion)
                     .ToListAsync();
 
@@ -80,15 +89,26 @@ namespace costbenefi
                 if (DgProcesos != null)
                 {
                     DgProcesos.ItemsSource = _procesosFiltrados;
-                    ActualizarInfoFiltros();
+                    ActualizarInfoFiltros(); // ✅ MANTENER TU MÉTODO EXISTENTE
                 }
+
+                // ✅ ACTUALIZAR STATUS DE ÉXITO
+                if (TxtEstadoVentana != null)
+                    TxtEstadoVentana.Text = $"✅ {_procesosOriginales.Count} procesos cargados";
+
+                System.Diagnostics.Debug.WriteLine($"🔄 Procesos recargados: {_procesosOriginales.Count} activos");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"❌ Error recargando procesos: {ex.Message}");
+
+                if (TxtEstadoVentana != null)
+                    TxtEstadoVentana.Text = "❌ Error al recargar procesos";
+
                 throw new Exception($"Error al cargar procesos: {ex.Message}");
             }
         }
-        private async System.Threading.Tasks.Task ActualizarEstadisticas()
+        public async System.Threading.Tasks.Task ActualizarEstadisticas()
         {
             try
             {
@@ -246,6 +266,64 @@ namespace costbenefi
             }
         }
 
+        private async void BtnEliminarProceso_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is ProcesoFabricacion proceso)
+            {
+                try
+                {
+                    var resultado = MessageBox.Show(
+                        $"¿Está seguro que desea eliminar el proceso '{proceso.NombreProducto}'?\n\n" +
+                        "⚠️ ADVERTENCIA:\n" +
+                        "• El proceso será eliminado permanentemente\n" +
+                        "• No se podrá fabricar más con esta receta\n" +
+                        "• Se mantendrá el historial de lotes ya fabricados\n\n" +
+                        "Esta acción NO se puede deshacer.",
+                        "⚠️ Confirmar Eliminación de Proceso",
+                        MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                    if (resultado == MessageBoxResult.Yes)
+                    {
+                        TxtEstadoVentana.Text = $"🗑️ Eliminando proceso: {proceso.NombreProducto}...";
+
+                        using var context = new AppDbContext();
+                        var procesoEliminar = await context.ProcesosFabricacion
+                            .FirstOrDefaultAsync(p => p.Id == proceso.Id);
+
+                        if (procesoEliminar != null)
+                        {
+                            // Eliminar físicamente el proceso
+                            context.ProcesosFabricacion.Remove(procesoEliminar);
+                            await context.SaveChangesAsync();
+
+                            // Actualizar la interfaz
+                            await CargarProcesos();
+                            await ActualizarEstadisticas();
+
+                            TxtEstadoVentana.Text = $"✅ Proceso '{proceso.NombreProducto}' eliminado correctamente";
+
+                            MessageBox.Show($"El proceso '{proceso.NombreProducto}' ha sido eliminado correctamente.",
+                                          "Proceso Eliminado", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Error: El proceso no fue encontrado en la base de datos.",
+                                          "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                    else
+                    {
+                        TxtEstadoVentana.Text = "✅ Gestión de Fabricación";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TxtEstadoVentana.Text = "❌ Error al eliminar proceso";
+                    MessageBox.Show($"Error al eliminar proceso:\n\n{ex.Message}",
+                                   "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
         private void BtnEditar_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is ProcesoFabricacion proceso)

@@ -39,6 +39,7 @@ namespace costbenefi
         private CorteCajaService _corteCajaService;
         private RawMaterial _ultimoProductoEscaneado = null;
         private DateTime _tiempoUltimoEscaneo = DateTime.MinValue;
+        private bool _modoEscanerActivo = false;
 
         private DescuentoAplicadoInfo _descuentoInfo = null;
 
@@ -832,7 +833,7 @@ namespace costbenefi
                 TxtStatusPOS.Text = "❌ Error al abrir corte de caja";
             }
         }
-        private bool _modoEscanerActivo = false;
+        
 
         private void BtnModoEscaner_Click(object sender, RoutedEventArgs e)
         {
@@ -3579,13 +3580,12 @@ namespace costbenefi
                         if (_unifiedScanner != null)
                         {
                             _unifiedScanner.SetContext(ScannerContext.PuntoVenta);
-                            _unifiedScanner.SetEnabled(true);
 
                             if (TxtEstadoEscaner != null)
                             {
-                                TxtEstadoEscaner.Text = "📱 ACTIVO";
+                                TxtEstadoEscaner.Text = "📱 INACTIVO";
                                 TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
-                                    new SolidColorBrush(Color.FromRgb(34, 197, 94)));
+                                    new SolidColorBrush(Color.FromRgb(107, 114, 128))); // Gris
                             }
                             System.Diagnostics.Debug.WriteLine("🔄 Escáner unificado cambiado a contexto: Punto de Venta");
                         }
@@ -3599,10 +3599,8 @@ namespace costbenefi
                         {
                             await VerificarEstadoCorteCaja();
                         }
-
                         if (TxtStatusPOS != null)
-                            TxtStatusPOS.Text = "✅ Sistema POS listo - Escáner USB+Serie activo";
-                        break;
+                            TxtStatusPOS.Text = "✅ Sistema POS listo - Escáner disponible (inactivo)"; break;
 
                     case 2: // Reportes
                         if (_unifiedScanner != null)
