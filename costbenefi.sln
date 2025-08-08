@@ -32,18 +32,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{46
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9-E21E-492B-83DD-6A5046CA4BA3}"
 	ProjectSection(SolutionItems) = preProject
-		CompletarProductoTerminadoWindow.xaml = CompletarProductoTerminadoWindow.xaml
-		CompletarProductoTerminadoWindow.xaml.cs = CompletarProductoTerminadoWindow.xaml.cs
-		CrearEditarProcesoWindow.xaml = CrearEditarProcesoWindow.xaml
-		CrearEditarProcesoWindow.xaml.cs = CrearEditarProcesoWindow.xaml.cs
-		EjecutarFabricacionWindow.xaml = EjecutarFabricacionWindow.xaml
-		EjecutarFabricacionWindow.xaml.cs = EjecutarFabricacionWindow.xaml.cs
-		FabricacionProceso.xaml = FabricacionProceso.xaml
-		FabricacionProceso.xaml.cs = FabricacionProceso.xaml.cs
-		FabricacionWindow.xaml = FabricacionWindow.xaml
-		FabricacionWindow.xaml.cs = FabricacionWindow.xaml.cs
-		ServiciosVentaWindow.xaml = ServiciosVentaWindow.xaml
-		ServiciosVentaWindow.xaml.cs = ServiciosVentaWindow.xaml.cs
+		AnalisisMainControl.xaml = AnalisisMainControl.xaml
+		AnalisisMainControl.xaml.cs = AnalisisMainControl.xaml.cs
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{CB0EA23B-7609-429B-AE5F-878D7E0ED6A5}"
@@ -173,6 +163,22 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UserControls", "UserControl
 		ProcesosMainControl.xaml.cs = ProcesosMainControl.xaml.cs
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Procesos", "Procesos", "{6496840B-58F4-4A1D-98A5-BD27123986B8}"
+	ProjectSection(SolutionItems) = preProject
+		CompletarProductoTerminadoWindow.xaml = CompletarProductoTerminadoWindow.xaml
+		CompletarProductoTerminadoWindow.xaml.cs = CompletarProductoTerminadoWindow.xaml.cs
+		CrearEditarProcesoWindow.xaml = CrearEditarProcesoWindow.xaml
+		CrearEditarProcesoWindow.xaml.cs = CrearEditarProcesoWindow.xaml.cs
+		EjecutarFabricacionWindow.xaml = EjecutarFabricacionWindow.xaml
+		EjecutarFabricacionWindow.xaml.cs = EjecutarFabricacionWindow.xaml.cs
+		FabricacionProceso.xaml = FabricacionProceso.xaml
+		FabricacionProceso.xaml.cs = FabricacionProceso.xaml.cs
+		FabricacionWindow.xaml = FabricacionWindow.xaml
+		FabricacionWindow.xaml.cs = FabricacionWindow.xaml.cs
+		ServiciosVentaWindow.xaml = ServiciosVentaWindow.xaml
+		ServiciosVentaWindow.xaml.cs = ServiciosVentaWindow.xaml.cs
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -196,6 +202,7 @@ Global
 		{E64E27AA-6F65-436E-9C78-DD7412632F90} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
 		{8866BB46-638D-4F6C-8D8D-06548F85F15B} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
 		{5548DE8E-3FC1-4470-9CAC-65EB4DE23161} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
+		{6496840B-58F4-4A1D-98A5-BD27123986B8} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {40C49D51-0910-42B9-B9B4-A1B5D9126FA2}

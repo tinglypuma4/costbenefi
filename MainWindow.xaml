@@ -1294,20 +1294,7 @@
             </TabItem>
 
             <TabItem Header="📈 Análisis" Style="{StaticResource TabItemStyle}">
-                <Grid Background="White">
-                    <Border Margin="50" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="📈" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,20"/>
-                            <TextBlock Text="Dashboard de Análisis" FontSize="24" FontWeight="Bold" 
-                                      HorizontalAlignment="Center" Foreground="#374151" Margin="0,0,0,10"/>
-                            <TextBlock Text="Visualice tendencias, métricas y análisis avanzados de su inventario" 
-                                      FontSize="14" HorizontalAlignment="Center" Foreground="#6B7280" Margin="0,0,0,30"/>
-                            <Button Content="📊 Ver Dashboard" Width="200" Height="40" 
-                                   Background="#8B5CF6" Foreground="White" FontSize="14" FontWeight="Bold"
-                                   BorderThickness="0" Click="BtnVerDashboard_Click"/>
-                        </StackPanel>
-                    </Border>
-                </Grid>
+                <local:AnalisisMainControl/>
             </TabItem>
 
             <TabItem Header="⚙️ Configuración" Style="{StaticResource TabItemStyle}">
