@@ -264,28 +264,8 @@ namespace costbenefi
                 _ticketPrinter = new TicketPrinter();
                 _corteCajaService = new CorteCajaService(_context);
 
-                // ✅ NUEVO: Inicializar UnifiedScannerService (USB + Serie)
-                _unifiedScanner = new UnifiedScannerService(this, _scannerProtection);
-
-                // ✅ CONFIGURAR EVENTOS DEL ESCÁNER UNIFICADO
-                _unifiedScanner.CodigoDetectado += OnCodigoEscaneadoPOS_Protected;
-
-                _unifiedScanner.EstadoCambiado += (s, mensaje) =>
-                {
-                    Dispatcher.BeginInvoke(() =>
-                    {
-                        if (TxtStatusPOS != null)
-                            TxtStatusPOS.Text = $"📱 {mensaje}";
-
-                        if (TxtEstadoEscaner != null)
-                        {
-                            TxtEstadoEscaner.Text = "📱 OK";
-                            TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
-                                new SolidColorBrush(Color.FromRgb(34, 197, 94)));
-                        }
-                        System.Diagnostics.Debug.WriteLine($"✅ Estado escáner: {mensaje}");
-                    });
-                };
+                // ✅ NUEVO: INICIALIZACIÓN INDEPENDIENTE DEL ESCÁNER
+                InicializarEscanerIndependiente();
 
                 // Inicializar báscula de forma segura
                 try
@@ -330,14 +310,15 @@ namespace costbenefi
                     _basculaService = null; // Continuar sin báscula
                 }
 
-                System.Diagnostics.Debug.WriteLine("✅ Servicios POS inicializados (escáner unificado USB+Serie + báscula)");
+                System.Diagnostics.Debug.WriteLine("✅ Servicios POS inicializados - Escáner independiente");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"⚠️ Error en InitializePOSServicesSafe: {ex.Message}");
-                // Continuar sin algunos servicios POS
+                // ✅ CRÍTICO: Continuar sin algunos servicios POS - NO lanzar excepción
             }
         }
+
         private async Task LoadDataSafe()
         {
             try
@@ -372,6 +353,92 @@ namespace costbenefi
                         TxtStatus.Text = "⚠️ Error al cargar datos - Sistema en modo limitado";
                 });
             }
+        }
+
+        private void InicializarEscanerIndependiente()
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(1000); // Esperar a que se cargue el POS
+
+                    System.Diagnostics.Debug.WriteLine("🔄 Inicializando escáner en hilo independiente...");
+
+                    // ✅ NUEVO: Inicializar UnifiedScannerService DE FORMA SEGURA
+                    _unifiedScanner = new UnifiedScannerService(this, _scannerProtection);
+
+                    // ✅ CONFIGURAR EVENTOS CON MANEJO DE ERRORES MEJORADO
+                    _unifiedScanner.CodigoDetectado += OnCodigoEscaneadoPOS_Protected;
+
+                    _unifiedScanner.EstadoCambiado += (s, mensaje) =>
+                    {
+                        try
+                        {
+                            Dispatcher.BeginInvoke(() =>
+                            {
+                                if (TxtStatusPOS != null)
+                                    TxtStatusPOS.Text = $"📱 {mensaje}";
+
+                                if (TxtEstadoEscaner != null)
+                                {
+                                    TxtEstadoEscaner.Text = "📱 OK";
+                                    TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
+                                        new SolidColorBrush(Color.FromRgb(34, 197, 94)));
+                                }
+                                System.Diagnostics.Debug.WriteLine($"✅ Estado escáner: {mensaje}");
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"⚠️ Error en evento EstadoCambiado: {ex.Message}");
+                        }
+                    };
+
+                    // ✅ ERROR HANDLER MEJORADO PARA ESCÁNER
+                    _unifiedScanner.ErrorOcurrido += (s, error) =>
+                    {
+                        try
+                        {
+                            Dispatcher.BeginInvoke(() =>
+                            {
+                                System.Diagnostics.Debug.WriteLine($"⚠️ Error escáner (no crítico): {error}");
+
+                                if (TxtEstadoEscaner != null)
+                                {
+                                    TxtEstadoEscaner.Text = "📱 ERROR";
+                                    TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
+                                        new SolidColorBrush(Color.FromRgb(239, 68, 68))); // Rojo
+                                }
+
+                                // ✅ NO actualizar TxtStatusPOS para no interferir con el POS
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"⚠️ Error manejando error escáner: {ex.Message}");
+                        }
+                    };
+
+                    System.Diagnostics.Debug.WriteLine("✅ Escáner inicializado independientemente");
+
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Error en InicializarEscanerIndependiente: {ex.Message}");
+
+                    // ✅ ACTUALIZAR INTERFAZ INDICANDO ERROR PERO NO BLOQUEAR POS
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        if (TxtEstadoEscaner != null)
+                        {
+                            TxtEstadoEscaner.Text = "📱 NO DISPONIBLE";
+                            TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
+                                new SolidColorBrush(Color.FromRgb(107, 114, 128))); // Gris
+                        }
+                    });
+                }
+            });
         }
         private void UpdateDateTime()
         {
@@ -410,7 +477,7 @@ namespace costbenefi
                 TxtStatus.Text = "❌ Error al cargar datos";
             }
         }
-        // ✅ HANDLER DEL ESCÁNER CON PROTECCIÓN INTEGRADA
+        // ✅ HANDLER DEL ESCÁNER CON PROTECCIÓN INTEGRADA MEJORADA
         private async void OnCodigoEscaneadoPOS_Protected(object sender, CodigoEscaneadoEventArgs e)
         {
             try
@@ -422,6 +489,24 @@ namespace costbenefi
                 System.Diagnostics.Debug.WriteLine($"   📝 _posLoaded: {_posLoaded}");
                 System.Diagnostics.Debug.WriteLine($"   📝 Tab seleccionado: {MainTabControl.SelectedIndex}");
 
+                // ✅ MEJORAR: Si POS no está cargado, intentar cargarlo
+                if (!_posLoaded)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ POS no cargado - Intentando carga rápida...");
+
+                    try
+                    {
+                        await LoadDataPuntoVenta();
+                        System.Diagnostics.Debug.WriteLine($"✅ POS cargado para procesamiento de escáner");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Error cargando POS: {ex.Message}");
+                        TxtStatusPOS.Text = "❌ Error: POS no disponible para escáner";
+                        return;
+                    }
+                }
+
                 // Solo procesar si estamos en contexto POS
                 if (e.Contexto != ScannerContext.PuntoVenta)
                 {
@@ -429,16 +514,19 @@ namespace costbenefi
                     return;
                 }
 
-                if (!_posLoaded)
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ RECHAZADO - POS no cargado (_posLoaded = false)");
-                    return;
-                }
-
+                // ✅ VERIFICACIÓN MEJORADA DE TAB
                 if (MainTabControl.SelectedIndex != 1)
                 {
-                    System.Diagnostics.Debug.WriteLine($"❌ RECHAZADO - No estamos en tab POS (tab actual: {MainTabControl.SelectedIndex})");
-                    return;
+                    System.Diagnostics.Debug.WriteLine($"⚠️ No estamos en tab POS - Cambiando automáticamente...");
+
+                    // ✅ CAMBIAR AL TAB POS AUTOMÁTICAMENTE
+                    Dispatcher.Invoke(() =>
+                    {
+                        MainTabControl.SelectedIndex = 1;
+                    });
+
+                    // Esperar un momento para que se active
+                    await Task.Delay(500);
                 }
 
                 string codigo = e.CodigoBarras.Trim();
@@ -565,12 +653,12 @@ namespace costbenefi
 
                 // ✅ NUEVO: CARGAR SERVICIOS INTEGRADOS AL POS
                 _serviciosParaVenta = await _context.ServiciosVenta
-      .Include(s => s.MaterialesNecesarios)
-          .ThenInclude(m => m.RawMaterial)
-      .Where(s => s.IntegradoPOS && s.Activo)
-      .OrderBy(s => s.PrioridadPOS)
-      .ThenBy(s => s.NombreServicio)
-      .ToListAsync();
+          .Include(s => s.MaterialesNecesarios)
+              .ThenInclude(m => m.RawMaterial)
+          .Where(s => s.IntegradoPOS && s.Activo)
+          .OrderBy(s => s.PrioridadPOS)
+          .ThenBy(s => s.NombreServicio)
+          .ToListAsync();
 
                 // ✅ COMBINAR PRODUCTOS Y SERVICIOS EN UNA LISTA MIXTA
                 _itemsPOS = new List<object>();
@@ -587,13 +675,24 @@ namespace costbenefi
                 UpdateContadoresPOS();
 
                 TxtStatusPOS.Text = $"✅ Sistema POS listo - {_productosParaVenta.Count} productos, {_serviciosParaVenta.Count} servicios";
+
+                // ✅ CRÍTICO: SIEMPRE establecer como cargado, independientemente del escáner
                 _posLoaded = true;
+
+                System.Diagnostics.Debug.WriteLine($"✅ POS CARGADO COMPLETAMENTE - _posLoaded = {_posLoaded}");
+                System.Diagnostics.Debug.WriteLine($"📊 Productos: {_productosParaVenta.Count}, Servicios: {_serviciosParaVenta.Count}");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"❌ ERROR en LoadDataPuntoVenta: {ex.Message}");
+
                 MessageBox.Show($"Error al cargar datos POS: {ex.Message}",
                               "Error POS", MessageBoxButton.OK, MessageBoxImage.Error);
                 TxtStatusPOS.Text = "❌ Error al cargar datos POS";
+
+                // ✅ INCLUSO CON ERROR, marcar como cargado para permitir operaciones básicas
+                _posLoaded = true;
+                System.Diagnostics.Debug.WriteLine($"⚠️ POS marcado como cargado pese a errores para permitir operaciones");
             }
         }
 
@@ -2367,9 +2466,28 @@ namespace costbenefi
             {
                 System.Diagnostics.Debug.WriteLine($"🔄 INICIANDO RefrescarProductosAutomatico: {motivo}");
 
+                // ✅ MEJORAR: Verificar múltiples condiciones
                 if (!_posLoaded)
                 {
-                    System.Diagnostics.Debug.WriteLine($"🔄 SALIENDO porque _posLoaded = false");
+                    System.Diagnostics.Debug.WriteLine($"🔄 POS no cargado - Intentando carga automática...");
+
+                    // ✅ INTENTAR CARGAR POS AUTOMÁTICAMENTE
+                    try
+                    {
+                        await LoadDataPuntoVenta();
+                        System.Diagnostics.Debug.WriteLine($"✅ POS cargado automáticamente para actualización");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Error cargando POS automáticamente: {ex.Message}");
+                        return;
+                    }
+                }
+
+                // ✅ VERIFICACIÓN ADICIONAL: Continuar solo si realmente no se puede
+                if (!_posLoaded)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🔄 SALIENDO porque _posLoaded sigue siendo false");
                     return;
                 }
 
@@ -2415,7 +2533,6 @@ namespace costbenefi
                     System.Diagnostics.Debug.WriteLine($"🔄 PASO 5: DataGrid actualizado con {_filteredMaterials.Count} items");
                 });
 
-                // ✅ ACTUALIZAR POS
                 // ✅ ACTUALIZAR POS COMPLETO
                 System.Diagnostics.Debug.WriteLine($"🔄 PASO 6: Actualizando POS...");
 
@@ -2455,6 +2572,15 @@ namespace costbenefi
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"❌ ERROR en RefrescarProductosAutomatico: {ex.Message}");
+
+                // ✅ NO lanzar excepción para no romper el sistema
+                if (TxtStatusPOS != null)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        TxtStatusPOS.Text = "⚠️ Error en actualización automática";
+                    });
+                }
             }
         }
 
@@ -3574,20 +3700,23 @@ namespace costbenefi
 
                     case 1: // PUNTO DE VENTA
                         if (TxtStatusPOS != null)
-                            TxtStatusPOS.Text = "💰 Activando escáner unificado POS...";
+                            TxtStatusPOS.Text = "💰 Cargando POS...";
 
-                        // ✅ ACTIVAR ESCÁNER UNIFICADO PARA POS
+                        // ✅ SOLO CONFIGURAR CONTEXTO - NO HABILITAR AUTOMÁTICAMENTE
                         if (_unifiedScanner != null)
                         {
                             _unifiedScanner.SetContext(ScannerContext.PuntoVenta);
+                            // ✅ NO habilitar automáticamente - Que el usuario lo active manualmente
 
-                            if (TxtEstadoEscaner != null)
-                            {
-                                TxtEstadoEscaner.Text = "📱 INACTIVO";
-                                TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
-                                    new SolidColorBrush(Color.FromRgb(107, 114, 128))); // Gris
-                            }
                             System.Diagnostics.Debug.WriteLine("🔄 Escáner unificado cambiado a contexto: Punto de Venta");
+                        }
+
+                        // ✅ ESTABLECER ESTADO INICIAL COMO INACTIVO
+                        if (TxtEstadoEscaner != null)
+                        {
+                            TxtEstadoEscaner.Text = "📱 INACTIVO";
+                            TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
+                                new SolidColorBrush(Color.FromRgb(107, 114, 128))); // Gris
                         }
 
                         // Cargar datos POS si es necesario
@@ -3599,9 +3728,10 @@ namespace costbenefi
                         {
                             await VerificarEstadoCorteCaja();
                         }
-                        if (TxtStatusPOS != null)
-                            TxtStatusPOS.Text = "✅ Sistema POS listo - Escáner disponible (inactivo)"; break;
 
+                        if (TxtStatusPOS != null)
+                            TxtStatusPOS.Text = "✅ Sistema POS listo - Escáner disponible (inactivo)";
+                        break;
                     case 2: // Reportes
                         if (_unifiedScanner != null)
                         {
