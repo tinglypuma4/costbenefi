@@ -54,7 +54,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{CB0EA2
 		DatosProductoTerminado.cs = DatosProductoTerminado.cs
 		DetalleVenta.cs = DetalleVenta.cs
 		EstadoLote.cs = EstadoLote.cs
-		FabricacionEnums.cs = FabricacionEnums.cs
 		LoteFabricacion.cs = LoteFabricacion.cs
 		MaterialCalculator.cs = MaterialCalculator.cs
 		MaterialServicio.cs = MaterialServicio.cs

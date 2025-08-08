@@ -324,6 +324,21 @@ namespace costbenefi
                 }
             }
         }
+        private void BtnRegresar_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                TxtEstadoVentana.Text = "⬅️ Regresando...";
+
+                // Cerrar la ventana
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al regresar:\n\n{ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private void BtnEditar_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is ProcesoFabricacion proceso)

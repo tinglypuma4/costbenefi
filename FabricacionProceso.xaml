@@ -461,11 +461,13 @@
                           FontSize="14" VerticalAlignment="Center" Foreground="#059669"/>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="📋 Exportar Lista" Style="{StaticResource SecondaryButtonStyle}" 
-                           x:Name="BtnExportar" Click="BtnExportar_Click"/>
-                    <Button Content="❓ Ayuda" Style="{StaticResource SecondaryButtonStyle}" 
-                           x:Name="BtnAyuda" Click="BtnAyuda_Click"/>
-                </StackPanel>
+    <Button Content="⬅️ Regresar" Style="{StaticResource SecondaryButtonStyle}" 
+           x:Name="BtnRegresar" Click="BtnRegresar_Click"/>
+    <Button Content="📋 Exportar Lista" Style="{StaticResource SecondaryButtonStyle}" 
+           x:Name="BtnExportar" Click="BtnExportar_Click"/>
+    <Button Content="❓ Ayuda" Style="{StaticResource SecondaryButtonStyle}" 
+           x:Name="BtnAyuda" Click="BtnAyuda_Click"/>
+</StackPanel>
             </Grid>
         </Border>
     </Grid>

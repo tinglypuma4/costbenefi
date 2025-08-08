@@ -123,18 +123,61 @@ namespace costbenefi
         {
             try
             {
-                _cantidadMaximaFabricable = await _context.GetCantidadMaximaFabricableAsync(_proceso.Id);
+                // ✅ USAR CONTEXTO FRESCO para evitar cache obsoleto
+                using var contextoFresco = new AppDbContext();
 
+                // ✅ RECARGAR PROCESO CON DATOS FRESCOS
+                var procesoFresco = await contextoFresco.ProcesosFabricacion
+                    .Include(p => p.Ingredientes)
+                        .ThenInclude(i => i.RawMaterial)
+                    .FirstOrDefaultAsync(p => p.Id == _proceso.Id);
+
+                if (procesoFresco?.Ingredientes?.Any() != true)
+                {
+                    _cantidadMaximaFabricable = 0;
+                    TxtCantidadMaxima.Text = "❌ Sin ingredientes configurados";
+                    return;
+                }
+
+                // ✅ CALCULAR MÁXIMO CON STOCK ACTUAL
+                var cantidadesMaximas = new List<decimal>();
+
+                foreach (var ingrediente in procesoFresco.Ingredientes)
+                {
+                    // ✅ RECARGAR MATERIAL CON STOCK FRESCO
+                    var materialFresco = await contextoFresco.RawMaterials
+                        .FirstOrDefaultAsync(m => m.Id == ingrediente.RawMaterialId);
+
+                    if (materialFresco != null && ingrediente.CantidadRequerida > 0)
+                    {
+                        // ✅ CALCULAR CUÁNTAS VECES SE PUEDE USAR ESTE INGREDIENTE
+                        decimal factorMaximo = materialFresco.StockTotal / ingrediente.CantidadRequerida;
+                        decimal cantidadMaxima = factorMaximo * procesoFresco.RendimientoEsperado;
+                        cantidadesMaximas.Add(cantidadMaxima);
+
+                        System.Diagnostics.Debug.WriteLine($"🔍 INGREDIENTE: {materialFresco.NombreArticulo}");
+                        System.Diagnostics.Debug.WriteLine($"   📦 Stock disponible: {materialFresco.StockTotal:F2}");
+                        System.Diagnostics.Debug.WriteLine($"   📝 Cantidad requerida: {ingrediente.CantidadRequerida:F2}");
+                        System.Diagnostics.Debug.WriteLine($"   🧮 Máximo fabricable: {cantidadMaxima:F2}");
+                    }
+                }
+
+                // ✅ EL MÁXIMO ES EL MENOR DE TODOS LOS INGREDIENTES
+                _cantidadMaximaFabricable = cantidadesMaximas.Any() ? cantidadesMaximas.Min() : 0;
+
+                System.Diagnostics.Debug.WriteLine($"🎯 CANTIDAD MÁXIMA FINAL: {_cantidadMaximaFabricable:F2} {procesoFresco.UnidadMedidaProducto}");
+
+                // ✅ ACTUALIZAR INTERFAZ
                 TxtCantidadMaxima.Text = _cantidadMaximaFabricable > 0
-                    ? $"Máximo fabricable: {_cantidadMaximaFabricable:F2} {_proceso.UnidadMedidaProducto}"
+                    ? $"Máximo fabricable: {_cantidadMaximaFabricable:F2} {procesoFresco.UnidadMedidaProducto}"
                     : "❌ Sin stock suficiente para fabricar";
 
+                // ✅ ACTUALIZAR ESTILOS
                 if (_cantidadMaximaFabricable <= 0)
                 {
                     BorderCantidadMaxima.Style = (Style)FindResource("AlertaError");
-                    TxtCantidadMaxima.Text = "❌ Sin stock suficiente para fabricar";
                 }
-                else if (_cantidadMaximaFabricable < _proceso.RendimientoEsperado)
+                else if (_cantidadMaximaFabricable < procesoFresco.RendimientoEsperado)
                 {
                     BorderCantidadMaxima.Style = (Style)FindResource("AlertaAdvertencia");
                 }
@@ -145,11 +188,11 @@ namespace costbenefi
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error al calcular cantidad máxima: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error al calcular cantidad máxima: {ex.Message}");
                 _cantidadMaximaFabricable = 0;
+                TxtCantidadMaxima.Text = "❌ Error al calcular máximo";
             }
         }
-
         /// <summary>
         /// Configura valores iniciales del formulario
         /// </summary>
@@ -476,10 +519,14 @@ namespace costbenefi
                 BtnVerificarStock.Content = "⏳ Verificando...";
                 TxtEstadoVentana.Text = "🔍 Verificando stock actual...";
 
-                // Recargar datos de stock
-                await CargarDatosProceso();
-                await CalcularCantidadMaxima();
+                // ✅ RECARGAR TODO CON DATOS FRESCOS
+                await CargarDatosProceso();  // Recargar proceso e ingredientes
+                await CalcularCantidadMaxima(); // Recalcular con datos frescos
+
+                // ✅ FORZAR ACTUALIZACIÓN DE CÁLCULOS
+                _controlesInicializados = false; // Temporalmente
                 ActualizarCalculos();
+                _controlesInicializados = true;
 
                 TxtEstadoVentana.Text = "✅ Stock verificado y actualizado";
             }
@@ -1011,8 +1058,9 @@ namespace costbenefi
                     System.Diagnostics.Debug.WriteLine($"   📦 Stock nuevo: {productoExistente.StockTotal + cantidadFinal:F2}");
 
                     // ✅ ACTUALIZAR STOCK EXISTENTE
-                    productoExistente.StockAntiguo = productoExistente.StockNuevo;
-                    productoExistente.StockNuevo = productoExistente.StockTotal + cantidadFinal;
+                    decimal stockAnteriorCompleto = productoExistente.StockTotal;
+                    productoExistente.StockAntiguo = stockAnteriorCompleto;  // Todo lo anterior
+                    productoExistente.StockNuevo = cantidadFinal;
 
                     // ✅ ACTUALIZAR COSTOS SI EL NUEVO ES MEJOR
                     if (costoUnitario > 0 && costoUnitario != productoExistente.PrecioConIVA)

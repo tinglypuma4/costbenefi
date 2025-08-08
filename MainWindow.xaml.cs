@@ -395,30 +395,7 @@ namespace costbenefi
                         }
                     };
 
-                    // ✅ ERROR HANDLER MEJORADO PARA ESCÁNER
-                    _unifiedScanner.ErrorOcurrido += (s, error) =>
-                    {
-                        try
-                        {
-                            Dispatcher.BeginInvoke(() =>
-                            {
-                                System.Diagnostics.Debug.WriteLine($"⚠️ Error escáner (no crítico): {error}");
-
-                                if (TxtEstadoEscaner != null)
-                                {
-                                    TxtEstadoEscaner.Text = "📱 ERROR";
-                                    TxtEstadoEscaner.Parent?.SetValue(Border.BackgroundProperty,
-                                        new SolidColorBrush(Color.FromRgb(239, 68, 68))); // Rojo
-                                }
-
-                                // ✅ NO actualizar TxtStatusPOS para no interferir con el POS
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"⚠️ Error manejando error escáner: {ex.Message}");
-                        }
-                    };
+                    // ✅ REMOVIDO: El evento ErrorOcurrido no existe en tu UnifiedScannerService
 
                     System.Diagnostics.Debug.WriteLine("✅ Escáner inicializado independientemente");
 
@@ -569,6 +546,7 @@ namespace costbenefi
                         var pesoWindow = new IngresarPesoWindow(_context, producto, _basculaService);
                         if (pesoWindow.ShowDialog() == true)
                         {
+                            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: PesoIngresado = {pesoWindow.PesoIngresado}");
                             await AgregarProductoAlCarrito(producto, pesoWindow.PesoIngresado);
                             TxtStatusPOS.Text = $"✅ Agregado: {producto.NombreArticulo} ({pesoWindow.PesoIngresado:F2} {producto.UnidadMedida})";
                         }
@@ -2671,6 +2649,7 @@ namespace costbenefi
                         var pesoWindow = new IngresarPesoWindow(_context, producto, _basculaService);
                         if (pesoWindow.ShowDialog() == true)
                         {
+                            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: PesoIngresado = {pesoWindow.PesoIngresado}");
                             await AgregarProductoAlCarrito(producto, pesoWindow.PesoIngresado);
                         }
                     }

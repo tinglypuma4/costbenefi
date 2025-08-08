@@ -7,6 +7,7 @@ using System.Windows.Media;
 using costbenefi.Data;
 using costbenefi.Models;
 using costbenefi.Services;
+using System.Globalization;
 
 namespace costbenefi.Views
 {
@@ -192,7 +193,10 @@ namespace costbenefi.Views
                 if (esModoDinero)
                 {
                     // 💰 MODO POR DINERO
-                    if (decimal.TryParse(TxtDineroIngresado?.Text, out decimal dineroIngresado) && dineroIngresado > 0)
+                    if (decimal.TryParse(TxtDineroIngresado?.Text.Replace(",", "."),
+                     NumberStyles.Number,
+                     CultureInfo.InvariantCulture,
+                     out decimal dineroIngresado) && dineroIngresado > 0)
                     {
                         // Calcular cantidad basada en dinero
                         if (_producto.PrecioVentaFinal > 0)
@@ -229,7 +233,10 @@ namespace costbenefi.Views
                 else
                 {
                     // ⚖️ MODO POR CANTIDAD (original)
-                    if (decimal.TryParse(TxtPesoManual?.Text, out decimal cantidad) && cantidad > 0)
+                    if (decimal.TryParse(TxtPesoManual?.Text.Replace(",", "."),
+                     NumberStyles.Number,
+                     CultureInfo.InvariantCulture,
+                     out decimal cantidad) && cantidad > 0)
                     {
                         cantidadFinal = cantidad;
                         dineroFinal = cantidad * _producto.PrecioVentaFinal;
@@ -400,7 +407,10 @@ namespace costbenefi.Views
                 if (esModoDinero)
                 {
                     // 💰 MODO DINERO - Calcular cantidad desde dinero
-                    if (decimal.TryParse(TxtDineroIngresado?.Text, out decimal dinero) && dinero > 0)
+                    if (decimal.TryParse(TxtDineroIngresado?.Text.Replace(",", "."),
+                     NumberStyles.Number,
+                     CultureInfo.InvariantCulture,
+                     out decimal dinero) && dinero > 0)
                     {
                         if (_producto.PrecioVentaFinal > 0)
                         {
@@ -424,7 +434,10 @@ namespace costbenefi.Views
                 else
                 {
                     // ⚖️ MODO CANTIDAD - Usar cantidad directamente
-                    if (decimal.TryParse(TxtPesoManual?.Text, out decimal cantidad) && cantidad > 0)
+                    if (decimal.TryParse(TxtPesoManual?.Text.Replace(",", "."),
+                     NumberStyles.Number,
+                     CultureInfo.InvariantCulture,
+                     out decimal cantidad) && cantidad > 0)
                     {
                         cantidadFinal = cantidad;
                     }

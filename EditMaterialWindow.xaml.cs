@@ -8,6 +8,7 @@ using System.Windows.Media;
 using costbenefi.Data;
 using costbenefi.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace costbenefi.Views
 {
@@ -60,7 +61,7 @@ namespace costbenefi.Views
                 TxtObservaciones.Text = _materialOriginal.Observaciones ?? "";
 
                 // Cargar información de stock
-                TxtStockActual.Text = _materialOriginal.StockTotal.ToString("F2");
+                TxtStockActual.Text = _materialOriginal.StockTotal.ToString("F2", CultureInfo.InvariantCulture);
                 TxtUnidad.Text = _materialOriginal.UnidadMedida ?? "kg";
                 TxtUnidadAgregar.Text = _materialOriginal.UnidadMedida ?? "kg";
                 TxtUnidadQuitar.Text = _materialOriginal.UnidadMedida ?? "kg";
@@ -157,21 +158,30 @@ namespace costbenefi.Views
 
             try
             {
-                if (!decimal.TryParse(TxtCantidadAgregar.Text, out decimal cantidad) || cantidad <= 0)
+                if (!decimal.TryParse(TxtCantidadAgregar.Text.Replace(",", "."),
+                      NumberStyles.Number,
+                      CultureInfo.InvariantCulture,
+                      out decimal cantidad) || cantidad <= 0)
                 {
                     TxtResumenAgregar.Text = "💡 Ingrese una cantidad válida para agregar...";
                     BtnAgregarStock.IsEnabled = false;
                     return;
                 }
 
-                if (!decimal.TryParse(TxtPrecioTotalAgregar.Text, out decimal precioTotal) || precioTotal <= 0)
+                if (!decimal.TryParse(TxtPrecioTotalAgregar.Text.Replace(",", "."),
+                        NumberStyles.Number,
+                        CultureInfo.InvariantCulture,
+                        out decimal precioTotal) || precioTotal <= 0)
                 {
                     TxtResumenAgregar.Text = "💡 Ingrese un precio total válido...";
                     BtnAgregarStock.IsEnabled = false;
                     return;
                 }
 
-                decimal porcentajeIVA = decimal.TryParse(TxtIVAAgregar.Text, out decimal iva) ? iva : 16;
+                decimal porcentajeIVA = decimal.TryParse(TxtIVAAgregar.Text.Replace(",", "."),
+                                          NumberStyles.Number,
+                                          CultureInfo.InvariantCulture,
+                                          out decimal iva) ? iva : 16;
                 bool incluyeIVA = ChkIncluyeIVAAgregar.IsChecked == true;
 
                 decimal factorIVA = 1 + (porcentajeIVA / 100);
@@ -213,7 +223,10 @@ namespace costbenefi.Views
         {
             try
             {
-                if (!decimal.TryParse(TxtCantidadQuitar.Text, out decimal cantidad) || cantidad <= 0)
+                if (!decimal.TryParse(TxtCantidadQuitar.Text.Replace(",", "."),
+                       NumberStyles.Number,
+                       CultureInfo.InvariantCulture,
+                       out decimal cantidad) || cantidad <= 0)
                 {
                     TxtResumenQuitar.Text = "⚠️ Ingrese una cantidad válida a quitar...";
                     BtnQuitarStock.IsEnabled = false;
@@ -223,8 +236,8 @@ namespace costbenefi.Views
                 if (cantidad > _materialOriginal.StockTotal)
                 {
                     TxtResumenQuitar.Text = $"❌ STOCK INSUFICIENTE\n" +
-                                          $"Solicitado: {cantidad:F2} {_materialOriginal.UnidadMedida}\n" +
-                                          $"Disponible: {_materialOriginal.StockTotal:F2} {_materialOriginal.UnidadMedida}";
+                       $"Solicitado: {cantidad.ToString("F2", CultureInfo.InvariantCulture)} {_materialOriginal.UnidadMedida}\n" +
+                       $"Disponible: {_materialOriginal.StockTotal.ToString("F2", CultureInfo.InvariantCulture)} {_materialOriginal.UnidadMedida}";
                     BtnQuitarStock.IsEnabled = false;
                     return;
                 }
@@ -232,11 +245,10 @@ namespace costbenefi.Views
                 decimal stockResultante = _materialOriginal.StockTotal - cantidad;
                 decimal valorAfectado = cantidad * _materialOriginal.PrecioConIVA;
                 string razon = (CmbRazonQuitar.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "Razón no seleccionada";
-
                 TxtResumenQuitar.Text = $"⚠️ RESUMEN DE SALIDA:\n" +
-                                      $"• Cantidad a quitar: {cantidad:F2} {_materialOriginal.UnidadMedida}\n" +
-                                      $"• Stock resultante: {stockResultante:F2} {_materialOriginal.UnidadMedida}\n" +
-                                      $"• Valor afectado: {valorAfectado:C2}\n" +
+                                      $"• Cantidad a quitar: {cantidad.ToString("F2", CultureInfo.InvariantCulture)} {_materialOriginal.UnidadMedida}\n" +
+                                      $"• Stock resultante: {stockResultante.ToString("F2", CultureInfo.InvariantCulture)} {_materialOriginal.UnidadMedida}\n" +
+                                      $"• Valor afectado: {valorAfectado.ToString("C2", CultureInfo.CurrentCulture)}\n" +
                                       $"• Razón: {razon}";
 
                 BtnQuitarStock.IsEnabled = CmbRazonQuitar.SelectedItem != null;
@@ -301,9 +313,17 @@ namespace costbenefi.Views
             {
                 if (!ValidarDatosAgregar()) return;
 
-                decimal cantidadAgregar = decimal.Parse(TxtCantidadAgregar.Text);
-                decimal precioTotal = decimal.Parse(TxtPrecioTotalAgregar.Text);
-                decimal porcentajeIVA = decimal.Parse(TxtIVAAgregar.Text);
+                decimal cantidadAgregar = decimal.Parse(TxtCantidadAgregar.Text.Replace(",", "."),
+                                        NumberStyles.Number,
+                                        CultureInfo.InvariantCulture);
+
+                decimal precioTotal = decimal.Parse(TxtPrecioTotalAgregar.Text.Replace(",", "."),
+                                                   NumberStyles.Number,
+                                                   CultureInfo.InvariantCulture);
+
+                decimal porcentajeIVA = decimal.Parse(TxtIVAAgregar.Text.Replace(",", "."),
+                                                     NumberStyles.Number,
+                                                     CultureInfo.InvariantCulture);
                 bool incluyeIVA = ChkIncluyeIVAAgregar.IsChecked == true;
 
                 // Calcular precios unitarios
@@ -399,7 +419,7 @@ namespace costbenefi.Views
                 // Limpiar campos y actualizar UI
                 TxtCantidadAgregar.Text = "0";
                 TxtPrecioTotalAgregar.Text = "0";
-                TxtStockActual.Text = _materialOriginal.StockTotal.ToString("F2");
+                TxtStockActual.Text = _materialOriginal.StockTotal.ToString("F2", CultureInfo.InvariantCulture);
                 TxtSubtitulo.Text = $"ID: {_materialOriginal.Id} | Stock Actual: {_materialOriginal.StockTotal:F2} {_materialOriginal.UnidadMedida}";
 
                 ActualizarValoresTotales();
@@ -424,7 +444,9 @@ namespace costbenefi.Views
             {
                 if (!ValidarDatosQuitar()) return;
 
-                decimal cantidadQuitar = decimal.Parse(TxtCantidadQuitar.Text);
+                decimal cantidadQuitar = decimal.Parse(TxtCantidadQuitar.Text.Replace(",", "."),
+                                        NumberStyles.Number,
+                                        CultureInfo.InvariantCulture);
                 string razon = ((ComboBoxItem)CmbRazonQuitar.SelectedItem).Content.ToString();
 
                 // Confirmar la operación
@@ -491,7 +513,7 @@ namespace costbenefi.Views
                 // Limpiar campos y actualizar UI
                 TxtCantidadQuitar.Text = "0";
                 CmbRazonQuitar.SelectedIndex = -1;
-                TxtStockActual.Text = _materialOriginal.StockTotal.ToString("F2");
+                TxtStockActual.Text = _materialOriginal.StockTotal.ToString("F2", CultureInfo.InvariantCulture);
                 TxtSubtitulo.Text = $"ID: {_materialOriginal.Id} | Stock Actual: {_materialOriginal.StockTotal:F2} {_materialOriginal.UnidadMedida}";
 
                 ActualizarValoresTotales();
@@ -517,7 +539,10 @@ namespace costbenefi.Views
 
         private bool ValidarDatosAgregar()
         {
-            if (!decimal.TryParse(TxtCantidadAgregar.Text, out decimal cantidad) || cantidad <= 0)
+            if (!decimal.TryParse(TxtCantidadAgregar.Text.Replace(",", "."),
+                       NumberStyles.Number,
+                       CultureInfo.InvariantCulture,
+                       out decimal cantidad) || cantidad <= 0)
             {
                 MessageBox.Show("Ingrese una cantidad válida mayor a 0.", "Datos Inválidos",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -525,7 +550,10 @@ namespace costbenefi.Views
                 return false;
             }
 
-            if (!decimal.TryParse(TxtPrecioTotalAgregar.Text, out decimal precio) || precio <= 0)
+            if (!decimal.TryParse(TxtPrecioTotalAgregar.Text.Replace(",", "."),
+                       NumberStyles.Number,
+                       CultureInfo.InvariantCulture,
+                       out decimal precio) || precio <= 0)
             {
                 MessageBox.Show("Ingrese un precio total válido mayor a 0.", "Datos Inválidos",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -533,7 +561,10 @@ namespace costbenefi.Views
                 return false;
             }
 
-            if (!decimal.TryParse(TxtIVAAgregar.Text, out decimal iva) || iva < 0)
+            if (!decimal.TryParse(TxtIVAAgregar.Text.Replace(",", "."),
+                          NumberStyles.Number,
+                          CultureInfo.InvariantCulture,
+                          out decimal iva) || iva < 0)
             {
                 MessageBox.Show("Ingrese un porcentaje de IVA válido (0 o mayor).", "Datos Inválidos",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -546,7 +577,10 @@ namespace costbenefi.Views
 
         private bool ValidarDatosQuitar()
         {
-            if (!decimal.TryParse(TxtCantidadQuitar.Text, out decimal cantidad) || cantidad <= 0)
+            if (!decimal.TryParse(TxtCantidadQuitar.Text.Replace(",", "."),
+                        NumberStyles.Number,
+                        CultureInfo.InvariantCulture,
+                        out decimal cantidad) || cantidad <= 0)
             {
                 MessageBox.Show("Ingrese una cantidad válida mayor a 0.", "Datos Inválidos",
                     MessageBoxButton.OK, MessageBoxImage.Warning);

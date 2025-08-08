@@ -892,9 +892,9 @@
                                                         <StackPanel Grid.Row="1" Grid.ColumnSpan="2" 
                                                                     Orientation="Horizontal" Margin="0,4,0,0"
                                                                     HorizontalAlignment="Center">
-                                                            <TextBlock Text="{Binding Cantidad, StringFormat=F1}" 
-                                                                       FontSize="12" FontWeight="Bold" 
-                                                                       Foreground="#374151"/>
+                                                            <TextBlock Text="{Binding Cantidad, StringFormat=F2}" 
+                                                                        FontSize="12" FontWeight="Bold" 
+                                                                        Foreground="#374151"/>
                                                             <TextBlock Text=" × " FontSize="11" 
                                                                        Foreground="#6B7280" Margin="3,0"/>
                                                             <TextBlock Text="{Binding PrecioUnitario, StringFormat=C0}" 
