@@ -23,6 +23,8 @@ namespace costbenefi.Views
         private ObservableCollection<ProductoPrecio> _productos;
         private List<ProductoPrecio> _productosOriginales;
         private bool _cambiosRealizados = false;
+        private bool _autoGuardadoActivo = true; // ✅ NUEVO: Control de auto-guardado
+        private System.Timers.Timer _timerAutoGuardado; // ✅ NUEVO: Timer para debouncing
 
         // Referencias a controles
         private ComboBox CmbFiltroProductos;
@@ -30,11 +32,20 @@ namespace costbenefi.Views
         private TextBlock TxtEstadoHeader;
         private TextBox TxtMargenMasivo;
         private TextBlock TxtContadores;
+        private ComboBox CmbTipoMargen;
+        private TextBlock TxtExplicacionMargen;
+        private TextBlock TxtEstadoAutoGuardado; // ✅ NUEVO: Indicador de auto-guardado
 
         public ConfigurarPrecioVentaWindow(AppDbContext context)
         {
             _context = context;
             _productos = new ObservableCollection<ProductoPrecio>();
+
+            // ✅ NUEVO: Configurar timer para auto-guardado (debouncing de 2 segundos)
+            _timerAutoGuardado = new System.Timers.Timer(2000);
+            _timerAutoGuardado.Elapsed += TimerAutoGuardado_Elapsed;
+            _timerAutoGuardado.AutoReset = false;
+
             InitializeComponent();
             DgProductos.ItemsSource = _productos;
             _ = LoadProductosAsync();
@@ -285,7 +296,7 @@ namespace costbenefi.Views
             DgProductos.Columns.Add(CreateTextColumn("Stock", "StockTotal", 70, FontWeights.Bold, "#374151", TextAlignment.Right, "F2"));
             DgProductos.Columns.Add(CreateTextColumn("Costo", "PrecioConIVA", 80, FontWeights.Normal, "#EF4444", TextAlignment.Right, "C2"));
             DgProductos.Columns.Add(CreateEditableColumn("Precio Venta", "PrecioVentaString", 100));
-            DgProductos.Columns.Add(CreateTextColumn("Margen %", "MargenCalculado", 80, FontWeights.Bold, "#10B981", TextAlignment.Right, "F1"));
+            DgProductos.Columns.Add(CreateTextColumn("Margen %", "MargenMostradoCompleto", 120, FontWeights.Bold, "#10B981", TextAlignment.Right)); // ✅ CAMBIADO
             DgProductos.Columns.Add(CreateTextColumn("Ganancia", "GananciaUnitaria", 80, FontWeights.Normal, "#059669", TextAlignment.Right, "C2"));
             DgProductos.Columns.Add(CreateTemplateColumn("Estado", "EstadoPrecio", 90));
             DgProductos.Columns.Add(CreateCheckboxColumn("Activo POS", "ActivoParaVenta", 80));
@@ -305,15 +316,20 @@ namespace costbenefi.Views
             };
 
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // Configuración masiva por margen
-            var margenStack = new StackPanel { Orientation = Orientation.Horizontal };
+            // ✅ FILA 1: Configuración de margen
+            var margenGrid = new Grid();
+            margenGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            margenGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            margenGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            margenGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            margenGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
             var lblMargen = new TextBlock
             {
-                Text = "Aplicar margen masivo:",
+                Text = "Aplicar margen:",
                 VerticalAlignment = VerticalAlignment.Center,
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(0, 0, 10, 0)
@@ -321,19 +337,33 @@ namespace costbenefi.Views
 
             TxtMargenMasivo = new TextBox
             {
-                Width = 80,
+                Width = 60,
                 Height = 30,
                 Text = "30",
                 TextAlignment = TextAlignment.Center,
-                VerticalContentAlignment = VerticalAlignment.Center
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 5, 0)
             };
+            TxtMargenMasivo.TextChanged += TxtMargenMasivo_TextChanged; // ✅ NUEVO
 
             var lblPorcentaje = new TextBlock
             {
                 Text = "%",
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(5, 0, 10, 0)
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 10, 0)
             };
+
+            CmbTipoMargen = new ComboBox
+            {
+                Width = 130,
+                Height = 30,
+                Margin = new Thickness(0, 0, 15, 0)
+            };
+            CmbTipoMargen.Items.Add("sobre COSTO");
+            CmbTipoMargen.Items.Add("sobre VENTA");
+            CmbTipoMargen.SelectedIndex = 0; // Por defecto sobre costo
+            CmbTipoMargen.SelectionChanged += CmbTipoMargen_SelectionChanged; // ✅ NUEVO
 
             var btnAplicarMargen = new Button
             {
@@ -346,16 +376,36 @@ namespace costbenefi.Views
             };
             btnAplicarMargen.Click += BtnAplicarMargen_Click;
 
-            margenStack.Children.Add(lblMargen);
-            margenStack.Children.Add(TxtMargenMasivo);
-            margenStack.Children.Add(lblPorcentaje);
-            margenStack.Children.Add(btnAplicarMargen);
+            Grid.SetColumn(lblMargen, 0);
+            Grid.SetColumn(TxtMargenMasivo, 1);
+            Grid.SetColumn(lblPorcentaje, 2);
+            Grid.SetColumn(CmbTipoMargen, 3);
+            Grid.SetColumn(btnAplicarMargen, 4);
 
-            // Acciones rápidas
+            margenGrid.Children.Add(lblMargen);
+            margenGrid.Children.Add(TxtMargenMasivo);
+            margenGrid.Children.Add(lblPorcentaje);
+            margenGrid.Children.Add(CmbTipoMargen);
+            margenGrid.Children.Add(btnAplicarMargen);
+
+            // ✅ FILA 2: Explicación y acciones
+            var accionesGrid = new Grid();
+            accionesGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            accionesGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            TxtExplicacionMargen = new TextBlock
+            {
+                Text = "💡 Margen sobre COSTO: Costo $100 + 30% = Precio $130 (margen 30%)",
+                FontSize = 11,
+                Foreground = new SolidColorBrush(Color.FromRgb(59, 130, 246)),
+                VerticalAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap
+            };
+
             var accionesStack = new StackPanel { Orientation = Orientation.Horizontal };
             var btnActivarTodos = new Button
             {
-                Content = "✅ Activar Seleccionados",
+                Content = "✅ Activar POS",
                 Height = 30,
                 Background = new SolidColorBrush(Color.FromRgb(16, 185, 129)),
                 Foreground = Brushes.White,
@@ -367,7 +417,7 @@ namespace costbenefi.Views
 
             var btnDesactivarTodos = new Button
             {
-                Content = "❌ Desactivar Seleccionados",
+                Content = "❌ Desactivar POS",
                 Height = 30,
                 Background = new SolidColorBrush(Color.FromRgb(239, 68, 68)),
                 Foreground = Brushes.White,
@@ -379,34 +429,17 @@ namespace costbenefi.Views
             accionesStack.Children.Add(btnActivarTodos);
             accionesStack.Children.Add(btnDesactivarTodos);
 
-            // Información
-            var infoStack = new StackPanel();
-            var infoText = new TextBlock
-            {
-                Text = "💡 Seleccione productos para aplicar cambios masivos",
-                FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128)),
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-            var tipoText = new TextBlock
-            {
-                Text = "🔸 Granel: precio por kg/lt | 🔹 Pieza: precio por unidad",
-                FontSize = 10,
-                Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128)),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(0, 3, 0, 0)
-            };
-
-            infoStack.Children.Add(infoText);
-            infoStack.Children.Add(tipoText);
-
-            Grid.SetColumn(margenStack, 0);
+            Grid.SetColumn(TxtExplicacionMargen, 0);
             Grid.SetColumn(accionesStack, 1);
-            Grid.SetColumn(infoStack, 2);
 
-            grid.Children.Add(margenStack);
-            grid.Children.Add(accionesStack);
-            grid.Children.Add(infoStack);
+            accionesGrid.Children.Add(TxtExplicacionMargen);
+            accionesGrid.Children.Add(accionesStack);
+
+            Grid.SetRow(margenGrid, 0);
+            Grid.SetRow(accionesGrid, 1);
+
+            grid.Children.Add(margenGrid);
+            grid.Children.Add(accionesGrid);
 
             panel.Child = grid;
             return panel;
@@ -425,48 +458,90 @@ namespace costbenefi.Views
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            // ✅ NUEVO: Indicador de auto-guardado
+            var estadoStack = new StackPanel { Orientation = Orientation.Horizontal };
 
             var estadoText = new TextBlock
             {
-                Text = "✅ Listo para configurar precios",
+                Text = "🔄 Auto-guardado activado",
                 VerticalAlignment = VerticalAlignment.Center,
                 FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129)),
+                Margin = new Thickness(0, 0, 15, 0)
+            };
+
+            TxtEstadoAutoGuardado = new TextBlock
+            {
+                Text = "✅ Todos los cambios guardados",
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 11,
                 Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128))
             };
 
+            estadoStack.Children.Add(estadoText);
+            estadoStack.Children.Add(TxtEstadoAutoGuardado);
+
+            // ✅ MODIFICADO: Toggle para auto-guardado
+            var toggleStack = new StackPanel { Orientation = Orientation.Horizontal };
+
+            var lblAutoGuardado = new TextBlock
+            {
+                Text = "Auto-guardado:",
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 11,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+
+            var chkAutoGuardado = new CheckBox
+            {
+                IsChecked = true,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 20, 0)
+            };
+            chkAutoGuardado.Checked += (s, e) => { _autoGuardadoActivo = true; ActualizarEstadoAutoGuardado("🔄 Auto-guardado activado"); };
+            chkAutoGuardado.Unchecked += (s, e) => { _autoGuardadoActivo = false; ActualizarEstadoAutoGuardado("⏸️ Auto-guardado desactivado"); };
+
+            toggleStack.Children.Add(lblAutoGuardado);
+            toggleStack.Children.Add(chkAutoGuardado);
+
             var botonesStack = new StackPanel { Orientation = Orientation.Horizontal };
 
-            var btnCancelar = new Button
+            // ✅ MODIFICADO: Botón de guardado manual (por si acaso)
+            var btnGuardarManual = new Button
             {
-                Content = "❌ Cancelar",
-                Width = 100,
+                Content = "💾 Guardar Manual",
+                Width = 120,
                 Height = 35,
-                Background = new SolidColorBrush(Color.FromRgb(156, 163, 175)),
+                Background = new SolidColorBrush(Color.FromRgb(99, 102, 241)),
                 Foreground = Brushes.White,
                 BorderThickness = new Thickness(0, 0, 0, 0),
                 Margin = new Thickness(0, 0, 10, 0)
             };
-            btnCancelar.Click += BtnCancelar_Click;
+            btnGuardarManual.Click += BtnGuardarManual_Click;
 
-            var btnGuardar = new Button
+            var btnCerrar = new Button
             {
-                Content = "💾 Guardar Cambios",
-                Width = 130,
+                Content = "✅ Cerrar",
+                Width = 100,
                 Height = 35,
                 Background = new SolidColorBrush(Color.FromRgb(16, 185, 129)),
                 Foreground = Brushes.White,
                 BorderThickness = new Thickness(0, 0, 0, 0),
                 FontWeight = FontWeights.Bold
             };
-            btnGuardar.Click += BtnGuardar_Click;
+            btnCerrar.Click += BtnCerrar_Click;
 
-            botonesStack.Children.Add(btnCancelar);
-            botonesStack.Children.Add(btnGuardar);
+            botonesStack.Children.Add(btnGuardarManual);
+            botonesStack.Children.Add(btnCerrar);
 
-            Grid.SetColumn(estadoText, 0);
-            Grid.SetColumn(botonesStack, 1);
+            Grid.SetColumn(estadoStack, 0);
+            Grid.SetColumn(toggleStack, 1);
+            Grid.SetColumn(botonesStack, 2);
 
-            grid.Children.Add(estadoText);
+            grid.Children.Add(estadoStack);
+            grid.Children.Add(toggleStack);
             grid.Children.Add(botonesStack);
 
             panel.Child = grid;
@@ -633,7 +708,7 @@ namespace costbenefi.Views
             var column = new DataGridCheckBoxColumn
             {
                 Header = header,
-                Binding = new Binding(binding),
+                Binding = new Binding(binding) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged }, // ✅ CORREGIDO
                 Width = width
             };
 
@@ -643,6 +718,114 @@ namespace costbenefi.Views
             column.ElementStyle = style;
 
             return column;
+        }
+
+        #endregion
+
+        #region Auto-Guardado
+
+        // ✅ NUEVO: Método para programar auto-guardado con debouncing
+        private void ProgramarAutoGuardado()
+        {
+            if (!_autoGuardadoActivo) return;
+
+            _timerAutoGuardado.Stop();
+            _timerAutoGuardado.Start();
+
+            ActualizarEstadoAutoGuardado("⏳ Guardando en 2 segundos...");
+        }
+
+        // ✅ NUEVO: Event handler del timer
+        private async void TimerAutoGuardado_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(async () =>
+            {
+                await GuardarCambiosAutomaticos();
+            });
+        }
+
+        // ✅ NUEVO: Método para guardar cambios automáticamente
+        private async Task GuardarCambiosAutomaticos()
+        {
+            try
+            {
+                ActualizarEstadoAutoGuardado("💾 Guardando...");
+
+                var productosAActualizar = _productos.Where(p => p.HaCambiado).ToList();
+
+                if (!productosAActualizar.Any())
+                {
+                    ActualizarEstadoAutoGuardado("✅ Todos los cambios guardados");
+                    return;
+                }
+
+                int cambiosGuardados = 0;
+
+                foreach (var productoPrecio in productosAActualizar)
+                {
+                    var producto = await _context.RawMaterials.FindAsync(productoPrecio.Id);
+                    if (producto != null)
+                    {
+                        bool preciosCambiaron = Math.Abs(producto.PrecioVenta - productoPrecio.PrecioVenta) > 0.01m;
+                        bool estadoCambio = producto.ActivoParaVenta != productoPrecio.ActivoParaVenta;
+
+                        if (preciosCambiaron || estadoCambio)
+                        {
+                            productoPrecio.ActualizarProductoOriginal(producto);
+                            _context.Entry(producto).State = EntityState.Modified;
+
+                            if (preciosCambiaron)
+                            {
+                                _context.Entry(producto).Property(p => p.PrecioVenta).IsModified = true;
+                                _context.Entry(producto).Property(p => p.PrecioVentaConIVA).IsModified = true;
+                                _context.Entry(producto).Property(p => p.MargenObjetivo).IsModified = true;
+                            }
+                            if (estadoCambio)
+                            {
+                                _context.Entry(producto).Property(p => p.ActivoParaVenta).IsModified = true;
+                            }
+                            _context.Entry(producto).Property(p => p.FechaActualizacion).IsModified = true;
+
+                            cambiosGuardados++;
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                // ✅ Marcar productos como guardados
+                foreach (var producto in productosAActualizar)
+                {
+                    producto.MarcarComoGuardado();
+                }
+
+                ActualizarEstadoAutoGuardado($"✅ {cambiosGuardados} cambios guardados");
+                TxtEstadoHeader.Text = $"✅ Auto-guardado: {cambiosGuardados} cambios aplicados";
+            }
+            catch (Exception ex)
+            {
+                ActualizarEstadoAutoGuardado($"❌ Error: {ex.Message}");
+                TxtEstadoHeader.Text = "❌ Error en auto-guardado";
+            }
+        }
+
+        // ✅ NUEVO: Actualizar estado del auto-guardado en UI
+        private void ActualizarEstadoAutoGuardado(string mensaje)
+        {
+            if (TxtEstadoAutoGuardado != null)
+            {
+                TxtEstadoAutoGuardado.Text = mensaje;
+
+                // Cambiar color según el estado
+                if (mensaje.Contains("✅"))
+                    TxtEstadoAutoGuardado.Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129));
+                else if (mensaje.Contains("⏳") || mensaje.Contains("💾"))
+                    TxtEstadoAutoGuardado.Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+                else if (mensaje.Contains("❌"))
+                    TxtEstadoAutoGuardado.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+                else
+                    TxtEstadoAutoGuardado.Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128));
+            }
         }
 
         #endregion
@@ -660,18 +843,27 @@ namespace costbenefi.Views
                     .OrderBy(p => p.NombreArticulo)
                     .ToListAsync();
 
-                _productosOriginales = productos.Select(p => new ProductoPrecio(p)).ToList();
+                _productosOriginales = productos.Select(p =>
+                {
+                    var productoPrecio = new ProductoPrecio(p);
+                    // ✅ NUEVO: Conectar evento de cambio para auto-guardado
+                    productoPrecio.CambioRealizado += (producto) => ProgramarAutoGuardado();
+                    return productoPrecio;
+                }).ToList();
 
                 AplicarFiltro();
                 ActualizarContadores();
+                ActualizarExplicacionMargen();
 
                 TxtEstadoHeader.Text = $"✅ {productos.Count} productos cargados";
+                ActualizarEstadoAutoGuardado("✅ Todos los cambios guardados");
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al cargar productos: {ex.Message}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 TxtEstadoHeader.Text = "❌ Error al cargar";
+                ActualizarEstadoAutoGuardado("❌ Error al cargar");
             }
         }
 
@@ -699,7 +891,7 @@ namespace costbenefi.Views
                     productosFiltrados = _productosOriginales.Where(p => !p.EsProductoAGranel);
                     break;
                 case 5: // Margen bajo
-                    productosFiltrados = _productosOriginales.Where(p => p.MargenCalculado < 20 && p.PrecioVenta > 0);
+                    productosFiltrados = _productosOriginales.Where(p => p.MargenCalculadoSobreVenta < 20 && p.PrecioVenta > 0);
                     break;
                 case 6: // Inactivos
                     productosFiltrados = _productosOriginales.Where(p => !p.ActivoParaVenta);
@@ -724,6 +916,40 @@ namespace costbenefi.Views
             TxtContadores.Text = $"Productos: {total} | Granel: {granel} | Pieza: {pieza}";
         }
 
+        // ✅ NUEVO: Actualizar explicación según tipo de margen
+        private void ActualizarExplicacionMargen()
+        {
+            if (TxtExplicacionMargen == null || TxtMargenMasivo == null || CmbTipoMargen == null) return;
+
+            if (!decimal.TryParse(TxtMargenMasivo.Text, out decimal margen)) margen = 30;
+
+            var esSobreCosto = CmbTipoMargen.SelectedIndex == 0;
+            decimal costoEjemplo = 100;
+            decimal precioCalculado, margenMostrado;
+
+            if (esSobreCosto)
+            {
+                // Margen sobre costo
+                precioCalculado = costoEjemplo * (1 + margen / 100);
+                margenMostrado = margen;
+                TxtExplicacionMargen.Text = $"💡 Margen sobre COSTO: Costo ${costoEjemplo:F0} + {margen}% = Precio ${precioCalculado:F0} (margen {margenMostrado:F1}%)";
+            }
+            else
+            {
+                // Margen sobre venta
+                if (margen < 100)
+                {
+                    precioCalculado = costoEjemplo / (1 - margen / 100);
+                    var margenSobreCosto = ((precioCalculado - costoEjemplo) / costoEjemplo) * 100;
+                    TxtExplicacionMargen.Text = $"💡 Margen sobre VENTA: Costo ${costoEjemplo:F0} → Precio ${precioCalculado:F0} (margen {margen}% de venta = {margenSobreCosto:F1}% sobre costo)";
+                }
+                else
+                {
+                    TxtExplicacionMargen.Text = "⚠️ Margen sobre venta debe ser menor a 100%";
+                }
+            }
+        }
+
         #endregion
 
         #region Event Handlers
@@ -736,6 +962,18 @@ namespace costbenefi.Views
         private async void BtnActualizar_Click(object sender, RoutedEventArgs e)
         {
             await LoadProductosAsync();
+        }
+
+        // ✅ NUEVO: Event handler para cambio de tipo de margen
+        private void CmbTipoMargen_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ActualizarExplicacionMargen();
+        }
+
+        // ✅ NUEVO: Event handler para cambio de texto del margen
+        private void TxtMargenMasivo_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            ActualizarExplicacionMargen();
         }
 
         private void BtnCalcularTodos_Click(object sender, RoutedEventArgs e)
@@ -756,20 +994,24 @@ namespace costbenefi.Views
                 return;
             }
 
+            var tipoMargen = CmbTipoMargen.SelectedIndex == 0 ? "sobre costo" : "sobre venta";
             var resultado = MessageBox.Show(
-                $"¿Calcular precios con {margen}% de margen para {productosValidos.Count} productos?\n\n" +
+                $"¿Calcular precios con {margen}% de margen {tipoMargen} para {productosValidos.Count} productos?\n\n" +
                 "Esto sobrescribirá los precios existentes.",
                 "Confirmar Cálculo Masivo", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (resultado == MessageBoxResult.Yes)
             {
+                var tipoMargenEnum = CmbTipoMargen.SelectedIndex == 0 ? TipoMargen.SobreCosto : TipoMargen.SobreVenta;
                 foreach (var producto in productosValidos)
                 {
-                    producto.AplicarMargen(margen);
+                    producto.AplicarMargen(margen, tipoMargenEnum);
                 }
 
                 _cambiosRealizados = true;
-                MessageBox.Show($"✅ Precios calculados para {productosValidos.Count} productos",
+                ProgramarAutoGuardado(); // ✅ NUEVO: Auto-guardado
+
+                MessageBox.Show($"✅ Precios calculados para {productosValidos.Count} productos con margen {tipoMargen}\n\n🔄 Los cambios se guardarán automáticamente",
                     "Cálculo Completado", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
@@ -792,13 +1034,18 @@ namespace costbenefi.Views
                 return;
             }
 
+            var tipoMargenEnum = CmbTipoMargen.SelectedIndex == 0 ? TipoMargen.SobreCosto : TipoMargen.SobreVenta;
+            var tipoMargenTexto = CmbTipoMargen.SelectedIndex == 0 ? "sobre costo" : "sobre venta";
+
             foreach (var producto in seleccionados.Where(p => p.PrecioConIVA > 0))
             {
-                producto.AplicarMargen(margen);
+                producto.AplicarMargen(margen, tipoMargenEnum);
             }
 
             _cambiosRealizados = true;
-            MessageBox.Show($"✅ Margen aplicado a {seleccionados.Count} productos",
+            ProgramarAutoGuardado(); // ✅ NUEVO: Auto-guardado
+
+            MessageBox.Show($"✅ Margen {tipoMargenTexto} aplicado a {seleccionados.Count} productos\n\n🔄 Los cambios se guardarán automáticamente",
                 "Margen Aplicado", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -819,7 +1066,9 @@ namespace costbenefi.Views
             }
 
             _cambiosRealizados = true;
-            MessageBox.Show($"✅ {seleccionados.Count} productos activados para POS",
+            ProgramarAutoGuardado(); // ✅ NUEVO: Auto-guardado
+
+            MessageBox.Show($"✅ {seleccionados.Count} productos activados para POS\n\n🔄 Los cambios se guardarán automáticamente",
                 "Productos Activados", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -840,23 +1089,60 @@ namespace costbenefi.Views
             }
 
             _cambiosRealizados = true;
-            MessageBox.Show($"✅ {seleccionados.Count} productos desactivados del POS",
+            ProgramarAutoGuardado(); // ✅ NUEVO: Auto-guardado
+
+            MessageBox.Show($"✅ {seleccionados.Count} productos desactivados del POS\n\n🔄 Los cambios se guardarán automáticamente",
                 "Productos Desactivados", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void BtnCancelar_Click(object sender, RoutedEventArgs e)
+        // ✅ NUEVO: Botón de guardado manual (backup)
+        private async void BtnGuardarManual_Click(object sender, RoutedEventArgs e)
         {
-            if (_cambiosRealizados)
+            await GuardarCambiosAutomaticos();
+            MessageBox.Show("✅ Guardado manual completado", "Guardado",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        // ✅ MODIFICADO: Botón de cerrar (reemplaza cancelar)
+        private void BtnCerrar_Click(object sender, RoutedEventArgs e)
+        {
+            // Verificar si hay cambios pendientes
+            var cambiosPendientes = _productos.Any(p => p.HaCambiado);
+
+            if (cambiosPendientes && _autoGuardadoActivo)
             {
                 var resultado = MessageBox.Show(
-                    "¿Salir sin guardar los cambios realizados?",
-                    "Cambios Sin Guardar", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    "Hay cambios pendientes que se guardarán automáticamente.\n\n¿Desea cerrar ahora?",
+                    "Cambios Pendientes", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (resultado == MessageBoxResult.No) return;
+
+                // Forzar guardado antes de cerrar
+                _ = Task.Run(async () => await GuardarCambiosAutomaticos());
+            }
+            else if (cambiosPendientes && !_autoGuardadoActivo)
+            {
+                var resultado = MessageBox.Show(
+                    "Hay cambios no guardados (auto-guardado desactivado).\n\n¿Desea salir sin guardar?",
+                    "Cambios Sin Guardar", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
                 if (resultado == MessageBoxResult.No) return;
             }
 
-            DialogResult = false;
+            // ✅ NUEVO: Cleanup del timer
+            _timerAutoGuardado?.Stop();
+            _timerAutoGuardado?.Dispose();
+
+            DialogResult = true;
             Close();
+        }
+
+        // ✅ MANTENER: Método de guardado original para compatibilidad
+        
+
+        private void BtnCancelar_Click(object sender, RoutedEventArgs e)
+        {
+            BtnCerrar_Click(sender, e);
         }
 
         private async void BtnGuardar_Click(object sender, RoutedEventArgs e)
@@ -870,6 +1156,7 @@ namespace costbenefi.Views
                     return;
                 }
 
+                // ✅ CORREGIDO: Buscar productos con cambios de manera más específica
                 var productosAActualizar = _productos.Where(p => p.HaCambiado).ToList();
 
                 if (!productosAActualizar.Any())
@@ -881,19 +1168,55 @@ namespace costbenefi.Views
 
                 TxtEstadoHeader.Text = "Guardando cambios...";
 
+                int productosActualizados = 0;
+                int preciosActualizados = 0;
+                int estadosActualizados = 0;
+
                 foreach (var productoPrecio in productosAActualizar)
                 {
                     var producto = await _context.RawMaterials.FindAsync(productoPrecio.Id);
                     if (producto != null)
                     {
-                        productoPrecio.ActualizarProductoOriginal(producto);
+                        // ✅ VERIFICAR QUÉ CAMBIÓ ESPECÍFICAMENTE
+                        bool preciosCambiaron = Math.Abs(producto.PrecioVenta - productoPrecio.PrecioVenta) > 0.01m;
+                        bool estadoCambio = producto.ActivoParaVenta != productoPrecio.ActivoParaVenta;
+
+                        // ✅ ACTUALIZAR SOLO SI HAY CAMBIOS REALES
+                        if (preciosCambiaron || estadoCambio)
+                        {
+                            productoPrecio.ActualizarProductoOriginal(producto);
+                            productosActualizados++;
+
+                            if (preciosCambiaron) preciosActualizados++;
+                            if (estadoCambio) estadosActualizados++;
+
+                            // ✅ FORZAR TRACKING DE CAMBIOS EXPLÍCITAMENTE
+                            _context.Entry(producto).State = EntityState.Modified;
+
+                            // ✅ EXTRA: Marcar propiedades específicas como modificadas
+                            if (preciosCambiaron)
+                            {
+                                _context.Entry(producto).Property(p => p.PrecioVenta).IsModified = true;
+                                _context.Entry(producto).Property(p => p.PrecioVentaConIVA).IsModified = true;
+                                _context.Entry(producto).Property(p => p.MargenObjetivo).IsModified = true;
+                            }
+                            if (estadoCambio)
+                            {
+                                _context.Entry(producto).Property(p => p.ActivoParaVenta).IsModified = true;
+                            }
+                            _context.Entry(producto).Property(p => p.FechaActualizacion).IsModified = true;
+                        }
                     }
                 }
 
-                await _context.SaveChangesAsync();
+                // ✅ GUARDAR CAMBIOS CON CONFIRMACIÓN
+                var cambiosGuardados = await _context.SaveChangesAsync();
 
                 MessageBox.Show($"✅ Cambios guardados exitosamente!\n\n" +
-                    $"Productos actualizados: {productosAActualizar.Count}",
+                    $"📦 Productos actualizados: {productosActualizados}\n" +
+                    $"💰 Precios modificados: {preciosActualizados}\n" +
+                    $"🔄 Estados POS cambiados: {estadosActualizados}\n" +
+                    $"💾 Registros en BD: {cambiosGuardados}",
                     "Guardado Exitoso", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 DialogResult = true;
@@ -901,8 +1224,8 @@ namespace costbenefi.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al guardar cambios: {ex.Message}", "Error al Guardar",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error al guardar cambios: {ex.Message}\n\nDetalles: {ex.InnerException?.Message}",
+                    "Error al Guardar", MessageBoxButton.OK, MessageBoxImage.Error);
                 TxtEstadoHeader.Text = "❌ Error al guardar";
             }
         }
@@ -910,13 +1233,30 @@ namespace costbenefi.Views
         #endregion
     }
 
-    #region Clase ProductoPrecio
+    #region Enumeraciones y Clases Auxiliares
+
+    public enum TipoMargen
+    {
+        SobreCosto,   // Margen sobre el costo (tradicional)
+        SobreVenta    // Margen sobre el precio de venta
+    }
+
+    #endregion
+
+    #region Clase ProductoPrecio CORREGIDA
 
     public class ProductoPrecio : INotifyPropertyChanged
     {
         private decimal _precioVenta;
         private bool _activoParaVenta;
         private bool _haCambiado;
+
+        // ✅ NUEVOS: Valores originales para detectar cambios reales
+        private decimal _precioVentaOriginal;
+        private bool _activoParaVentaOriginal;
+
+        // ✅ NUEVO: Evento para notificar cambios al contenedor
+        public event Action<ProductoPrecio> CambioRealizado;
 
         public int Id { get; set; }
         public string NombreProducto { get; set; }
@@ -937,9 +1277,15 @@ namespace costbenefi.Views
                     _haCambiado = true;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(PrecioVentaString));
-                    OnPropertyChanged(nameof(MargenCalculado));
+                    OnPropertyChanged(nameof(MargenCalculadoSobreCosto));
+                    OnPropertyChanged(nameof(MargenCalculadoSobreVenta));
+                    OnPropertyChanged(nameof(MargenMostrado));
+                    OnPropertyChanged(nameof(MargenMostradoCompleto));
                     OnPropertyChanged(nameof(GananciaUnitaria));
                     OnPropertyChanged(nameof(EstadoPrecio));
+
+                    // ✅ NUEVO: Notificar cambio para auto-guardado
+                    CambioRealizado?.Invoke(this);
                 }
             }
         }
@@ -954,11 +1300,17 @@ namespace costbenefi.Views
                     _activoParaVenta = value;
                     _haCambiado = true;
                     OnPropertyChanged();
+
+                    // ✅ NUEVO: Notificar cambio para auto-guardado
+                    CambioRealizado?.Invoke(this);
                 }
             }
         }
 
-        public bool HaCambiado => _haCambiado;
+        // ✅ CORREGIDO: HaCambiado verifica cambios reales vs valores originales
+        public bool HaCambiado =>
+            Math.Abs(_precioVenta - _precioVentaOriginal) > 0.01m ||
+            _activoParaVenta != _activoParaVentaOriginal;
 
         public string PrecioVentaString
         {
@@ -972,7 +1324,18 @@ namespace costbenefi.Views
             }
         }
 
-        public decimal MargenCalculado
+        // ✅ Margen sobre COSTO (tradicional)
+        public decimal MargenCalculadoSobreCosto
+        {
+            get
+            {
+                if (PrecioVenta <= 0 || PrecioConIVA <= 0) return 0;
+                return ((PrecioVenta - PrecioConIVA) / PrecioConIVA) * 100;
+            }
+        }
+
+        // ✅ Margen sobre VENTA 
+        public decimal MargenCalculadoSobreVenta
         {
             get
             {
@@ -980,6 +1343,21 @@ namespace costbenefi.Views
                 return ((PrecioVenta - PrecioConIVA) / PrecioVenta) * 100;
             }
         }
+
+        // ✅ NUEVO: Margen completo para mostrar en la UI
+        public string MargenMostradoCompleto
+        {
+            get
+            {
+                if (PrecioVenta <= 0 || PrecioConIVA <= 0) return "N/A";
+                var margenCosto = MargenCalculadoSobreCosto;
+                var margenVenta = MargenCalculadoSobreVenta;
+                return $"{margenCosto:F1}% / {margenVenta:F1}%";
+            }
+        }
+
+        // ✅ Margen principal que se muestra (sobre costo por defecto)
+        public decimal MargenMostrado => MargenCalculadoSobreCosto;
 
         public decimal GananciaUnitaria => Math.Max(0, PrecioVenta - PrecioConIVA);
 
@@ -1000,7 +1378,7 @@ namespace costbenefi.Views
             get
             {
                 if (PrecioVenta <= 0) return "⏳ Pendiente";
-                if (MargenCalculado < 15) return "⚠️ Margen Bajo";
+                if (MargenCalculadoSobreVenta < 15) return "⚠️ Margen Bajo";
                 return "✅ Configurado";
             }
         }
@@ -1014,25 +1392,54 @@ namespace costbenefi.Views
             StockTotal = producto.StockTotal;
             PrecioConIVA = producto.PrecioConIVA;
             MargenObjetivo = producto.MargenObjetivo;
+
+            // ✅ Guardar valores originales
             _precioVenta = producto.PrecioVenta;
             _activoParaVenta = producto.ActivoParaVenta;
+            _precioVentaOriginal = producto.PrecioVenta;
+            _activoParaVentaOriginal = producto.ActivoParaVenta;
+
             _haCambiado = false;
         }
 
-        public void AplicarMargen(decimal margenPorcentaje)
+        // ✅ CORREGIDO: Método para aplicar margen con tipo específico
+        public void AplicarMargen(decimal margenPorcentaje, TipoMargen tipoMargen = TipoMargen.SobreCosto)
         {
             if (PrecioConIVA > 0)
             {
-                PrecioVenta = PrecioConIVA * (1 + (margenPorcentaje / 100));
+                switch (tipoMargen)
+                {
+                    case TipoMargen.SobreCosto:
+                        // Margen sobre costo: Precio = Costo × (1 + margen/100)
+                        PrecioVenta = Math.Round(PrecioConIVA * (1 + (margenPorcentaje / 100)), 2);
+                        break;
+
+                    case TipoMargen.SobreVenta:
+                        // Margen sobre venta: Precio = Costo / (1 - margen/100)
+                        if (margenPorcentaje < 100) // Evitar división por cero
+                        {
+                            PrecioVenta = Math.Round(PrecioConIVA / (1 - (margenPorcentaje / 100)), 2);
+                        }
+                        break;
+                }
             }
+        }
+
+        // ✅ NUEVO: Marcar como guardado (resetear valores originales)
+        public void MarcarComoGuardado()
+        {
+            _precioVentaOriginal = _precioVenta;
+            _activoParaVentaOriginal = _activoParaVenta;
+            _haCambiado = false;
+            OnPropertyChanged(nameof(HaCambiado));
         }
 
         public void ActualizarProductoOriginal(RawMaterial producto)
         {
             producto.PrecioVenta = PrecioVenta;
-            producto.PrecioVentaConIVA = PrecioVenta * 1.16m; // Asumiendo 16% IVA
+            producto.PrecioVentaConIVA = Math.Round(PrecioVenta * 1.16m, 2); // 16% IVA
             producto.ActivoParaVenta = ActivoParaVenta;
-            producto.MargenObjetivo = MargenCalculado;
+            producto.MargenObjetivo = MargenCalculadoSobreCosto; // ✅ CORREGIDO: Usar margen sobre costo como objetivo
             producto.FechaActualizacion = DateTime.Now;
         }
 

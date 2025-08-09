@@ -8,6 +8,7 @@ using costbenefi.Data;
 using Microsoft.EntityFrameworkCore;
 using costbenefi.Models;
 using System.Threading.Tasks;
+using costbenefi.Views;
 
 namespace costbenefi.Views
 {
@@ -29,6 +30,7 @@ namespace costbenefi.Views
         {
             InitializeComponent();
             Loaded += AnalisisMainControl_Loaded;
+            Unloaded += AnalisisMainControl_Unloaded; // ✅ Agregar evento Unloaded
         }
 
         // ========== EVENTOS DE CARGA ==========
@@ -118,15 +120,25 @@ namespace costbenefi.Views
                     .OrderBy(m => m.NombreArticulo)
                     .ToListAsync();
 
-                // Cargar ventas del período
+                // ✅ CARGAR VENTAS FILTRADAS POR EL PERÍODO SELECCIONADO
                 _ventas = await _context.Ventas
                     .Include(v => v.DetallesVenta)
                     .Where(v => v.FechaVenta >= _periodoInicio && v.FechaVenta <= _periodoFin)
                     .OrderByDescending(v => v.FechaVenta)
                     .ToListAsync();
 
-                System.Diagnostics.Debug.WriteLine($"📦 Productos cargados: {_productos.Count}");
-                System.Diagnostics.Debug.WriteLine($"💰 Ventas del período: {_ventas.Count}");
+                // ✅ LOGGING DETALLADO PARA VERIFICAR
+                System.Diagnostics.Debug.WriteLine($"📊 DATOS CARGADOS:");
+                System.Diagnostics.Debug.WriteLine($"   📦 Productos: {_productos.Count}");
+                System.Diagnostics.Debug.WriteLine($"   📅 Período: {_periodoInicio:dd/MM/yyyy} - {_periodoFin:dd/MM/yyyy}");
+                System.Diagnostics.Debug.WriteLine($"   💰 Ventas en período: {_ventas.Count}");
+
+                if (_ventas.Any())
+                {
+                    var fechaMin = _ventas.Min(v => v.FechaVenta);
+                    var fechaMax = _ventas.Max(v => v.FechaVenta);
+                    System.Diagnostics.Debug.WriteLine($"   📊 Rango real de ventas: {fechaMin:dd/MM/yyyy} - {fechaMax:dd/MM/yyyy}");
+                }
 
                 TxtStatusAnalisis.Text = "✅ Datos cargados - Listo para análisis";
             }
@@ -134,22 +146,57 @@ namespace costbenefi.Views
             {
                 System.Diagnostics.Debug.WriteLine($"❌ Error cargando datos: {ex.Message}");
                 TxtStatusAnalisis.Text = "❌ Error al cargar datos de análisis";
+                throw;
             }
         }
 
+
         // ========== EVENTOS DE BOTONES DE NAVEGACIÓN ==========
+
+        // ✅ MÉTODO ACTUALIZADO PARA ABRIR VENTANA DE RENTABILIDAD
         private void BtnRentabilidad_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                AnalisisTabControl.SelectedIndex = 0;
-                ActivarBoton(BtnRentabilidad);
-                TxtStatusAnalisis.Text = "💰 Análisis de rentabilidad seleccionado";
-                System.Diagnostics.Debug.WriteLine("📊 Cambiado a: Análisis de Rentabilidad");
+                // Validar que tenemos datos
+                if (_context == null)
+                {
+                    MessageBox.Show("Error: Contexto de base de datos no disponible.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Mostrar indicador de carga
+                TxtStatusAnalisis.Text = "🔄 Abriendo análisis de rentabilidad...";
+                BtnRentabilidad.IsEnabled = false;
+
+                // Crear y abrir la ventana de análisis de rentabilidad
+                var ventanaRentabilidad = new AnalisisRentabilidadWindow(_context, _productos, _ventas, _periodoInicio, _periodoFin);
+
+                // Configurar la ventana como child de la ventana principal (opcional)
+                ventanaRentabilidad.Owner = Window.GetWindow(this);
+
+                // Abrir la ventana
+                ventanaRentabilidad.Show();
+
+                // Actualizar estado
+                TxtStatusAnalisis.Text = "💰 Análisis de Rentabilidad abierto en ventana independiente";
+
+                System.Diagnostics.Debug.WriteLine("✅ AnalisisRentabilidadWindow abierta exitosamente");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error en BtnRentabilidad_Click: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error abriendo AnalisisRentabilidadWindow: {ex.Message}");
+                TxtStatusAnalisis.Text = "❌ Error al abrir análisis de rentabilidad";
+
+                MessageBox.Show(
+                    $"Error al abrir el análisis de rentabilidad:\n\n{ex.Message}",
+                    "Error de Análisis",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                BtnRentabilidad.IsEnabled = true;
             }
         }
 
@@ -187,14 +234,153 @@ namespace costbenefi.Views
         {
             try
             {
-                AnalisisTabControl.SelectedIndex = 3;
-                ActivarBoton(BtnAnalisisABC);
-                TxtStatusAnalisis.Text = "🔤 Análisis ABC seleccionado";
-                System.Diagnostics.Debug.WriteLine("📊 Cambiado a: Análisis ABC");
+                // Validar que tenemos datos
+                if (_context == null)
+                {
+                    MessageBox.Show("Error: Contexto de base de datos no disponible.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Mostrar indicador de carga
+                TxtStatusAnalisis.Text = "🔄 Abriendo análisis ABC...";
+                BtnAnalisisABC.IsEnabled = false;
+
+                // Crear y abrir la ventana de análisis ABC
+                var ventanaABC = new AnalisisABCWindow(_context, _productos, _ventas, _periodoInicio, _periodoFin);
+
+                // Configurar la ventana como child de la ventana principal (opcional)
+                ventanaABC.Owner = Window.GetWindow(this);
+
+                // Abrir la ventana
+                ventanaABC.Show();
+
+                // Actualizar estado
+                TxtStatusAnalisis.Text = "🔤 Análisis ABC abierto en ventana independiente";
+
+                System.Diagnostics.Debug.WriteLine("✅ AnalisisABCWindow abierta exitosamente");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error en BtnAnalisisABC_Click: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error abriendo AnalisisABCWindow: {ex.Message}");
+                TxtStatusAnalisis.Text = "❌ Error al abrir análisis ABC";
+
+                MessageBox.Show(
+                    $"Error al abrir el análisis ABC:\n\n{ex.Message}",
+                    "Error de Análisis",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                BtnAnalisisABC.IsEnabled = true;
+            }
+        }
+        private async void CmbPeriodo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            try
+            {
+                if (!_moduloCargado) return; // No ejecutar durante la carga inicial
+
+                var comboBox = sender as ComboBox;
+                var selectedItem = comboBox?.SelectedItem as ComboBoxItem;
+                var periodoSeleccionado = selectedItem?.Content?.ToString() ?? "Último mes";
+
+                System.Diagnostics.Debug.WriteLine($"📅 Período cambiado a: {periodoSeleccionado}");
+
+                // Actualizar fechas según la selección
+                ActualizarPeriodoFechas(periodoSeleccionado);
+
+                // Recargar datos con el nuevo período
+                TxtStatusAnalisis.Text = $"🔄 Actualizando datos para: {periodoSeleccionado}...";
+
+                await CargarDatosAnalisis();
+                ActualizarStatusBar();
+
+                TxtStatusAnalisis.Text = $"✅ Datos actualizados para: {periodoSeleccionado}";
+
+                System.Diagnostics.Debug.WriteLine($"📊 Período aplicado: {_periodoInicio:dd/MM/yyyy} - {_periodoFin:dd/MM/yyyy}");
+                System.Diagnostics.Debug.WriteLine($"💰 Ventas encontradas: {_ventas.Count}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error cambiando período: {ex.Message}");
+                TxtStatusAnalisis.Text = "❌ Error al cambiar período";
+            }
+        }
+        private void ActualizarPeriodoFechas(string periodo)
+        {
+            try
+            {
+                var fechaActual = DateTime.Now.Date;
+
+                switch (periodo)
+                {
+                    case "Último mes":
+                        _periodoInicio = fechaActual.AddMonths(-1);
+                        _periodoFin = fechaActual.AddDays(1).AddTicks(-1); // Final del día actual
+                        break;
+
+                    case "Últimos 3 meses":
+                        _periodoInicio = fechaActual.AddMonths(-3);
+                        _periodoFin = fechaActual.AddDays(1).AddTicks(-1);
+                        break;
+
+                    case "Último semestre":
+                        _periodoInicio = fechaActual.AddMonths(-6);
+                        _periodoFin = fechaActual.AddDays(1).AddTicks(-1);
+                        break;
+
+                    case "Último año":
+                        _periodoInicio = fechaActual.AddYears(-1);
+                        _periodoFin = fechaActual.AddDays(1).AddTicks(-1);
+                        break;
+
+                    case "Personalizado":
+                        // TODO: Abrir diálogo para selección personalizada
+                        MostrarDialogoFechaPersonalizada();
+                        break;
+
+                    default:
+                        // Por defecto: último mes
+                        _periodoInicio = fechaActual.AddMonths(-1);
+                        _periodoFin = fechaActual.AddDays(1).AddTicks(-1);
+                        break;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"📅 Fechas calculadas:");
+                System.Diagnostics.Debug.WriteLine($"   Inicio: {_periodoInicio:dd/MM/yyyy HH:mm:ss}");
+                System.Diagnostics.Debug.WriteLine($"   Fin: {_periodoFin:dd/MM/yyyy HH:mm:ss}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error calculando fechas del período: {ex.Message}");
+            }
+        }
+        private void MostrarDialogoFechaPersonalizada()
+        {
+            try
+            {
+                // Por ahora mostrar un MessageBox simple
+                // TODO: Crear ventana personalizada para selección de fechas
+
+                var resultado = MessageBox.Show(
+                    "📅 Selección de Período Personalizado\n\n" +
+                    "Esta funcionalidad estará disponible próximamente.\n\n" +
+                    "Por ahora, se mantendrá el período 'Último mes'.\n\n" +
+                    "¿Desea continuar?",
+                    "Período Personalizado",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+
+                if (resultado == MessageBoxResult.No)
+                {
+                    // Regresar a "Último mes"
+                    CmbPeriodo.SelectedIndex = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error en diálogo fecha personalizada: {ex.Message}");
             }
         }
 
@@ -322,7 +508,28 @@ namespace costbenefi.Views
                 TxtFechaHora.Text = "--/--/---- --:--";
             }
         }
+        // Agregar este evento en AnalisisMainControl.xaml.cs
 
+        private void BtnAnalisisFinanciero_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Mostrar indicador de carga
+                TxtStatusAnalisis.Text = "💎 Abriendo análisis financiero avanzado...";
+
+                // Crear y abrir la ventana
+                var ventanaFinanciera = new AnalisisFinancieroAvanzadoWindow(_context);
+                ventanaFinanciera.Owner = Window.GetWindow(this);
+                ventanaFinanciera.Show();
+
+                TxtStatusAnalisis.Text = "💎 Análisis Financiero Avanzado abierto exitosamente";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error abriendo análisis financiero: {ex.Message}");
+                MessageBox.Show($"Error al abrir análisis financiero:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private void ActivarBoton(Button botonActivo)
         {
             try
@@ -353,12 +560,15 @@ namespace costbenefi.Views
         {
             try
             {
+                // Actualizar fecha/hora
+                ActualizarFechaHora();
+
                 // Actualizar contadores
                 TxtProductosAnalisis.Text = $"Productos: {_productos.Count}";
 
-                // Actualizar período actual
+                // ✅ MOSTRAR PERÍODO REAL CON CANTIDAD DE VENTAS
                 var periodoTexto = GetPeriodoSeleccionado();
-                TxtPeriodoActual.Text = $"Período: {periodoTexto}";
+                TxtPeriodoActual.Text = $"Período: {periodoTexto} ({_ventas.Count} ventas)";
 
                 // Actualizar hora de última actualización
                 TxtUltimaActualizacion.Text = $"Actualizado: {DateTime.Now:HH:mm}";
@@ -370,7 +580,34 @@ namespace costbenefi.Views
                 System.Diagnostics.Debug.WriteLine($"❌ Error actualizando status bar: {ex.Message}");
             }
         }
+        public void VerificarPeriodoActual()
+        {
+            try
+            {
+                var periodoSeleccionado = GetPeriodoSeleccionado();
 
+                System.Diagnostics.Debug.WriteLine($"🔍 VERIFICACIÓN DE PERÍODO:");
+                System.Diagnostics.Debug.WriteLine($"   📅 Selección ComboBox: {periodoSeleccionado}");
+                System.Diagnostics.Debug.WriteLine($"   📊 Fecha inicio: {_periodoInicio:dd/MM/yyyy HH:mm:ss}");
+                System.Diagnostics.Debug.WriteLine($"   📊 Fecha fin: {_periodoFin:dd/MM/yyyy HH:mm:ss}");
+                System.Diagnostics.Debug.WriteLine($"   💰 Ventas encontradas: {_ventas.Count}");
+
+                if (_ventas.Any())
+                {
+                    var fechaMin = _ventas.Min(v => v.FechaVenta);
+                    var fechaMax = _ventas.Max(v => v.FechaVenta);
+                    System.Diagnostics.Debug.WriteLine($"   ✅ Rango real: {fechaMin:dd/MM/yyyy} - {fechaMax:dd/MM/yyyy}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"   ⚠️ No hay ventas en el período seleccionado");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error verificando período: {ex.Message}");
+            }
+        }
         private string GetPeriodoSeleccionado()
         {
             try
@@ -413,7 +650,18 @@ namespace costbenefi.Views
         }
 
         // ========== LIMPIEZA DE RECURSOS ==========
-        
+        private void AnalisisMainControl_Unloaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _context?.Dispose();
+                System.Diagnostics.Debug.WriteLine("🧹 AnalisisMainControl: Recursos liberados");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error liberando recursos: {ex.Message}");
+            }
+        }
     }
 
     // ========== CLASES AUXILIARES PARA ANÁLISIS ==========

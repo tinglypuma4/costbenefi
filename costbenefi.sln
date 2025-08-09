@@ -32,12 +32,29 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{46
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9-E21E-492B-83DD-6A5046CA4BA3}"
 	ProjectSection(SolutionItems) = preProject
+		AnalisisABCWindow.xaml = AnalisisABCWindow.xaml
+		AnalisisABCWindow.xaml.cs = AnalisisABCWindow.xaml.cs
+		AnalisisFinancieroAvanzadoWindow.xaml = AnalisisFinancieroAvanzadoWindow.xaml
+		AnalisisFinancieroAvanzadoWindow.xaml.cs = AnalisisFinancieroAvanzadoWindow.xaml.cs
 		AnalisisMainControl.xaml = AnalisisMainControl.xaml
 		AnalisisMainControl.xaml.cs = AnalisisMainControl.xaml.cs
+		AnalisisRentabilidadWindow.xaml = AnalisisRentabilidadWindow.xaml
+		AnalisisRentabilidadWindow.xaml.cs = AnalisisRentabilidadWindow.xaml.cs
+		VentanaConfiguracionABC.xaml = VentanaConfiguracionABC.xaml
+		VentanaConfiguracionABC.xaml.cs = VentanaConfiguracionABC.xaml.cs
+		VentanaConfiguracionRentabilidad.xaml = VentanaConfiguracionRentabilidad.xaml
+		VentanaConfiguracionRentabilidad.xaml.cs = VentanaConfiguracionRentabilidad.xaml.cs
+		VentanaDistribucionAmpliada.xaml = VentanaDistribucionAmpliada.xaml
+		VentanaDistribucionAmpliada.xaml.cs = VentanaDistribucionAmpliada.xaml.cs
+		VentanaGraficoAmpliado.xaml = VentanaGraficoAmpliado.xaml
+		VentanaGraficoAmpliado.xaml.cs = VentanaGraficoAmpliado.xaml.cs
+		VentanaGraficoAmpliadoRentabilidad.xaml = VentanaGraficoAmpliadoRentabilidad.xaml
+		VentanaGraficoAmpliadoRentabilidad.xaml.cs = VentanaGraficoAmpliadoRentabilidad.xaml.cs
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{CB0EA23B-7609-429B-AE5F-878D7E0ED6A5}"
 	ProjectSection(SolutionItems) = preProject
+		CalculadoraFinancieraAvanzada.cs = CalculadoraFinancieraAvanzada.cs
 		ConfiguracionBascula.cs = ConfiguracionBascula.cs
 		Converters.cs = Converters.cs
 		CorteCaja.cs = CorteCaja.cs
