@@ -1,0 +1,415 @@
+﻿<UserControl x:Class="costbenefi.Views.FinancieroAvanzadoModuloControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1400">
+
+    <UserControl.Resources>
+        <Style x:Key="ModernButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                BorderBrush="{TemplateBinding BorderBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="#F8FAFC">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- HEADER PRINCIPAL -->
+        <Border Grid.Row="0" Background="#6366F1" CornerRadius="8,8,0,0" Padding="25,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="💎" FontSize="26" Foreground="White" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <StackPanel>
+                            <TextBlock Text="Análisis Financiero Avanzado" FontSize="20" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock Text="VPN, TIR, WACC, EOQ y análisis de sensibilidad para decisiones estratégicas" 
+                                       FontSize="12" Foreground="White" Opacity="0.9"/>
+                        </StackPanel>
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal">
+                        <Border Background="#FFFFFF" CornerRadius="5" Padding="8,4" Opacity="0.9" Margin="0,0,10,0">
+                            <TextBlock x:Name="TxtFechaAnalisis" Text="🕒 Análisis en tiempo real" FontSize="10" FontWeight="Bold" Foreground="#374151"/>
+                        </Border>
+                        <Border Background="#FFFFFF" CornerRadius="5" Padding="8,4" Opacity="0.9">
+                            <TextBlock Text="📊 Estándares internacionales" FontSize="10" FontWeight="Bold" Foreground="#374151"/>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="BtnAyuda" Content="❓ Ayuda" Width="90" Height="35"
+                            Background="#FFFFFF" Foreground="#6366F1" FontSize="11"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnAyuda_Click"/>
+                    
+                    <Button x:Name="BtnVentanaIndependiente" Content="🔗 Ventana" Width="90" Height="35"
+                            Background="#8B5CF6" Foreground="White" FontSize="11"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnVentanaIndependiente_Click"
+                            ToolTip="Abrir en ventana independiente"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- TOOLBAR DE NAVEGACIÓN -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="25,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button x:Name="BtnVPN" Content="💎 VPN/TIR" Width="100" Height="32"
+                            Background="#6366F1" Foreground="White" 
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnVPN_Click"/>
+
+                    <Button x:Name="BtnWACC" Content="📈 WACC" Width="90" Height="32"
+                            Background="#8B5CF6" Foreground="White"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnWACC_Click"/>
+
+                    <Button x:Name="BtnEOQ" Content="📦 EOQ" Width="80" Height="32"
+                            Background="#10B981" Foreground="White"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnEOQ_Click"/>
+
+                    <Button x:Name="BtnSensibilidad" Content="🎯 Sensibilidad" Width="120" Height="32"
+                            Background="#F59E0B" Foreground="White"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnSensibilidad_Click"/>
+
+                    <Button x:Name="BtnComparativa" Content="⚖️ Comparativa" Width="120" Height="32"
+                            Background="#EF4444" Foreground="White"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnComparativa_Click"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="BtnGuardarProyecto" Content="💾 Guardar" Width="90" Height="32"
+                            Background="#059669" Foreground="White"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnGuardarProyecto_Click"/>
+
+                    <Button x:Name="BtnExportarAnalisis" Content="📊 Exportar" Width="90" Height="32"
+                            Background="#3B82F6" Foreground="White"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnExportarAnalisis_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- KPIs FINANCIEROS -->
+        <Grid Grid.Row="2" Margin="25,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- KPI: VPN -->
+            <Border Grid.Column="0" Background="#6366F1" CornerRadius="10" Padding="18,12" Margin="0,0,12,0">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="💎" FontSize="22" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="TxtVPN" Text="$--" FontSize="18" FontWeight="Bold" 
+                               Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock Text="VPN" FontSize="11" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.9"/>
+                    <TextBlock x:Name="TxtVPNEstado" Text="--" FontSize="9" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.8" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- KPI: TIR -->
+            <Border Grid.Column="1" Background="#8B5CF6" CornerRadius="10" Padding="18,12" Margin="0,0,12,0">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="📈" FontSize="22" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="TxtTIR" Text="--%"  FontSize="18" FontWeight="Bold" 
+                               Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock Text="TIR" FontSize="11" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.9"/>
+                    <TextBlock x:Name="TxtTIRComparacion" Text="vs tasa descuento" FontSize="9" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.8" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- KPI: RBC -->
+            <Border Grid.Column="2" Background="#10B981" CornerRadius="10" Padding="18,12" Margin="0,0,12,0">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="⚖️" FontSize="22" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="TxtRBC" Text="--" FontSize="18" FontWeight="Bold" 
+                               Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock Text="RBC" FontSize="11" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.9"/>
+                    <TextBlock x:Name="TxtRBCEstado" Text="Beneficio/Costo" FontSize="9" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.8" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- KPI: Período Recuperación -->
+            <Border Grid.Column="3" Background="#F59E0B" CornerRadius="10" Padding="18,12" Margin="0,0,12,0">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="⏰" FontSize="22" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="TxtPeriodoRecup" Text="-- años" FontSize="16" FontWeight="Bold" 
+                               Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Recuperación" FontSize="11" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.9"/>
+                    <TextBlock x:Name="TxtRecupDetalle" Text="Período simple" FontSize="9" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.8" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- KPI: Viabilidad -->
+            <Border Grid.Column="4" Background="#1F2937" CornerRadius="10" Padding="18,12">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock x:Name="TxtViabilidadIcono" Text="❓" FontSize="22" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="TxtViabilidad" Text="EVALUANDO" FontSize="14" FontWeight="Bold" 
+                               Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Viabilidad" FontSize="11" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.9"/>
+                    <TextBlock x:Name="TxtRecomendacion" Text="Pendiente análisis" FontSize="8" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.8" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- CONTENIDO PRINCIPAL CON TABS -->
+        <TabControl x:Name="TabControlFinanciero" Grid.Row="3" 
+                    Background="Transparent" BorderThickness="0"
+                    Margin="15" SelectionChanged="TabControlFinanciero_SelectionChanged">
+            
+            <!-- Tab: VPN y TIR -->
+            <TabItem Header="💎 VPN/TIR" x:Name="TabVPN">
+                <Grid Background="White" Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Panel izquierdo: Entrada de datos -->
+                    <Border Grid.Column="0" Background="#F8FAFC" CornerRadius="10" Padding="20">
+                        <StackPanel>
+                            <TextBlock Text="📊 Configuración del Proyecto" FontSize="16" FontWeight="Bold" 
+                                       Foreground="#1F2937" Margin="0,0,0,15"/>
+
+                            <!-- Nombre del proyecto -->
+                            <TextBlock Text="Nombre del Proyecto:" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
+                            <TextBox x:Name="TxtNombreProyecto" Height="35" FontSize="12" Padding="10,8"
+                                     Text="Proyecto de Análisis" Margin="0,0,0,15"/>
+
+                            <!-- Inversión inicial -->
+                            <TextBlock Text="Inversión Inicial ($):" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
+                            <TextBox x:Name="TxtInversionInicial" Height="35" FontSize="12" Padding="10,8"
+                                     Text="100000" Margin="0,0,0,15"/>
+
+                            <!-- Tasa de descuento -->
+                            <TextBlock Text="Tasa de Descuento (%):" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
+                            <TextBox x:Name="TxtTasaDescuento" Height="35" FontSize="12" Padding="10,8"
+                                     Text="12" Margin="0,0,0,15"/>
+
+                            <!-- Duración -->
+                            <TextBlock Text="Duración (años):" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
+                            <TextBox x:Name="TxtDuracionAños" Height="35" FontSize="12" Padding="10,8"
+                                     Text="5" Margin="0,0,0,15"/>
+
+                            <!-- Flujos de caja -->
+                            <TextBlock Text="Flujos de Caja Anuales ($):" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
+                            <TextBlock Text="Separar con comas (ej: 30000,35000,40000,45000,50000)" 
+                                       FontSize="10" Foreground="#6B7280" Margin="0,0,0,5"/>
+                            <TextBox x:Name="TxtFlujosCaja" Height="60" FontSize="12" Padding="10,8"
+                                     Text="30000,35000,40000,45000,50000" 
+                                     TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,20"/>
+
+                            <!-- Botón calcular -->
+                            <Button x:Name="BtnCalcularVPN" Content="🔄 Calcular VPN y TIR" Height="40"
+                                    Background="#6366F1" Foreground="White" FontWeight="Bold"
+                                    Click="BtnCalcularVPN_Click"/>
+
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Panel derecho: Resultados -->
+                    <Border Grid.Column="2" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1" Padding="20">
+                        <StackPanel>
+                            <TextBlock Text="📈 Resultados del Análisis" FontSize="16" FontWeight="Bold" 
+                                       Foreground="#1F2937" Margin="0,0,0,15"/>
+
+                            <!-- Resultados en cards -->
+                            <Border Background="#F0FDF4" CornerRadius="8" Padding="15" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="💎 Valor Presente Neto (VPN)" FontWeight="Bold" FontSize="14" Foreground="#166534"/>
+                                    <TextBlock x:Name="TxtResultadoVPN" Text="Pendiente cálculo" FontSize="18" FontWeight="Bold" 
+                                               Foreground="#166534" Margin="0,5,0,0"/>
+                                    <TextBlock x:Name="TxtInterpretacionVPN" Text="Ingrese datos y calcule para ver resultado" 
+                                               FontSize="11" Foreground="#166534" Opacity="0.8"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Background="#F0F9FF" CornerRadius="8" Padding="15" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="📈 Tasa Interna de Retorno (TIR)" FontWeight="Bold" FontSize="14" Foreground="#1E40AF"/>
+                                    <TextBlock x:Name="TxtResultadoTIR" Text="Pendiente cálculo" FontSize="18" FontWeight="Bold" 
+                                               Foreground="#1E40AF" Margin="0,5,0,0"/>
+                                    <TextBlock x:Name="TxtInterpretacionTIR" Text="Compara con la tasa de descuento" 
+                                               FontSize="11" Foreground="#1E40AF" Opacity="0.8"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Background="#FFFBEB" CornerRadius="8" Padding="15" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <TextBlock Text="⏰ Período de Recuperación" FontWeight="Bold" FontSize="14" Foreground="#92400E"/>
+                                    <TextBlock x:Name="TxtResultadoRecup" Text="Pendiente cálculo" FontSize="18" FontWeight="Bold" 
+                                               Foreground="#92400E" Margin="0,5,0,0"/>
+                                    <TextBlock x:Name="TxtInterpretacionRecup" Text="Tiempo para recuperar inversión" 
+                                               FontSize="11" Foreground="#92400E" Opacity="0.8"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Recomendación final -->
+                            <Border x:Name="BorderRecomendacion" Background="#F3F4F6" CornerRadius="8" Padding="15">
+                                <StackPanel>
+                                    <TextBlock Text="🎯 Recomendación" FontWeight="Bold" FontSize="14" Foreground="#374151"/>
+                                    <TextBlock x:Name="TxtRecomendacionFinal" Text="Realice el cálculo para obtener recomendación" 
+                                               FontSize="12" Foreground="#374151" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- Tab: WACC -->
+            <TabItem Header="📈 WACC" x:Name="TabWACC">
+                <Border Background="White" CornerRadius="10" Padding="20" Margin="10">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="🚧" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                        <TextBlock Text="Módulo WACC en desarrollo" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                        <TextBlock Text="Próximamente incluirá:" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="• Cálculo de costo de capital" FontSize="14" HorizontalAlignment="Center"/>
+                        <TextBlock Text="• Análisis de estructura financiera" FontSize="14" HorizontalAlignment="Center"/>
+                        <TextBlock Text="• Optimización de financiamiento" FontSize="14" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </TabItem>
+
+            <!-- Tab: EOQ -->
+            <TabItem Header="📦 EOQ" x:Name="TabEOQ">
+                <Border Background="White" CornerRadius="10" Padding="20" Margin="10">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="🚧" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                        <TextBlock Text="Módulo EOQ en desarrollo" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                        <TextBlock Text="Próximamente incluirá:" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="• Cantidad económica de pedido" FontSize="14" HorizontalAlignment="Center"/>
+                        <TextBlock Text="• Optimización de inventarios" FontSize="14" HorizontalAlignment="Center"/>
+                        <TextBlock Text="• Costos de almacenamiento" FontSize="14" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </TabItem>
+
+            <!-- Tab: Sensibilidad -->
+            <TabItem Header="🎯 Sensibilidad" x:Name="TabSensibilidad">
+                <Border Background="White" CornerRadius="10" Padding="20" Margin="10">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="🚧" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                        <TextBlock Text="Análisis de Sensibilidad en desarrollo" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                        <TextBlock Text="Próximamente incluirá:" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="• Análisis de escenarios" FontSize="14" HorizontalAlignment="Center"/>
+                        <TextBlock Text="• Simulación Monte Carlo" FontSize="14" HorizontalAlignment="Center"/>
+                        <TextBlock Text="• Análisis de riesgo" FontSize="14" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </TabItem>
+
+            <!-- Tab: Comparativa -->
+            <TabItem Header="⚖️ Comparativa" x:Name="TabComparativa">
+                <Border Background="White" CornerRadius="10" Padding="20" Margin="10">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="🚧" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                        <TextBlock Text="Comparativa de Proyectos en desarrollo" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                        <TextBlock Text="Próximamente incluirá:" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="• Ranking de proyectos" FontSize="14" HorizontalAlignment="Center"/>
+                        <TextBlock Text="• Análisis multicriterio" FontSize="14" HorizontalAlignment="Center"/>
+                        <TextBlock Text="• Matrices de decisión" FontSize="14" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </TabItem>
+        </TabControl>
+
+        <!-- STATUS BAR -->
+        <Border Grid.Row="4" Background="#F8FAFC" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Padding="25,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="TxtStatusAnalisis" Grid.Column="0" 
+                           Text="💎 Análisis Financiero Avanzado - Listo para calcular" 
+                           FontSize="10" VerticalAlignment="Center" Foreground="#6B7280"/>
+
+                <TextBlock x:Name="TxtProyectoActual" Grid.Column="1" 
+                           Text="Proyecto: Nuevo" FontSize="10" FontWeight="Bold" 
+                           Foreground="#6366F1" VerticalAlignment="Center" Margin="15,0"/>
+
+                <TextBlock x:Name="TxtUltimoCalculo" Grid.Column="2" 
+                           Text="Último cálculo: --" FontSize="10" FontWeight="Bold" 
+                           Foreground="#10B981" VerticalAlignment="Center" Margin="15,0"/>
+
+                <TextBlock x:Name="TxtEstadoGuardado" Grid.Column="3" 
+                           Text="💾 Sin guardar" FontSize="10" FontWeight="Bold" 
+                           Foreground="#F59E0B" VerticalAlignment="Center" Margin="15,0"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

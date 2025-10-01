@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using costbenefi.Models;
+using System.IO.Ports;
 using System.Collections.Generic;
 
 namespace costbenefi.Data
@@ -884,13 +885,14 @@ namespace costbenefi.Data
 
 
             // ========== ✅ CONFIGURACIÓN PARA ConfiguracionBascula ==========
+            // ========== ✅ CONFIGURACIÓN CORREGIDA PARA ConfiguracionBascula ==========
             modelBuilder.Entity<ConfiguracionBascula>(entity =>
             {
                 entity.HasKey(e => e.Id);
 
                 entity.Property(e => e.Nombre)
                     .IsRequired()
-                    .HasMaxLength(50);
+                    .HasMaxLength(100);
 
                 entity.Property(e => e.Puerto)
                     .IsRequired()
@@ -902,20 +904,19 @@ namespace costbenefi.Data
                 entity.Property(e => e.DataBits)
                     .HasDefaultValue(8);
 
-                entity.Property(e => e.Paridad)
-                    .HasDefaultValue(0); // None = 0, Odd = 1, Even = 2
+                // ✅ CORRECCIÓN: Usar Parity no Paridad
+                entity.Property(e => e.Parity)
+                    .HasDefaultValue(Parity.None);
 
                 entity.Property(e => e.StopBits)
-                    .HasDefaultValue(1); // One = 1, Two = 2
+                    .HasDefaultValue(StopBits.One);
 
-                entity.Property(e => e.ControlFlujo)
-                    .HasDefaultValue(0); // None = 0, XOnXOff = 1, RequestToSend = 2
+                // ✅ CORRECCIÓN: Usar Handshake no ControlFlujo
+                entity.Property(e => e.Handshake)
+                    .HasDefaultValue(Handshake.None);
 
                 entity.Property(e => e.TimeoutLectura)
-                    .HasDefaultValue(1000);
-
-                entity.Property(e => e.TimeoutEscritura)
-                    .HasDefaultValue(1000);
+                    .HasDefaultValue(2000);
 
                 entity.Property(e => e.IntervaloLectura)
                     .HasDefaultValue(1000);
@@ -924,28 +925,27 @@ namespace costbenefi.Data
                     .HasMaxLength(10)
                     .HasDefaultValue("kg");
 
-                entity.Property(e => e.TerminadorComando)
-                    .HasMaxLength(5)
+                // ✅ CORRECCIÓN: Usar TerminadorLinea no TerminadorComando
+                entity.Property(e => e.TerminadorLinea)
+                    .HasMaxLength(10)
                     .HasDefaultValue("\r\n");
 
                 entity.Property(e => e.RequiereSolicitudPeso)
-                    .HasDefaultValue(false);
+                    .HasDefaultValue(true);
 
+                // ✅ CORRECCIÓN: Usar ComandoSolicitarPeso
                 entity.Property(e => e.ComandoSolicitarPeso)
                     .HasMaxLength(20)
                     .HasDefaultValue("P");
 
+                // ✅ CORRECCIÓN: Usar ComandoTara
                 entity.Property(e => e.ComandoTara)
                     .HasMaxLength(20)
                     .HasDefaultValue("T");
 
-                entity.Property(e => e.ComandoInicializacion)
-                    .HasMaxLength(50)
-                    .HasDefaultValue("");
-
                 entity.Property(e => e.PatronExtraccion)
                     .HasMaxLength(200)
-                    .HasDefaultValue("");
+                    .HasDefaultValue(@"(\d+\.?\d*)");
 
                 entity.Property(e => e.EsConfiguracionActiva)
                     .HasDefaultValue(false);
@@ -956,12 +956,14 @@ namespace costbenefi.Data
                 entity.Property(e => e.FechaActualizacion)
                     .HasDefaultValueSql("datetime('now')");
 
+                entity.Property(e => e.UsuarioCreacion)
+                    .HasMaxLength(100);
+
                 // Índices para ConfiguracionBascula
                 entity.HasIndex(e => e.EsConfiguracionActiva);
                 entity.HasIndex(e => e.Puerto);
                 entity.HasIndex(e => e.Nombre);
             });
-
             modelBuilder.Entity<CorteCaja>(entity =>
             {
                 entity.HasKey(e => e.Id);

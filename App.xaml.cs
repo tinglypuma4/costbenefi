@@ -6,6 +6,7 @@ using costbenefi.Data;
 using costbenefi.Services;
 using costbenefi.Views;
 using System.Linq;
+using costbenefi.Models;
 
 namespace costbenefi
 {
@@ -152,6 +153,7 @@ namespace costbenefi
                 System.Diagnostics.Debug.WriteLine("✅ Login exitoso - Creando ventana principal");
 
                 var mainWindow = new MainWindow();
+                PermisosSimples.ConfigurarInterfazPorRol(mainWindow);  // ← Solo agregar esta línea
                 Application.Current.MainWindow = mainWindow;
                 mainWindow.Show();
 
@@ -164,7 +166,6 @@ namespace costbenefi
                 Application.Current.Shutdown();
             }
         }
-
         private void Application_DispatcherUnhandledException(object sender,
             System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {

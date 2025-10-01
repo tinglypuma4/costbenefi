@@ -1,551 +1,838 @@
 ﻿using System;
 using System.IO.Ports;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Linq;
+using System.Diagnostics;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using costbenefi.Data;
 using costbenefi.Models;
+using System.Management;
 
 namespace costbenefi.Services
 {
-    /// <summary>
-    /// Servicio principal para manejo de báscula digital
-    /// Compatible con múltiples marcas y protocolos
-    /// </summary>
     public class BasculaService : IDisposable
     {
-        private SerialPort? _serialPort;
-        private ConfiguracionBascula? _configuracion;
-        private bool _isConnected = false;
-        private bool _isReading = false;
-        private CancellationTokenSource? _cancellationTokenSource;
         private readonly AppDbContext _context;
+        private SerialPort _serialPort;
+        private ConfiguracionBascula _configuracion;
+        private bool _conectado = false;
+        private readonly object _lockObject = new object();
 
         // Eventos
-        public event EventHandler<PesoEventArgs>? PesoRecibido;
-        public event EventHandler<string>? ErrorOcurrido;
-        public event EventHandler<bool>? EstadoConexionCambiado;
+        public event EventHandler<PesoRecibidoEventArgs> PesoRecibido;
+        public event EventHandler<string> ErrorOcurrido;
+        public event EventHandler<string> DatosRecibidos;
 
-        // Propiedades
-        public bool EstaConectada => _isConnected && _serialPort?.IsOpen == true;
-        public bool EstaLeyendo => _isReading;
-        public string? PuertoActual => _configuracion?.Puerto;
-        public string? NombreBascula => _configuracion?.Nombre;
+        // ✅ PROPIEDADES PÚBLICAS AGREGADAS
+        /// <summary>
+        /// Indica si la báscula está conectada
+        /// </summary>
+        public bool EstaConectada => _conectado && _serialPort?.IsOpen == true;
+
+        /// <summary>
+        /// Obtiene la configuración actual de la báscula
+        /// </summary>
+        public ConfiguracionBascula ConfiguracionActual => _configuracion;
 
         public BasculaService(AppDbContext context)
         {
             _context = context;
         }
 
-        public BasculaService() : this(new AppDbContext())
-        {
-        }
+        #region Métodos Estáticos de Utilidad
 
         /// <summary>
-        /// Conecta automáticamente usando la configuración activa
+        /// ✅ MÉTODO MEJORADO: Obtiene todos los puertos COM disponibles con información detallada
         /// </summary>
-        public bool Conectar()
+        public static string[] ObtenerPuertosDisponibles()
         {
             try
             {
-                return ConectarAsync().Result;
+                Debug.WriteLine("🔍 === INICIANDO DETECCIÓN DE PUERTOS COM ===");
+
+                var puertosEncontrados = new List<string>();
+
+                // Método 1: SerialPort.GetPortNames() - Básico pero confiable
+                try
+                {
+                    var puertosSistema = SerialPort.GetPortNames();
+                    Debug.WriteLine($"📋 Método 1 - GetPortNames(): {puertosSistema.Length} puertos");
+
+                    if (puertosSistema.Any())
+                    {
+                        puertosEncontrados.AddRange(puertosSistema);
+                        foreach (var puerto in puertosSistema)
+                        {
+                            Debug.WriteLine($"   • {puerto}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"❌ Error en GetPortNames(): {ex.Message}");
+                }
+
+                // Método 2: WMI Query - Más información detallada
+                try
+                {
+                    var puertosWMI = ObtenerPuertosViaWMI();
+                    Debug.WriteLine($"📋 Método 2 - WMI Query: {puertosWMI.Count} puertos");
+
+                    foreach (var info in puertosWMI)
+                    {
+                        Debug.WriteLine($"   • {info.Key}: {info.Value}");
+                        if (!puertosEncontrados.Contains(info.Key))
+                        {
+                            puertosEncontrados.Add(info.Key);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"❌ Error en WMI Query: {ex.Message}");
+                }
+
+                // Si no se encontraron puertos, agregar puertos comunes como fallback
+                if (!puertosEncontrados.Any())
+                {
+                    Debug.WriteLine("⚠️ No se detectaron puertos - Agregando puertos comunes como fallback");
+                    puertosEncontrados.AddRange(new[] { "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8" });
+                }
+
+                // Ordenar puertos numéricamente
+                var puertosOrdenados = puertosEncontrados
+                    .Distinct()
+                    .OrderBy(puerto =>
+                    {
+                        if (int.TryParse(puerto.Replace("COM", ""), out int num))
+                            return num;
+                        return 999;
+                    })
+                    .ToArray();
+
+                Debug.WriteLine($"✅ RESULTADO FINAL: {puertosOrdenados.Length} puertos disponibles");
+                Debug.WriteLine($"   Puertos: [{string.Join(", ", puertosOrdenados)}]");
+                Debug.WriteLine("🔍 === FIN DETECCIÓN DE PUERTOS COM ===\n");
+
+                return puertosOrdenados;
             }
             catch (Exception ex)
             {
-                ErrorOcurrido?.Invoke(this, $"Error al conectar: {ex.Message}");
-                return false;
+                Debug.WriteLine($"💥 ERROR CRÍTICO en ObtenerPuertosDisponibles: {ex}");
+
+                // Fallback absoluto
+                return new[] { "COM1", "COM2", "COM3", "COM4", "COM5" };
             }
         }
 
         /// <summary>
-        /// Conecta con la báscula usando configuración automática
+        /// Obtiene puertos COM usando WMI para información más detallada
+        /// </summary>
+        private static Dictionary<string, string> ObtenerPuertosViaWMI()
+        {
+            var puertos = new Dictionary<string, string>();
+
+            try
+            {
+                using (var searcher = new ManagementObjectSearcher(
+                    "SELECT * FROM Win32_PnPEntity WHERE Caption LIKE '%(COM%'"))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        string caption = obj["Caption"]?.ToString() ?? "";
+                        string deviceId = obj["DeviceID"]?.ToString() ?? "";
+
+                        // Extraer número de puerto COM del caption
+                        var match = Regex.Match(caption, @"COM(\d+)");
+                        if (match.Success)
+                        {
+                            string puerto = match.Value;
+                            puertos[puerto] = caption;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error en WMI query: {ex.Message}");
+            }
+
+            return puertos;
+        }
+
+        /// <summary>
+        /// ✅ NUEVO: Diagnóstico completo del sistema
+        /// </summary>
+        public static async Task<string> DiagnosticarSistemaAsync()
+        {
+            var diagnostico = new StringBuilder();
+            diagnostico.AppendLine("🔍 === DIAGNÓSTICO COMPLETO DEL SISTEMA DE BÁSCULA ===");
+            diagnostico.AppendLine($"📅 Fecha: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+            diagnostico.AppendLine();
+
+            try
+            {
+                // 1. Información del sistema
+                diagnostico.AppendLine("🖥️ INFORMACIÓN DEL SISTEMA:");
+                diagnostico.AppendLine($"   • Sistema Operativo: {Environment.OSVersion}");
+                diagnostico.AppendLine($"   • Versión .NET: {Environment.Version}");
+                diagnostico.AppendLine($"   • Arquitectura: {Environment.Is64BitOperatingSystem} bits");
+                diagnostico.AppendLine();
+
+                // 2. Detección de puertos COM
+                diagnostico.AppendLine("📋 DETECCIÓN DE PUERTOS COM:");
+                var puertos = ObtenerPuertosDisponibles();
+
+                if (puertos.Length == 0)
+                {
+                    diagnostico.AppendLine("   ❌ NO SE DETECTARON PUERTOS COM");
+                    diagnostico.AppendLine("   💡 Posibles causas:");
+                    diagnostico.AppendLine("      • No hay dispositivos serie conectados");
+                    diagnostico.AppendLine("      • Drivers USB-Serie no instalados");
+                    diagnostico.AppendLine("      • Problemas de hardware");
+                }
+                else
+                {
+                    diagnostico.AppendLine($"   ✅ {puertos.Length} puertos detectados:");
+
+                    foreach (var puerto in puertos)
+                    {
+                        var estadoPuerto = await ProbrarDisponibilidadPuerto(puerto);
+                        diagnostico.AppendLine($"      • {puerto}: {estadoPuerto}");
+                    }
+                }
+                diagnostico.AppendLine();
+
+                // 3. Información detallada WMI
+                diagnostico.AppendLine("🔍 INFORMACIÓN DETALLADA DE DISPOSITIVOS:");
+                try
+                {
+                    var puertosWMI = ObtenerPuertosViaWMI();
+                    if (puertosWMI.Any())
+                    {
+                        foreach (var puerto in puertosWMI)
+                        {
+                            diagnostico.AppendLine($"   • {puerto.Key}: {puerto.Value}");
+                        }
+                    }
+                    else
+                    {
+                        diagnostico.AppendLine("   ⚠️ No se encontraron dispositivos serie en WMI");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    diagnostico.AppendLine($"   ❌ Error consultando WMI: {ex.Message}");
+                }
+                diagnostico.AppendLine();
+
+                // 4. Configuraciones predefinidas disponibles
+                diagnostico.AppendLine("⚙️ CONFIGURACIONES PREDEFINIDAS DISPONIBLES:");
+                var configuraciones = new[]
+                {
+                    ("RHINO BAR-8RS", ConfiguracionBascula.ConfiguracionRhino()),
+                    ("OHAUS", ConfiguracionBascula.ConfiguracionOhaus()),
+                    ("Mettler Toledo", ConfiguracionBascula.ConfiguracionMettler()),
+                    ("Torrey", ConfiguracionBascula.ConfiguracionTorrey()),
+                    ("EXCELL", ConfiguracionBascula.ConfiguracionExcell()),
+                    ("Toledo", ConfiguracionBascula.ConfiguracionToledo()),
+                    ("Genérica", ConfiguracionBascula.ConfiguracionGenerica())
+                };
+
+                foreach (var (nombre, config) in configuraciones)
+                {
+                    diagnostico.AppendLine($"   • {nombre}:");
+                    diagnostico.AppendLine($"     - Velocidad: {config.BaudRate} bps");
+                    diagnostico.AppendLine($"     - Formato: {config.DataBits}-{config.Parity}-{config.StopBits}");
+                    diagnostico.AppendLine($"     - Comando: '{config.ComandoSolicitarPeso}'");
+                    diagnostico.AppendLine($"     - Patrón: {config.PatronExtraccion}");
+                }
+                diagnostico.AppendLine();
+
+                // 5. Recomendaciones
+                diagnostico.AppendLine("💡 RECOMENDACIONES:");
+                if (puertos.Length == 0)
+                {
+                    diagnostico.AppendLine("   🔧 ACCIONES RECOMENDADAS:");
+                    diagnostico.AppendLine("      1. Verificar que la báscula esté conectada físicamente");
+                    diagnostico.AppendLine("      2. Revisar el Administrador de Dispositivos de Windows");
+                    diagnostico.AppendLine("      3. Instalar drivers USB-Serie si es necesario");
+                    diagnostico.AppendLine("      4. Probar con otro cable USB/Serie");
+                    diagnostico.AppendLine("      5. Reiniciar la báscula y el sistema");
+                }
+                else
+                {
+                    diagnostico.AppendLine("   ✅ Sistema preparado para configuración");
+                    diagnostico.AppendLine("   🎯 Próximos pasos:");
+                    diagnostico.AppendLine("      1. Seleccionar el puerto COM correcto");
+                    diagnostico.AppendLine("      2. Elegir la configuración predefinida de su báscula");
+                    diagnostico.AppendLine("      3. Usar 'Probar Conexión' para validar");
+                    diagnostico.AppendLine("      4. Ajustar parámetros si es necesario");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                diagnostico.AppendLine($"💥 ERROR EN DIAGNÓSTICO: {ex}");
+            }
+
+            diagnostico.AppendLine();
+            diagnostico.AppendLine("🔍 === FIN DEL DIAGNÓSTICO ===");
+
+            return diagnostico.ToString();
+        }
+
+        /// <summary>
+        /// Prueba la disponibilidad de un puerto específico
+        /// </summary>
+        private static async Task<string> ProbrarDisponibilidadPuerto(string puerto)
+        {
+            try
+            {
+                using (var serialPort = new SerialPort(puerto))
+                {
+                    serialPort.BaudRate = 9600;
+                    serialPort.DataBits = 8;
+                    serialPort.Parity = Parity.None;
+                    serialPort.StopBits = StopBits.One;
+                    serialPort.ReadTimeout = 500;
+                    serialPort.WriteTimeout = 500;
+
+                    serialPort.Open();
+                    await Task.Delay(100);
+
+                    bool disponible = serialPort.IsOpen;
+                    serialPort.Close();
+
+                    return disponible ? "✅ Disponible" : "❌ No disponible";
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return "⚠️ En uso por otra aplicación";
+            }
+            catch (ArgumentException)
+            {
+                return "❌ Puerto no válido";
+            }
+            catch (Exception ex)
+            {
+                return $"❌ Error: {ex.Message}";
+            }
+        }
+
+        #endregion
+
+        #region Métodos de Conexión
+
+        /// <summary>
+        /// ✅ MÉTODO MEJORADO: Prueba la conexión con diagnóstico detallado
+        /// </summary>
+        public async Task<ResultadoPruebaConexion> ProbarConexionAsync(ConfiguracionBascula config)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            SerialPort testPort = null;
+
+            try
+            {
+                Debug.WriteLine("🔧 === INICIANDO PRUEBA DE CONEXIÓN ===");
+                Debug.WriteLine($"   📋 Configuración: {config.ObtenerInfoDebug()}");
+                Debug.WriteLine($"   🔗 Puerto: {config.Puerto}");
+                Debug.WriteLine($"   ⚡ Velocidad: {config.BaudRate} bps");
+                Debug.WriteLine($"   📊 Formato: {config.DataBits}-{config.Parity}-{config.StopBits}");
+                Debug.WriteLine($"   🎛️ Control flujo: {config.Handshake}");
+                Debug.WriteLine($"   📤 Comando: '{config.ComandoSolicitarPeso}'");
+                Debug.WriteLine($"   🔍 Patrón: {config.PatronExtraccion}");
+
+                // Validar configuración
+                if (!config.ValidarConfiguracion())
+                {
+                    return ResultadoPruebaConexion.Error("Configuración inválida",
+                        "Verifique que todos los campos estén correctamente configurados");
+                }
+
+                // Verificar que el puerto existe
+                var puertosDisponibles = ObtenerPuertosDisponibles();
+                if (!puertosDisponibles.Contains(config.Puerto))
+                {
+                    return ResultadoPruebaConexion.Error($"Puerto {config.Puerto} no disponible",
+                        $"Puertos disponibles: {string.Join(", ", puertosDisponibles)}");
+                }
+
+                Debug.WriteLine("🔌 Configurando puerto serie...");
+
+                // Configurar puerto serie
+                testPort = new SerialPort
+                {
+                    PortName = config.Puerto,
+                    BaudRate = config.BaudRate,
+                    DataBits = config.DataBits,
+                    Parity = config.Parity,
+                    StopBits = config.StopBits,
+                    Handshake = config.Handshake,
+                    ReadTimeout = config.TimeoutLectura,
+                    WriteTimeout = config.TimeoutLectura,
+                    NewLine = config.ObtenerTerminadorReal()
+                };
+
+                Debug.WriteLine("📡 Abriendo puerto...");
+                testPort.Open();
+
+                if (!testPort.IsOpen)
+                {
+                    return ResultadoPruebaConexion.Error("No se pudo abrir el puerto",
+                        "El puerto puede estar en uso por otra aplicación");
+                }
+
+                Debug.WriteLine("✅ Puerto abierto exitosamente");
+
+                // Limpiar buffers
+                testPort.DiscardInBuffer();
+                testPort.DiscardOutBuffer();
+                await Task.Delay(500); // Tiempo de estabilización
+
+                string respuesta = "";
+                decimal? pesoDetectado = null;
+
+                // Si requiere solicitud de peso
+                if (config.RequiereSolicitudPeso && !string.IsNullOrEmpty(config.ComandoSolicitarPeso))
+                {
+                    Debug.WriteLine($"📤 Enviando comando: '{config.ComandoSolicitarPeso}'");
+
+                    // Enviar comando
+                    var comandoBytes = config.ObtenerComandoComoBytes();
+                    testPort.Write(comandoBytes, 0, comandoBytes.Length);
+
+                    // Agregar terminador si es necesario
+                    testPort.Write(config.ObtenerTerminadorReal());
+
+                    Debug.WriteLine("⏳ Esperando respuesta...");
+                    await Task.Delay(Math.Min(config.TimeoutLectura, 3000));
+
+                    if (testPort.BytesToRead > 0)
+                    {
+                        respuesta = testPort.ReadExisting();
+                        Debug.WriteLine($"📥 Respuesta recibida ({respuesta.Length} chars): '{respuesta}'");
+                        Debug.WriteLine($"📥 Respuesta (hex): {string.Join(" ", respuesta.Select(c => ((int)c).ToString("X2")))}");
+                    }
+                    else
+                    {
+                        Debug.WriteLine("❌ No se recibió respuesta");
+                        return ResultadoPruebaConexion.Error("La báscula no respondió al comando",
+                            $"Comando enviado: '{config.ComandoSolicitarPeso}' - Sin respuesta en {config.TimeoutLectura}ms");
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("👂 Escuchando datos automáticos...");
+                    await Task.Delay(3000); // Esperar datos automáticos
+
+                    if (testPort.BytesToRead > 0)
+                    {
+                        respuesta = testPort.ReadExisting();
+                        Debug.WriteLine($"📥 Datos automáticos recibidos: '{respuesta}'");
+                    }
+                    else
+                    {
+                        Debug.WriteLine("❌ No se recibieron datos automáticos");
+                        return ResultadoPruebaConexion.Error("No se recibieron datos de la báscula",
+                            "La báscula debe enviar datos automáticamente o configurar comando de solicitud");
+                    }
+                }
+
+                // Validar respuesta
+                if (string.IsNullOrEmpty(respuesta))
+                {
+                    return ResultadoPruebaConexion.Error("Respuesta vacía de la báscula",
+                        "Verifique la configuración de comunicación de la báscula");
+                }
+
+                // Extraer peso usando patrón regex
+                try
+                {
+                    var regex = new Regex(config.PatronExtraccion);
+                    var match = regex.Match(respuesta);
+
+                    if (match.Success && match.Groups.Count > 1)
+                    {
+                        string pesoTexto = match.Groups[1].Value;
+                        Debug.WriteLine($"🎯 Peso extraído: '{pesoTexto}'");
+
+                        if (decimal.TryParse(pesoTexto, out decimal peso))
+                        {
+                            pesoDetectado = peso;
+                            Debug.WriteLine($"⚖️ Peso parseado: {peso:F3} {config.UnidadPeso}");
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"⚠️ No se pudo parsear el peso: '{pesoTexto}'");
+                        }
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"⚠️ El patrón '{config.PatronExtraccion}' no coincidió con '{respuesta}'");
+                        return ResultadoPruebaConexion.Error("El patrón no coincide con la respuesta",
+                            $"Respuesta: '{respuesta}' - Patrón: '{config.PatronExtraccion}'");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"❌ Error procesando patrón regex: {ex.Message}");
+                    return ResultadoPruebaConexion.Error("Error en el patrón de extracción",
+                        $"Verifique que el patrón regex sea válido: {ex.Message}");
+                }
+
+                stopwatch.Stop();
+                Debug.WriteLine($"✅ Prueba exitosa en {stopwatch.ElapsedMilliseconds}ms");
+                Debug.WriteLine("🔧 === FIN PRUEBA DE CONEXIÓN ===\n");
+
+                return ResultadoPruebaConexion.Exito(respuesta, pesoDetectado, stopwatch.Elapsed);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return ResultadoPruebaConexion.Error($"Puerto {config.Puerto} en uso",
+                    "El puerto está siendo utilizado por otra aplicación");
+            }
+            catch (ArgumentException ex)
+            {
+                return ResultadoPruebaConexion.Error("Error en parámetros de configuración", ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return ResultadoPruebaConexion.Error("Error de operación en puerto serie", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"💥 ERROR INESPERADO: {ex}");
+                return ResultadoPruebaConexion.Error("Error inesperado", ex.Message);
+            }
+            finally
+            {
+                try
+                {
+                    testPort?.Close();
+                    testPort?.Dispose();
+                    Debug.WriteLine("🔐 Puerto de prueba cerrado y liberado");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"⚠️ Error cerrando puerto de prueba: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Conecta con la configuración activa
         /// </summary>
         public async Task<bool> ConectarAsync()
         {
             try
             {
-                // Cargar configuración activa desde base de datos
-                await CargarConfiguracionActivaAsync();
+                _configuracion = await _context.Set<ConfiguracionBascula>()
+                    .FirstOrDefaultAsync(c => c.EsConfiguracionActiva);
 
                 if (_configuracion == null)
                 {
-                    // Crear configuración predeterminada si no existe
-                    await CrearConfiguracionPredeterminadaAsync();
-                }
-
-                if (_configuracion == null)
-                {
-                    ErrorOcurrido?.Invoke(this, "No se pudo cargar configuración de báscula");
+                    Debug.WriteLine("❌ No hay configuración activa de báscula");
                     return false;
                 }
 
-                return await ConectarConConfiguracionAsync(_configuracion);
+                return Conectar();
             }
             catch (Exception ex)
             {
-                ErrorOcurrido?.Invoke(this, $"Error al conectar báscula: {ex.Message}");
-                EstadoConexionCambiado?.Invoke(this, false);
+                Debug.WriteLine($"❌ Error conectando: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Conecta usando una configuración específica
+        /// Conecta con la configuración cargada
         /// </summary>
-        public async Task<bool> ConectarConConfiguracionAsync(ConfiguracionBascula config)
+        public bool Conectar()
         {
-            try
-            {
-                if (_isConnected)
-                {
-                    await DesconectarAsync();
-                }
-
-                _configuracion = config;
-
-                _serialPort = new SerialPort(
-                    config.Puerto,
-                    config.BaudRate,
-                    (Parity)config.Paridad,
-                    config.DataBits,
-                    (StopBits)config.StopBits
-                )
-                {
-                    ReadTimeout = config.TimeoutLectura,
-                    WriteTimeout = config.TimeoutEscritura,
-                    Handshake = (Handshake)config.ControlFlujo,
-                    RtsEnable = true,
-                    DtrEnable = true
-                };
-
-                _serialPort.DataReceived += SerialPort_DataReceived;
-                _serialPort.ErrorReceived += SerialPort_ErrorReceived;
-
-                _serialPort.Open();
-                _isConnected = true;
-
-                // Comando de inicialización
-                if (!string.IsNullOrEmpty(config.ComandoInicializacion))
-                {
-                    await EnviarComandoAsync(config.ComandoInicializacion);
-                }
-
-                // Iniciar lectura automática si no requiere solicitud
-                if (!config.RequiereSolicitudPeso)
-                {
-                    await IniciarLecturaAutomaticaAsync();
-                }
-
-                EstadoConexionCambiado?.Invoke(this, true);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _isConnected = false;
-                ErrorOcurrido?.Invoke(this, $"Error al conectar: {ex.Message}");
-                EstadoConexionCambiado?.Invoke(this, false);
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Desconecta de la báscula
-        /// </summary>
-        public async Task DesconectarAsync()
-        {
-            await DetenerLecturaAsync();
-
-            if (_serialPort?.IsOpen == true)
+            lock (_lockObject)
             {
                 try
                 {
-                    _serialPort.Close();
+                    if (_conectado)
+                        Desconectar();
+
+                    if (_configuracion == null)
+                    {
+                        Debug.WriteLine("❌ No hay configuración de báscula");
+                        return false;
+                    }
+
+                    Debug.WriteLine($"🔗 Conectando a báscula: {_configuracion.ObtenerInfoDebug()}");
+
+                    _serialPort = new SerialPort
+                    {
+                        PortName = _configuracion.Puerto,
+                        BaudRate = _configuracion.BaudRate,
+                        DataBits = _configuracion.DataBits,
+                        Parity = _configuracion.Parity,
+                        StopBits = _configuracion.StopBits,
+                        Handshake = _configuracion.Handshake,
+                        ReadTimeout = _configuracion.TimeoutLectura,
+                        WriteTimeout = _configuracion.TimeoutLectura,
+                        NewLine = _configuracion.ObtenerTerminadorReal()
+                    };
+
+                    _serialPort.DataReceived += SerialPort_DataReceived;
+                    _serialPort.ErrorReceived += SerialPort_ErrorReceived;
+
+                    _serialPort.Open();
+                    _conectado = _serialPort.IsOpen;
+
+                    if (_conectado)
+                    {
+                        Debug.WriteLine("✅ Báscula conectada exitosamente");
+                        // Limpiar buffers
+                        _serialPort.DiscardInBuffer();
+                        _serialPort.DiscardOutBuffer();
+                    }
+
+                    return _conectado;
                 }
                 catch (Exception ex)
                 {
-                    ErrorOcurrido?.Invoke(this, $"Error al desconectar: {ex.Message}");
+                    Debug.WriteLine($"❌ Error conectando báscula: {ex.Message}");
+                    _conectado = false;
+                    return false;
                 }
             }
-
-            _serialPort?.Dispose();
-            _serialPort = null;
-            _isConnected = false;
-
-            EstadoConexionCambiado?.Invoke(this, false);
         }
 
         /// <summary>
-        /// Lee peso una sola vez
+        /// Desconecta la báscula
+        /// </summary>
+        public async Task DesconectarAsync()
+        {
+            await Task.Run(() => Desconectar());
+        }
+
+        public void Desconectar()
+        {
+            lock (_lockObject)
+            {
+                try
+                {
+                    if (_serialPort != null)
+                    {
+                        if (_serialPort.IsOpen)
+                        {
+                            _serialPort.Close();
+                        }
+                        _serialPort.Dispose();
+                        _serialPort = null;
+                    }
+                    _conectado = false;
+                    Debug.WriteLine("🔐 Báscula desconectada");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"⚠️ Error desconectando: {ex.Message}");
+                }
+            }
+        }
+
+        #endregion
+
+        #region Métodos de Lectura
+
+        /// <summary>
+        /// Lee el peso de la báscula
         /// </summary>
         public async Task<decimal> LeerPesoAsync()
         {
-            if (!_isConnected || _configuracion == null)
-            {
-                throw new InvalidOperationException("Báscula no conectada");
-            }
-
             try
             {
+                if (!_conectado || _serialPort == null || !_serialPort.IsOpen)
+                {
+                    Debug.WriteLine("❌ Báscula no conectada");
+                    return -1;
+                }
+
                 if (_configuracion.RequiereSolicitudPeso)
                 {
-                    await EnviarComandoAsync(_configuracion.ComandoSolicitarPeso);
+                    // Enviar comando para solicitar peso
+                    var comando = _configuracion.ObtenerComandoComoBytes();
+                    _serialPort.Write(comando, 0, comando.Length);
+                    _serialPort.Write(_configuracion.ObtenerTerminadorReal());
+
+                    Debug.WriteLine($"📤 Comando enviado: '{_configuracion.ComandoSolicitarPeso}'");
                 }
 
-                // Esperar respuesta (máximo 3 segundos)
-                var timeout = DateTime.Now.AddSeconds(3);
-                decimal pesoRecibido = 0;
-                bool pesoObtenido = false;
+                // Esperar respuesta
+                await Task.Delay(_configuracion.IntervaloLectura);
 
-                // Suscribirse temporalmente al evento
-                EventHandler<PesoEventArgs> handlerTemporal = (s, e) =>
+                if (_serialPort.BytesToRead > 0)
                 {
-                    pesoRecibido = e.Peso;
-                    pesoObtenido = true;
-                };
+                    string respuesta = _serialPort.ReadExisting();
+                    Debug.WriteLine($"📥 Respuesta: '{respuesta}'");
 
-                PesoRecibido += handlerTemporal;
-
-                try
-                {
-                    // Esperar hasta obtener peso o timeout
-                    while (!pesoObtenido && DateTime.Now < timeout)
-                    {
-                        await Task.Delay(100);
-                    }
-
-                    return pesoObtenido ? pesoRecibido : 0;
+                    return ExtraerPeso(respuesta);
                 }
-                finally
-                {
-                    PesoRecibido -= handlerTemporal;
-                }
+
+                return -1;
             }
             catch (Exception ex)
             {
-                ErrorOcurrido?.Invoke(this, $"Error al leer peso: {ex.Message}");
-                return 0;
+                Debug.WriteLine($"❌ Error leyendo peso: {ex.Message}");
+                ErrorOcurrido?.Invoke(this, ex.Message);
+                return -1;
             }
         }
 
         /// <summary>
-        /// Tarar la báscula
+        /// ✅ MÉTODO AGREGADO: Tarar la báscula
         /// </summary>
         public async Task<bool> TararAsync()
         {
-            if (!_isConnected || _configuracion == null || string.IsNullOrEmpty(_configuracion.ComandoTara))
-                return false;
-
             try
             {
-                await EnviarComandoAsync(_configuracion.ComandoTara);
-                await Task.Delay(1000); // Esperar que la báscula procese
+                if (!EstaConectada || _configuracion == null)
+                {
+                    Debug.WriteLine("❌ Báscula no conectada para tarar");
+                    return false;
+                }
+
+                Debug.WriteLine($"⚖️ Enviando comando de tarado: '{_configuracion.ComandoTara}'");
+
+                // ✅ CORRECCIÓN: Crear bytes del comando de tarar manualmente
+                byte[] comandoBytes;
+                var comandoTara = _configuracion.ComandoTara ?? "T";
+
+                // Detectar si el comando es hexadecimal, decimal o ASCII
+                if (comandoTara.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Comando hexadecimal
+                    string hex = comandoTara.Substring(2);
+                    comandoBytes = Convert.FromHexString(hex);
+                }
+                else if (int.TryParse(comandoTara, out int valorDecimal))
+                {
+                    // Comando decimal
+                    comandoBytes = new byte[] { (byte)valorDecimal };
+                }
+                else
+                {
+                    // Comando ASCII
+                    comandoBytes = Encoding.ASCII.GetBytes(comandoTara);
+                }
+
+                _serialPort.Write(comandoBytes, 0, comandoBytes.Length);
+                _serialPort.Write(_configuracion.ObtenerTerminadorReal());
+
+                // Esperar que se complete el tarado
+                await Task.Delay(1500);
+
+                Debug.WriteLine("✅ Comando de tarado enviado");
                 return true;
             }
             catch (Exception ex)
             {
+                Debug.WriteLine($"❌ Error al tarar báscula: {ex.Message}");
                 ErrorOcurrido?.Invoke(this, $"Error al tarar: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Inicia lectura automática continua
+        /// Extrae el peso de una respuesta usando el patrón configurado
         /// </summary>
-        private async Task IniciarLecturaAutomaticaAsync()
+        private decimal ExtraerPeso(string respuesta)
         {
-            if (_isReading || _configuracion == null) return;
-
-            _isReading = true;
-            _cancellationTokenSource = new CancellationTokenSource();
-
-            if (_configuracion.RequiereSolicitudPeso)
-            {
-                // Modo por solicitud - enviar comando periódicamente
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        while (!_cancellationTokenSource.Token.IsCancellationRequested)
-                        {
-                            await EnviarComandoAsync(_configuracion.ComandoSolicitarPeso);
-                            await Task.Delay(_configuracion.IntervaloLectura, _cancellationTokenSource.Token);
-                        }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Cancelación normal
-                    }
-                    catch (Exception ex)
-                    {
-                        ErrorOcurrido?.Invoke(this, $"Error en lectura automática: {ex.Message}");
-                    }
-                }, _cancellationTokenSource.Token);
-            }
-            // Si no requiere solicitud, los datos llegan automáticamente vía DataReceived
-        }
-
-        /// <summary>
-        /// Detiene la lectura automática
-        /// </summary>
-        private async Task DetenerLecturaAsync()
-        {
-            _isReading = false;
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = null;
-
-            await Task.Delay(100);
-        }
-
-        /// <summary>
-        /// Envía comando a la báscula
-        /// </summary>
-        private async Task EnviarComandoAsync(string comando)
-        {
-            if (_serialPort?.IsOpen != true || string.IsNullOrEmpty(comando))
-                return;
-
             try
             {
-                var terminador = _configuracion?.TerminadorComando ?? "\r\n";
-                var bytes = Encoding.ASCII.GetBytes(comando + terminador);
-                _serialPort.Write(bytes, 0, bytes.Length);
-                await Task.Delay(50);
+                if (string.IsNullOrEmpty(respuesta) || _configuracion == null)
+                    return -1;
+
+                var regex = new Regex(_configuracion.PatronExtraccion);
+                var match = regex.Match(respuesta);
+
+                if (match.Success && match.Groups.Count > 1)
+                {
+                    string pesoTexto = match.Groups[1].Value;
+
+                    if (decimal.TryParse(pesoTexto, out decimal peso))
+                    {
+                        Debug.WriteLine($"⚖️ Peso extraído: {peso:F3} {_configuracion.UnidadPeso}");
+                        return peso;
+                    }
+                }
+
+                Debug.WriteLine($"⚠️ No se pudo extraer peso de: '{respuesta}'");
+                return -1;
             }
             catch (Exception ex)
             {
-                ErrorOcurrido?.Invoke(this, $"Error al enviar comando: {ex.Message}");
+                Debug.WriteLine($"❌ Error extrayendo peso: {ex.Message}");
+                return -1;
             }
         }
 
-        /// <summary>
-        /// Maneja datos recibidos del puerto serie
-        /// </summary>
+        #endregion
+
+        #region Event Handlers
+
         private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             try
             {
-                if (_serialPort?.IsOpen != true)
-                    return;
-
-                var data = _serialPort.ReadExisting();
-                if (string.IsNullOrEmpty(data))
-                    return;
-
-                var peso = ProcesarDatosRecibidos(data);
-                if (peso.HasValue && peso.Value >= 0)
+                if (_serialPort?.IsOpen == true && _serialPort.BytesToRead > 0)
                 {
-                    PesoRecibido?.Invoke(this, new PesoEventArgs
+                    string datos = _serialPort.ReadExisting();
+                    Debug.WriteLine($"📥 Datos recibidos: '{datos}'");
+
+                    DatosRecibidos?.Invoke(this, datos);
+
+                    // Intentar extraer peso
+                    decimal peso = ExtraerPeso(datos);
+                    if (peso >= 0)
                     {
-                        Peso = peso.Value,
-                        Unidad = _configuracion?.UnidadPeso ?? "kg",
-                        Timestamp = DateTime.Now,
-                        DatosOriginales = data.Trim(),
-                        EsEstable = true
-                    });
+                        PesoRecibido?.Invoke(this, new PesoRecibidoEventArgs(peso));
+                    }
                 }
             }
             catch (Exception ex)
             {
-                ErrorOcurrido?.Invoke(this, $"Error al procesar datos: {ex.Message}");
+                Debug.WriteLine($"❌ Error procesando datos recibidos: {ex.Message}");
+                ErrorOcurrido?.Invoke(this, ex.Message);
             }
         }
 
-        /// <summary>
-        /// Maneja errores del puerto serie
-        /// </summary>
         private void SerialPort_ErrorReceived(object sender, SerialErrorReceivedEventArgs e)
         {
-            ErrorOcurrido?.Invoke(this, $"Error de puerto serie: {e.EventType}");
+            Debug.WriteLine($"❌ Error en puerto serie: {e.EventType}");
+            ErrorOcurrido?.Invoke(this, $"Error de comunicación: {e.EventType}");
         }
 
-        /// <summary>
-        /// Procesa datos recibidos y extrae el peso
-        /// </summary>
-        private decimal? ProcesarDatosRecibidos(string datos)
-        {
-            try
-            {
-                datos = datos.Trim();
+        #endregion
 
-                // Usar patrón personalizado si está configurado
-                if (_configuracion != null && !string.IsNullOrEmpty(_configuracion.PatronExtraccion))
-                {
-                    var match = Regex.Match(datos, _configuracion.PatronExtraccion);
-                    if (match.Success && match.Groups.Count > 1)
-                    {
-                        if (decimal.TryParse(match.Groups[1].Value.Replace(',', '.'),
-                            System.Globalization.NumberStyles.Any,
-                            System.Globalization.CultureInfo.InvariantCulture,
-                            out decimal peso))
-                        {
-                            return peso;
-                        }
-                    }
-                }
-
-                // Patrones estándar para básculas comunes
-                var patronesEstandar = new[]
-                {
-                    @"ST,GS,\+?\s*(\d+\.?\d*)",    // Protocolo estándar
-                    @"(\d+\.?\d*)\s*kg",           // Formato: "1.5 kg"
-                    @"(\d+\.?\d*)\s*g",            // Formato: "1500 g"
-                    @"(\d+\.?\d*)\s*lb",           // Formato: "3.3 lb"
-                    @"W:\s*(\d+\.?\d*)",           // Formato: "W: 1.5"
-                    @"WT\s*(\d+\.?\d*)",           // Formato: "WT 1.5"
-                    @"NET\s*(\d+\.?\d*)",          // Formato: "NET 1.5"
-                    @"[+-]?\s*(\d+\.?\d*)",        // Solo números con signo
-                };
-
-                foreach (var patron in patronesEstandar)
-                {
-                    var match = Regex.Match(datos, patron, RegexOptions.IgnoreCase);
-                    if (match.Success && match.Groups.Count > 1)
-                    {
-                        if (decimal.TryParse(match.Groups[1].Value.Replace(',', '.'),
-                            System.Globalization.NumberStyles.Any,
-                            System.Globalization.CultureInfo.InvariantCulture,
-                            out decimal peso))
-                        {
-                            return peso;
-                        }
-                    }
-                }
-
-                return null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Carga configuración activa desde base de datos
-        /// </summary>
-        private async Task CargarConfiguracionActivaAsync()
-        {
-            try
-            {
-                _configuracion = await _context.Set<ConfiguracionBascula>()
-                    .FirstOrDefaultAsync(c => c.EsConfiguracionActiva);
-            }
-            catch (Exception ex)
-            {
-                ErrorOcurrido?.Invoke(this, $"Error al cargar configuración: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Crea configuración predeterminada si no existe
-        /// </summary>
-        private async Task CrearConfiguracionPredeterminadaAsync()
-        {
-            try
-            {
-                var puertosDisponibles = SerialPort.GetPortNames();
-                if (puertosDisponibles.Length == 0)
-                {
-                    ErrorOcurrido?.Invoke(this, "No se encontraron puertos COM disponibles");
-                    return;
-                }
-
-                var configPredeterminada = ConfiguracionBascula.ConfiguracionGenerica();
-                configPredeterminada.Puerto = puertosDisponibles[0]; // Usar primer puerto disponible
-                configPredeterminada.EsConfiguracionActiva = true;
-
-                _context.Set<ConfiguracionBascula>().Add(configPredeterminada);
-                await _context.SaveChangesAsync();
-
-                _configuracion = configPredeterminada;
-            }
-            catch (Exception ex)
-            {
-                ErrorOcurrido?.Invoke(this, $"Error al crear configuración predeterminada: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Obtiene lista de puertos COM disponibles
-        /// </summary>
-        public static string[] ObtenerPuertosDisponibles()
-        {
-            try
-            {
-                return SerialPort.GetPortNames();
-            }
-            catch
-            {
-                return new string[0];
-            }
-        }
-
-        /// <summary>
-        /// Obtiene lista de configuraciones guardadas
-        /// </summary>
-        public async Task<ConfiguracionBascula[]> ObtenerConfiguracionesAsync()
-        {
-            try
-            {
-                return await _context.Set<ConfiguracionBascula>()
-                    .OrderBy(c => c.Nombre)
-                    .ToArrayAsync();
-            }
-            catch
-            {
-                return new ConfiguracionBascula[0];
-            }
-        }
-
-        /// <summary>
-        /// Prueba conexión con configuración específica
-        /// </summary>
-        public async Task<bool> ProbarConexionAsync(ConfiguracionBascula config)
-        {
-            var servicioTemporal = new BasculaService(_context);
-            try
-            {
-                var resultado = await servicioTemporal.ConectarConConfiguracionAsync(config);
-                if (resultado)
-                {
-                    await Task.Delay(1000); // Esperar 1 segundo
-                    var peso = await servicioTemporal.LeerPesoAsync();
-                    return peso >= 0; // Peso válido (incluso 0)
-                }
-                return false;
-            }
-            catch
-            {
-                return false;
-            }
-            finally
-            {
-                await servicioTemporal.DesconectarAsync();
-                servicioTemporal.Dispose();
-            }
-        }
+        #region IDisposable
 
         public void Dispose()
         {
-            DesconectarAsync().Wait();
-            _context?.Dispose();
+            Desconectar();
+            GC.SuppressFinalize(this);
         }
+
+        #endregion
     }
 
-    /// <summary>
-    /// Argumentos del evento de peso recibido
-    /// </summary>
-    public class PesoEventArgs : EventArgs
+    // ✅ CLASES DE EVENTOS
+    public class PesoRecibidoEventArgs : EventArgs
     {
-        public decimal Peso { get; set; }
-        public string Unidad { get; set; } = "kg";
-        public DateTime Timestamp { get; set; }
-        public string DatosOriginales { get; set; } = "";
-        public bool EsEstable { get; set; } = true;
-        public bool EsPositivo => Peso >= 0;
-        public string PesoFormateado => $"{Peso:F3} {Unidad}";
+        public decimal Peso { get; }
+
+        public PesoRecibidoEventArgs(decimal peso)
+        {
+            Peso = peso;
+        }
     }
 }

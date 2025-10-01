@@ -460,6 +460,7 @@
                     </DataGrid>
 
                     <!-- Status Bar -->
+                    <!-- Status Bar -->
                     <Border Grid.Row="3" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
                         <Grid Margin="15,0">
                             <Grid.ColumnDefinitions>
@@ -467,23 +468,39 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <!-- ✅ AGREGAR ESTA NUEVA COLUMNA -->
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
                             <TextBlock x:Name="TxtStatus" Grid.Column="0" 
-                                       Text="✅ Sistema listo" FontSize="11" 
-                                       VerticalAlignment="Center" Foreground="#6B7280"/>
+                   Text="✅ Sistema listo" FontSize="11" 
+                   VerticalAlignment="Center" Foreground="#6B7280"/>
 
                             <TextBlock x:Name="TxtTotalConIVA" Grid.Column="1" 
-                                       Text="Total con IVA: $0.00" FontSize="11" FontWeight="Bold" 
-                                       Foreground="#10B981" VerticalAlignment="Center" Margin="15,0"/>
+                   Text="Total con IVA: $0.00" FontSize="11" FontWeight="Bold" 
+                   Foreground="#10B981" VerticalAlignment="Center" Margin="15,0"/>
 
                             <TextBlock x:Name="TxtTotalSinIVA" Grid.Column="2" 
-                                       Text="Total sin IVA: $0.00" FontSize="11" FontWeight="Bold" 
-                                       Foreground="#3B82F6" VerticalAlignment="Center" Margin="15,0"/>
+                   Text="Total sin IVA: $0.00" FontSize="11" FontWeight="Bold" 
+                   Foreground="#3B82F6" VerticalAlignment="Center" Margin="15,0"/>
 
                             <TextBlock x:Name="TxtDiferenciaIVA" Grid.Column="3" 
-                                       Text="Diferencia IVA: $0.00" FontSize="11" FontWeight="Bold" 
-                                       Foreground="#F59E0B" VerticalAlignment="Center" Margin="15,0"/>
+                   Text="Diferencia IVA: $0.00" FontSize="11" FontWeight="Bold" 
+                   Foreground="#F59E0B" VerticalAlignment="Center" Margin="15,0"/>
+
+                            <!-- ✅ AGREGAR ESTE BOTÓN EN LA NUEVA COLUMNA -->
+                            <Button x:Name="BtnEstadoSincronizacion" Grid.Column="4" 
+                Click="BtnEstadoSincronizacion_Click" 
+                Background="Transparent" BorderThickness="0" 
+                Padding="8,2" Margin="15,0" 
+                ToolTip="Estado de sincronización de red">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="TxtIconoSincronizacion" Text="🔒" 
+                          FontSize="11" Margin="0,0,5,0"/>
+                                    <TextBlock x:Name="TxtEstadoSincronizacion" Text="Standalone" 
+                          FontSize="11" FontWeight="Bold" Foreground="#6C757D"/>
+                                </StackPanel>
+                            </Button>
                         </Grid>
                     </Border>
                 </Grid>
@@ -1330,7 +1347,7 @@
                                 <!-- Gestión de Usuarios -->
                                 <Border Grid.Row="0" Background="White" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1"
                             Cursor="Hand" MouseEnter="Border_MouseEnter" MouseLeave="Border_MouseLeave">
-                                    <Button Background="Transparent" BorderThickness="0" Click="BtnGestionUsuarios_Click"
+                                    <Button x:Name="BtnGestionUsuarios" Background="Transparent" BorderThickness="0" Click="BtnGestionUsuarios_Click"
                                 Cursor="Hand" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                                         <Grid>
                                             <Grid.ColumnDefinitions>

@@ -1,0 +1,459 @@
+﻿<UserControl x:Class="costbenefi.Views.AnalisisABCModuloControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="1200">
+
+    <UserControl.Resources>
+        <Style x:Key="ModernButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="3,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="6"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                BorderBrush="{TemplateBinding BorderBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#1F2937"/>
+        </Style>
+
+        <Style x:Key="SubHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#6B7280"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="#F9FAFB">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- HEADER PRINCIPAL -->
+        <Border Grid.Row="0" Background="#667eea" CornerRadius="8,8,0,0" Padding="20,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="🔤" FontSize="24" Foreground="White" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                        <StackPanel>
+                            <TextBlock Text="Análisis ABC Estratégico" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock Text="Clasificación inteligente por rentabilidad, volumen y rotación" 
+                                       FontSize="11" Foreground="White" Opacity="0.9"/>
+                        </StackPanel>
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal">
+                        <Border Background="#FFFFFF" CornerRadius="4" Padding="6,3" Opacity="0.9" Margin="0,0,8,0">
+                            <TextBlock x:Name="TxtPeriodoHeader" Text="📅 Último mes" FontSize="9" FontWeight="Bold" Foreground="#374151"/>
+                        </Border>
+                        <Border Background="#FFFFFF" CornerRadius="4" Padding="6,3" Opacity="0.9" Margin="0,0,8,0">
+                            <TextBlock x:Name="TxtCategoriaHeader" Text="🏷️ Todas las categorías" FontSize="9" FontWeight="Bold" Foreground="#374151"/>
+                        </Border>
+                        <Border Background="#FFFFFF" CornerRadius="4" Padding="6,3" Opacity="0.9">
+                            <TextBlock x:Name="TxtFechaAnalisis" Text="🕒 Actualizado ahora" FontSize="9" FontWeight="Bold" Foreground="#374151"/>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="BtnConfigurarAnalisis" Content="⚙️ Config" Width="80" Height="30"
+                            Background="#FFFFFF" Foreground="#667eea" FontSize="10"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnConfigurarAnalisis_Click"/>
+                    
+                    <Button x:Name="BtnVentanaIndependiente" Content="🔗 Ventana" Width="80" Height="30"
+                            Background="#6366F1" Foreground="White" FontSize="10"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnVentanaIndependiente_Click"
+                            ToolTip="Abrir en ventana independiente"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- TOOLBAR DE CONTROLES -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="25,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="🎯 Analizar:" VerticalAlignment="Center" FontWeight="Bold" 
+                               FontSize="11" Foreground="#374151" Margin="0,0,8,0"/>
+                    
+                    <ComboBox x:Name="CmbTipoAnalisis" Width="120" Height="28" 
+                              VerticalContentAlignment="Center" Margin="0,0,12,0" FontSize="10"
+                              SelectionChanged="CmbTipoAnalisis_SelectionChanged">
+                        <ComboBoxItem Content="📦 Productos" IsSelected="True" Tag="productos"/>
+                        <ComboBoxItem Content="🏭 Proveedores" Tag="proveedores"/>
+                        <ComboBoxItem Content="👥 Clientes" Tag="clientes"/>
+                        <ComboBoxItem Content="🏷️ Categorías" Tag="categorias"/>
+                    </ComboBox>
+
+                    <TextBlock Text="📊 Por:" VerticalAlignment="Center" FontWeight="Bold" 
+                               FontSize="11" Foreground="#374151" Margin="0,0,8,0"/>
+                    
+                    <ComboBox x:Name="CmbCriterioAnalisis" Width="120" Height="28" 
+                              VerticalContentAlignment="Center" Margin="0,0,12,0" FontSize="10"
+                              SelectionChanged="CmbCriterioAnalisis_SelectionChanged">
+                        <ComboBoxItem Content="💰 Rentabilidad" IsSelected="True" Tag="rentabilidad"/>
+                        <ComboBoxItem Content="📈 Volumen" Tag="volumen"/>
+                        <ComboBoxItem Content="🔄 Rotación" Tag="rotacion"/>
+                        <ComboBoxItem Content="🎯 Puntuación Mixta" Tag="mixto"/>
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="⚡ Solo activos" VerticalAlignment="Center" FontSize="10" Foreground="#6B7280" Margin="0,0,6,0"/>
+                    <CheckBox x:Name="ChkSoloActivos" IsChecked="True" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                    
+                    <TextBlock Text="📊 Mínimo:" VerticalAlignment="Center" FontSize="10" Foreground="#6B7280" Margin="0,0,6,0"/>
+                    <TextBox x:Name="TxtMinimoItems" Text="5" Width="40" Height="20" VerticalContentAlignment="Center" FontSize="10"/>
+                    <TextBlock Text="items" VerticalAlignment="Center" FontSize="10" Foreground="#6B7280" Margin="3,0,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="BtnActualizarDatos" Content="🔄 Actualizar" Width="90" Height="28"
+                            Background="#059669" Foreground="White" FontSize="10"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnActualizarDatos_Click"/>
+
+                    <Button x:Name="BtnExportarResultados" Content="📊 Exportar" Width="90" Height="28"
+                            Background="#3B82F6" Foreground="White" FontSize="10"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnExportarResultados_Click"/>
+
+                    <Button x:Name="BtnGenerarReporte" Content="📋 Reporte" Width="90" Height="28"
+                            Background="#8B5CF6" Foreground="White" FontSize="10"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Click="BtnGenerarReporte_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- KPIs PRINCIPALES -->
+        <Grid Grid.Row="2" Margin="25,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- KPI: Clase A -->
+            <Border Grid.Column="0" Background="#10B981" CornerRadius="8" Padding="15,10" Margin="0,0,10,0">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="🥇" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+                    <TextBlock x:Name="TxtCantidadA" Text="--" FontSize="18" FontWeight="Bold" 
+                               Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Clase A (Alta)" FontSize="10" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.9"/>
+                    <TextBlock x:Name="TxtPorcentajeA" Text="--%" FontSize="9" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.8" Margin="0,1,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- KPI: Clase B -->
+            <Border Grid.Column="1" Background="#F59E0B" CornerRadius="8" Padding="15,10" Margin="0,0,10,0">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="🥈" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+                    <TextBlock x:Name="TxtCantidadB" Text="--" FontSize="18" FontWeight="Bold" 
+                               Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Clase B (Media)" FontSize="10" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.9"/>
+                    <TextBlock x:Name="TxtPorcentajeB" Text="--%" FontSize="9" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.8" Margin="0,1,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- KPI: Clase C -->
+            <Border Grid.Column="2" Background="#EF4444" CornerRadius="8" Padding="15,10" Margin="0,0,10,0">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="🥉" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+                    <TextBlock x:Name="TxtCantidadC" Text="--" FontSize="18" FontWeight="Bold" 
+                               Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Clase C (Baja)" FontSize="10" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.9"/>
+                    <TextBlock x:Name="TxtPorcentajeC" Text="--%" FontSize="9" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.8" Margin="0,1,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- KPI: Pareto 80/20 -->
+            <Border Grid.Column="3" Background="#6366F1" CornerRadius="8" Padding="15,10" Margin="0,0,10,0">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="📊" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+                    <TextBlock x:Name="TxtPareto8020" Text="--%" FontSize="16" FontWeight="Bold" 
+                               Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Regla 80/20" FontSize="10" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.9"/>
+                    <TextBlock x:Name="TxtParetoDetalle" Text="-- items = --%%" FontSize="8" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.8" Margin="0,1,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- KPI: Total -->
+            <Border Grid.Column="4" Background="#1F2937" CornerRadius="8" Padding="15,10">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="🎯" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+                    <TextBlock x:Name="TxtTotalItems" Text="--" FontSize="18" FontWeight="Bold" 
+                               Foreground="White" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="TxtTipoItems" Text="Items Analizados" FontSize="10" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.9"/>
+                    <TextBlock x:Name="TxtValorTotal" Text="$--" FontSize="9" Foreground="White" 
+                               HorizontalAlignment="Center" Opacity="0.8" Margin="0,1,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- CONTENIDO PRINCIPAL CON SCROLL -->
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid Margin="25,0,25,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.5*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- PANEL IZQUIERDO: Gráficos -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="200"/>
+                        <RowDefinition Height="10"/>
+                        <RowDefinition Height="180"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Gráfico principal -->
+                    <Border Grid.Row="0" Background="White" CornerRadius="8" BorderBrush="#E5E7EB" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="8,8,0,0" Padding="12,6">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                        <TextBlock Text="📈" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock x:Name="TxtTituloGrafico" Text="Pareto - Productos por Rentabilidad" 
+                                                   FontSize="11" FontWeight="Bold" Foreground="#374151" VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <Button x:Name="BtnAmpliarGrafico" Content="🔍" Width="35" Height="28"
+                                                Background="#3B82F6" Foreground="White" 
+                                                Style="{StaticResource ModernButtonStyle}" Margin="0,0,3,0" FontSize="12"
+                                                Click="BtnAmpliarGrafico_Click"/>
+                                        <Button x:Name="BtnCambiarVista" Content="📊" Width="35" Height="28"
+                                                Background="#8B5CF6" Foreground="White" FontSize="12"
+                                                Style="{StaticResource ModernButtonStyle}"
+                                                Click="BtnCambiarVista_Click"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                                <Canvas x:Name="CanvasGraficoPrincipal" Background="White" 
+                                        MinWidth="400" MinHeight="150" 
+                                        Margin="8" ClipToBounds="False"/>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+
+                    <!-- Gráfico distribución -->
+                    <Border Grid.Row="2" Background="White" CornerRadius="8" BorderBrush="#E5E7EB" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="8,8,0,0" Padding="12,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                        <TextBlock Text="🥧" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Distribución ABC" FontSize="12" FontWeight="Bold" Foreground="#374151" VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <Button Grid.Column="1" x:Name="BtnAmpliarDistribucion" Content="🔍" Width="35" Height="28"
+                                            Background="#6366F1" Foreground="White" FontSize="12"
+                                            Style="{StaticResource ModernButtonStyle}"
+                                            Click="BtnAmpliarDistribucion_Click"/>
+                                </Grid>
+                            </Border>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                                <Canvas x:Name="CanvasGraficoDistribucion" Background="White" 
+                                        MinWidth="280" MinHeight="120"
+                                        Margin="10" ClipToBounds="False"/>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- PANEL DERECHO -->
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="220"/>
+                        <RowDefinition Height="10"/>
+                        <RowDefinition Height="200"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Tabla de resultados -->
+                    <Border Grid.Row="0" Background="White" CornerRadius="8" BorderBrush="#E5E7EB" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="8,8,0,0" Padding="12,6">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                        <TextBlock Text="🏆" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Ranking ABC" FontSize="11" FontWeight="Bold" Foreground="#374151" VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <TextBlock Text="Top:" VerticalAlignment="Center" FontSize="9" Foreground="#6B7280" Margin="0,0,3,0"/>
+                                        <TextBox x:Name="TxtTopItems" Text="20" Width="30" Height="18" VerticalContentAlignment="Center" FontSize="9"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                                <DataGrid x:Name="DgResultadosABC" 
+                                          AutoGenerateColumns="False" IsReadOnly="True" 
+                                          CanUserAddRows="False" CanUserDeleteRows="False"
+                                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                          Background="White" RowBackground="White" 
+                                          AlternatingRowBackground="#F8FAFC"
+                                          BorderThickness="0" Margin="6" FontSize="10"
+                                          MinWidth="240" MaxHeight="400">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="#" Binding="{Binding Posicion}" Width="25"/>
+                                        <DataGridTextColumn Header="Item" Binding="{Binding Nombre}" Width="110"/>
+                                        <DataGridTextColumn Header="ABC" Binding="{Binding ClaseABC}" Width="35"/>
+                                        <DataGridTextColumn Header="Valor" Binding="{Binding ValorFormateado}" Width="60"/>
+                                        <DataGridTextColumn Header="%" Binding="{Binding PorcentajeFormateado}" Width="40"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+
+                    <!-- Panel de insights -->
+                    <Border Grid.Row="2" Background="White" CornerRadius="8" BorderBrush="#E5E7EB" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="8,8,0,0" Padding="12,6">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="💡" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Insights y Recomendaciones" FontSize="11" FontWeight="Bold" Foreground="#374151" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" 
+                                          Padding="12,8" MaxHeight="300">
+                                <StackPanel x:Name="PanelInsights">
+                                    <TextBlock Text="📊 Ejecuta el análisis para ver insights automáticos..." 
+                                               FontSize="10" Foreground="#6B7280" TextWrapping="Wrap"
+                                               x:Name="TxtInsightsDefault"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- STATUS BAR -->
+        <Border Grid.Row="4" Background="#F8FAFC" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Padding="25,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="TxtStatusAnalisis" Grid.Column="0" 
+                           Text="🔤 Análisis ABC - Actualizando automáticamente..." 
+                           FontSize="9" VerticalAlignment="Center" Foreground="#6B7280"/>
+
+                <TextBlock x:Name="TxtItemsEnAnalisis" Grid.Column="1" 
+                           Text="Items: --" FontSize="9" FontWeight="Bold" 
+                           Foreground="#059669" VerticalAlignment="Center" Margin="15,0"/>
+
+                <TextBlock x:Name="TxtTiempoAnalisis" Grid.Column="2" 
+                           Text="Tiempo: --ms" FontSize="9" FontWeight="Bold" 
+                           Foreground="#3B82F6" VerticalAlignment="Center" Margin="15,0"/>
+
+                <TextBlock x:Name="TxtUltimaEjecucion" Grid.Column="3" 
+                           Text="Última ejecución: --" FontSize="9" FontWeight="Bold" 
+                           Foreground="#8B5CF6" VerticalAlignment="Center" Margin="15,0"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

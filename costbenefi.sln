@@ -13,9 +13,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{4669A151-9FDC-4236-88BB-FBBFCCDB57D7}"
 	ProjectSection(SolutionItems) = preProject
 		BasculaService.cs = BasculaService.cs
+		ConfiguracionSistema.cs = ConfiguracionSistema.cs
 		CorteCajaService.cs = CorteCajaService.cs
 		CorteRobustoService.cs = CorteRobustoService.cs
 		GlobalScannerService.cs = GlobalScannerService.cs
+		ModelosSincronizacion.cs = ModelosSincronizacion.cs
+		NetworkService.cs = NetworkService.cs
 		POSIntegrationService.cs = POSIntegrationService.cs
 		ScannerPOSService.cs = ScannerPOSService.cs
 		ScannerProtectionService.cs = ScannerProtectionService.cs
@@ -23,6 +26,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{46
 		SoporteSystem.cs = SoporteSystem.cs
 		StockExelServices.cs = StockExelServices.cs
 		StockPDFService.cs = StockPDFService.cs
+		SyncExtensionMethods.cs = SyncExtensionMethods.cs
+		SyncService.cs = SyncService.cs
 		TicketPrinter.cs = TicketPrinter.cs
 		UnifiedScannerService.cs = UnifiedScannerService.cs
 		UserService.cs = UserService.cs
@@ -32,14 +37,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{46
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9-E21E-492B-83DD-6A5046CA4BA3}"
 	ProjectSection(SolutionItems) = preProject
-		AnalisisABCWindow.xaml = AnalisisABCWindow.xaml
-		AnalisisABCWindow.xaml.cs = AnalisisABCWindow.xaml.cs
-		AnalisisFinancieroAvanzadoWindow.xaml = AnalisisFinancieroAvanzadoWindow.xaml
-		AnalisisFinancieroAvanzadoWindow.xaml.cs = AnalisisFinancieroAvanzadoWindow.xaml.cs
-		AnalisisMainControl.xaml = AnalisisMainControl.xaml
-		AnalisisMainControl.xaml.cs = AnalisisMainControl.xaml.cs
-		AnalisisRentabilidadWindow.xaml = AnalisisRentabilidadWindow.xaml
-		AnalisisRentabilidadWindow.xaml.cs = AnalisisRentabilidadWindow.xaml.cs
+		ConfiguracionRedWindow.xaml = ConfiguracionRedWindow.xaml
+		ConfiguracionRedWindow.xaml.cs = ConfiguracionRedWindow.xaml.cs
+		ConfigurarBasculaWindow.xaml.cs = ConfigurarBasculaWindow.xaml.cs
+		PuntoEquilibrioModuloControl.xaml = PuntoEquilibrioModuloControl.xaml
+		PuntoEquilibrioModuloControl.xaml.cs = PuntoEquilibrioModuloControl.xaml.cs
 		VentanaConfiguracionABC.xaml = VentanaConfiguracionABC.xaml
 		VentanaConfiguracionABC.xaml.cs = VentanaConfiguracionABC.xaml.cs
 		VentanaConfiguracionRentabilidad.xaml = VentanaConfiguracionRentabilidad.xaml
@@ -48,6 +50,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9
 		VentanaDistribucionAmpliada.xaml.cs = VentanaDistribucionAmpliada.xaml.cs
 		VentanaGraficoAmpliado.xaml = VentanaGraficoAmpliado.xaml
 		VentanaGraficoAmpliado.xaml.cs = VentanaGraficoAmpliado.xaml.cs
+		VentanaGraficoAmpliadoPuntoEquilibrio.xaml = VentanaGraficoAmpliadoPuntoEquilibrio.xaml
+		VentanaGraficoAmpliadoPuntoEquilibrio.xaml.cs = VentanaGraficoAmpliadoPuntoEquilibrio.xaml.cs
 		VentanaGraficoAmpliadoRentabilidad.xaml = VentanaGraficoAmpliadoRentabilidad.xaml
 		VentanaGraficoAmpliadoRentabilidad.xaml.cs = VentanaGraficoAmpliadoRentabilidad.xaml.cs
 	EndProjectSection
@@ -61,10 +65,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{CB0EA2
 		DatosProductoTerminado.cs = DatosProductoTerminado.cs
 		DetalleVenta.cs = DetalleVenta.cs
 		EstadoLote.cs = EstadoLote.cs
+		ItemPuntoEquilibrio.cs = ItemPuntoEquilibrio.cs
 		LoteFabricacion.cs = LoteFabricacion.cs
 		MaterialCalculator.cs = MaterialCalculator.cs
 		MaterialServicio.cs = MaterialServicio.cs
 		Movimiento.cs = Movimiento.cs
+		PermisosSimples.cs = PermisosSimples.cs
+		PermisosUI.cs = PermisosUI.cs
 		ProcesoFabricacion.cs = ProcesoFabricacion.cs
 		ProductoSeleccionable.cs = ProductoSeleccionable.cs
 		PromocionVenta.cs = PromocionVenta.cs
@@ -196,6 +203,38 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Procesos", "Procesos", "{64
 		ServiciosVentaWindow.xaml.cs = ServiciosVentaWindow.xaml.cs
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "user control analisis", "user control analisis", "{5B2B19C4-676A-4A68-A704-FC2F0371626A}"
+	ProjectSection(SolutionItems) = preProject
+		AnalisisABCModuloControl.xaml = AnalisisABCModuloControl.xaml
+		AnalisisABCModuloControl.xaml.cs = AnalisisABCModuloControl.xaml.cs
+		AnalisisMainControl.xaml = AnalisisMainControl.xaml
+		AnalisisMainControl.xaml.cs = AnalisisMainControl.xaml.cs
+		FinancieroAvanzadoModuloControl.xaml = FinancieroAvanzadoModuloControl.xaml
+		FinancieroAvanzadoModuloControl.xaml.cs = FinancieroAvanzadoModuloControl.xaml.cs
+		ModuloEnDesarrolloControl.xaml = ModuloEnDesarrolloControl.xaml
+		ModuloEnDesarrolloControl.xaml.cs = ModuloEnDesarrolloControl.xaml.cs
+		ModuloErrorControl.xaml = ModuloErrorControl.xaml
+		ModuloErrorControl.xaml.cs = ModuloErrorControl.xaml.cs
+		RentabilidadModuloControl.xaml = RentabilidadModuloControl.xaml
+		RentabilidadModuloControl.xaml.cs = RentabilidadModuloControl.xaml.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "analisis windows", "analisis windows", "{F7B65C00-C841-4138-8AAE-05E6032ACF6C}"
+	ProjectSection(SolutionItems) = preProject
+		AnalisisABCWindow.xaml = AnalisisABCWindow.xaml
+		AnalisisABCWindow.xaml.cs = AnalisisABCWindow.xaml.cs
+		AnalisisFinancieroAvanzadoWindow.xaml = AnalisisFinancieroAvanzadoWindow.xaml
+		AnalisisFinancieroAvanzadoWindow.xaml.cs = AnalisisFinancieroAvanzadoWindow.xaml.cs
+		AnalisisRentabilidadWindow.xaml = AnalisisRentabilidadWindow.xaml
+		AnalisisRentabilidadWindow.xaml.cs = AnalisisRentabilidadWindow.xaml.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "controllers", "controllers", "{6E7A9DE2-1252-45B7-8046-8FC0D4A43029}"
+	ProjectSection(SolutionItems) = preProject
+		ApiController.cs = ApiController.cs
+		TerminalClient.cs = TerminalClient.cs
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -220,6 +259,8 @@ Global
 		{8866BB46-638D-4F6C-8D8D-06548F85F15B} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
 		{5548DE8E-3FC1-4470-9CAC-65EB4DE23161} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
 		{6496840B-58F4-4A1D-98A5-BD27123986B8} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
+		{5B2B19C4-676A-4A68-A704-FC2F0371626A} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
+		{F7B65C00-C841-4138-8AAE-05E6032ACF6C} = {8B1021B9-E21E-492B-83DD-6A5046CA4BA3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {40C49D51-0910-42B9-B9B4-A1B5D9126FA2}

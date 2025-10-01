@@ -40,6 +40,8 @@ namespace costbenefi
         private RawMaterial _ultimoProductoEscaneado = null;
         private DateTime _tiempoUltimoEscaneo = DateTime.MinValue;
         private bool _modoEscanerActivo = false;
+        private bool _ventanaPesoAbierta = false; // ✅ NUEVA: Control para evitar auto-agregar
+
 
         private DescuentoAplicadoInfo _descuentoInfo = null;
 
@@ -161,6 +163,10 @@ namespace costbenefi
                 // Forzar actualización completa de UI
                 this.UpdateLayout();
                 this.InvalidateVisual();
+                VerificarEstadoSincronizacion();
+
+                System.Diagnostics.Debug.WriteLine("🎉 UI completamente inicializada con estado de sincronización");
+
 
                 // Actualizar TabControl si existe
                 var tabControl = this.FindName("MainTabControl") as TabControl;
@@ -179,6 +185,68 @@ namespace costbenefi
                 System.Diagnostics.Debug.WriteLine($"❌ Error en carga completa: {ex.Message}");
                 if (TxtStatus != null)
                     TxtStatus.Text = "⚠️ Error en inicialización completa";
+            }
+        }
+
+        private void ActualizarEstadoSincronizacionUI()
+        {
+            try
+            {
+                var config = ConfiguracionSistema.Instance;
+
+                string icono = "";
+                string texto = "";
+                string color = "#6C757D"; // Gris por defecto
+
+                switch (config.Tipo)
+                {
+                    case TipoInstalacion.Servidor:
+                        icono = "🖥️";
+                        texto = "Servidor";
+                        color = "#28A745"; // Verde
+                        break;
+
+                    case TipoInstalacion.Terminal:
+                        icono = "💻";
+                        texto = "Terminal";
+                        color = "#2563EB"; // Azul
+                        break;
+
+                    case TipoInstalacion.Standalone:
+                    default:
+                        icono = "🔒";
+                        texto = "Standalone";
+                        color = "#6C757D"; // Gris
+                        break;
+                }
+
+                // ✅ SOLO actualizar controles que SÍ existen en tu XAML
+                if (TxtIconoSincronizacion != null)
+                    TxtIconoSincronizacion.Text = icono;
+
+                if (TxtEstadoSincronizacion != null)
+                {
+                    TxtEstadoSincronizacion.Text = texto;
+                    TxtEstadoSincronizacion.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+                }
+
+                // ❌ COMENTAR O ELIMINAR estas líneas porque los controles no existen:
+                /*
+                if (TxtIconoSincronizacionPOS != null)
+                    TxtIconoSincronizacionPOS.Text = icono;
+
+                if (TxtEstadoSincronizacionPOS != null)
+                {
+                    TxtEstadoSincronizacionPOS.Text = texto;
+                    TxtEstadoSincronizacionPOS.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+                }
+                */
+
+                System.Diagnostics.Debug.WriteLine($"🎨 UI actualizada: {icono} {texto}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error actualizando UI de sincronización: {ex.Message}");
             }
         }
         private async Task ManejarTeclaMas()
@@ -465,6 +533,15 @@ namespace costbenefi
                 System.Diagnostics.Debug.WriteLine($"   📝 Contexto: {e.Contexto}");
                 System.Diagnostics.Debug.WriteLine($"   📝 _posLoaded: {_posLoaded}");
                 System.Diagnostics.Debug.WriteLine($"   📝 Tab seleccionado: {MainTabControl.SelectedIndex}");
+                System.Diagnostics.Debug.WriteLine($"   📝 _ventanaPesoAbierta: {_ventanaPesoAbierta}"); // ✅ NUEVO
+
+                // ✅ NUEVO: Si hay ventana de peso abierta, ignorar escáner
+                if (_ventanaPesoAbierta)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🛡️ Escáner ignorado - Ventana de peso abierta");
+                    TxtStatusPOS.Text = "🛡️ Escáner pausado - Ventana de peso activa";
+                    return;
+                }
 
                 // ✅ MEJORAR: Si POS no está cargado, intentar cargarlo
                 if (!_posLoaded)
@@ -543,16 +620,30 @@ namespace costbenefi
                     {
                         System.Diagnostics.Debug.WriteLine($"📏 Producto por peso detectado: {producto.UnidadMedida}");
 
+                        // ✅ NUEVO: Marcar que se abrió ventana de peso
+                        _ventanaPesoAbierta = true;
+                        System.Diagnostics.Debug.WriteLine("🔓 Ventana de peso abierta por escáner - Eventos automáticos de báscula DESACTIVADOS");
+
                         var pesoWindow = new IngresarPesoWindow(_context, producto, _basculaService);
-                        if (pesoWindow.ShowDialog() == true)
+
+                        try
                         {
-                            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: PesoIngresado = {pesoWindow.PesoIngresado}");
-                            await AgregarProductoAlCarrito(producto, pesoWindow.PesoIngresado);
-                            TxtStatusPOS.Text = $"✅ Agregado: {producto.NombreArticulo} ({pesoWindow.PesoIngresado:F2} {producto.UnidadMedida})";
+                            if (pesoWindow.ShowDialog() == true)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: PesoIngresado = {pesoWindow.PesoIngresado}");
+                                await AgregarProductoAlCarrito(producto, pesoWindow.PesoIngresado);
+                                TxtStatusPOS.Text = $"✅ Agregado: {producto.NombreArticulo} ({pesoWindow.PesoIngresado:F2} {producto.UnidadMedida})";
+                            }
+                            else
+                            {
+                                TxtStatusPOS.Text = "❌ Ingreso de peso cancelado";
+                            }
                         }
-                        else
+                        finally
                         {
-                            TxtStatusPOS.Text = "❌ Ingreso de peso cancelado";
+                            // ✅ CRÍTICO: Siempre restaurar el control al cerrar la ventana
+                            _ventanaPesoAbierta = false;
+                            System.Diagnostics.Debug.WriteLine("🔒 Ventana de peso cerrada por escáner - Eventos automáticos de báscula REACTIVADOS");
                         }
                     }
                     else
@@ -573,6 +664,10 @@ namespace costbenefi
             }
             catch (Exception ex)
             {
+                // ✅ NUEVO: Asegurar que se restaure el control en caso de error
+                _ventanaPesoAbierta = false;
+                System.Diagnostics.Debug.WriteLine("🔒 ERROR en escáner - Eventos automáticos de báscula restaurados por seguridad");
+
                 System.Diagnostics.Debug.WriteLine($"💥 ERROR CRÍTICO en OnCodigoEscaneadoPOS_Protected: {ex.Message}");
                 TxtStatusPOS.Text = $"❌ Error procesando código: {ex.Message}";
 
@@ -1042,6 +1137,20 @@ namespace costbenefi
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"❌ Error verificando estado escáner: {ex.Message}");
+            }
+        }
+
+        private void VerificarEstadoVentanaPeso()
+        {
+            System.Diagnostics.Debug.WriteLine($"🔍 Estado _ventanaPesoAbierta: {_ventanaPesoAbierta}");
+
+            if (_ventanaPesoAbierta)
+            {
+                System.Diagnostics.Debug.WriteLine("   🔓 Eventos automáticos de báscula DESACTIVADOS");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("   🔒 Eventos automáticos de báscula ACTIVOS");
             }
         }
         /// <summary>
@@ -1615,6 +1724,53 @@ namespace costbenefi
                 TxtTotal.Text = "Error";
             }
         }
+
+        private void BtnEstadoSincronizacion_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("🔧 Botón estado sincronización presionado");
+
+                // Mostrar información detallada del estado
+                MostrarInfoSincronizacion();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error en BtnEstadoSincronizacion_Click: {ex.Message}");
+                MessageBox.Show($"Error al mostrar información de sincronización:\n\n{ex.Message}",
+                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                if (TxtStatus != null)
+                    TxtStatus.Text = "❌ Error al mostrar info de sincronización";
+            }
+        }
+        private void VerificarEstadoSincronizacion()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("🔍 Verificando estado de sincronización");
+
+                // Actualizar la interfaz con el estado actual
+                ActualizarEstadoSincronizacionUI();
+
+                System.Diagnostics.Debug.WriteLine("✅ Estado de sincronización verificado y actualizado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error verificando estado de sincronización: {ex.Message}");
+
+                // En caso de error, mostrar estado por defecto
+                if (TxtIconoSincronizacion != null)
+                    TxtIconoSincronizacion.Text = "⚠️";
+
+                if (TxtEstadoSincronizacion != null)
+                {
+                    TxtEstadoSincronizacion.Text = "Error";
+                    TxtEstadoSincronizacion.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DC2626"));
+                }
+            }
+        }
+
         // ✅ MÉTODO ÚNICO - PROCESAMIENTO DE VENTA (CORREGIDO)
         private async Task<bool> ProcesarVentaUnico()
         {
@@ -2639,18 +2795,29 @@ namespace costbenefi
             {
                 if (LstProductosPOS.SelectedItem == null) return;
 
-                // ✅ MANEJAR PRODUCTOS (funcionalidad original)
                 if (LstProductosPOS.SelectedItem is RawMaterial producto)
                 {
-                    // ✅ CORRECCIÓN: Usar método universal para detectar productos a granel
                     if (EsProductoAGranel(producto.UnidadMedida))
                     {
-                        // Abrir ventana para ingresar peso/volumen/longitud
+                        // ✅ NUEVO: Marcar que se abrió ventana de peso
+                        _ventanaPesoAbierta = true;
+                        System.Diagnostics.Debug.WriteLine("🔓 Ventana de peso abierta - Eventos automáticos de báscula DESACTIVADOS");
+
                         var pesoWindow = new IngresarPesoWindow(_context, producto, _basculaService);
-                        if (pesoWindow.ShowDialog() == true)
+
+                        try
                         {
-                            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: PesoIngresado = {pesoWindow.PesoIngresado}");
-                            await AgregarProductoAlCarrito(producto, pesoWindow.PesoIngresado);
+                            if (pesoWindow.ShowDialog() == true)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: PesoIngresado = {pesoWindow.PesoIngresado}");
+                                await AgregarProductoAlCarrito(producto, pesoWindow.PesoIngresado);
+                            }
+                        }
+                        finally
+                        {
+                            // ✅ CRÍTICO: Siempre restaurar el control al cerrar la ventana
+                            _ventanaPesoAbierta = false;
+                            System.Diagnostics.Debug.WriteLine("🔒 Ventana de peso cerrada - Eventos automáticos de báscula REACTIVADOS");
                         }
                     }
                     else
@@ -2659,7 +2826,6 @@ namespace costbenefi
                         await AgregarProductoAlCarrito(producto, 1);
                     }
                 }
-                // ✅ NUEVO: MANEJAR SERVICIOS
                 else if (LstProductosPOS.SelectedItem is ServicioVenta servicio)
                 {
                     await AgregarServicioAlCarrito(servicio, 1);
@@ -2667,11 +2833,16 @@ namespace costbenefi
             }
             catch (Exception ex)
             {
+                // ✅ ASEGURAR que se restaure el control en caso de error
+                _ventanaPesoAbierta = false;
+                System.Diagnostics.Debug.WriteLine("🔒 ERROR - Eventos automáticos restaurados por seguridad");
+
                 MessageBox.Show($"Error al procesar selección: {ex.Message}",
                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 TxtStatusPOS.Text = "❌ Error al procesar selección";
             }
         }
+
 
         private async void BtnEliminarDelCarrito_Click_ConAutorizacion(object sender, RoutedEventArgs e)
         {
@@ -3204,6 +3375,13 @@ namespace costbenefi
         {
             try
             {
+                // ✅ NUEVO: No agregar automáticamente si hay ventana de peso abierta
+                if (_ventanaPesoAbierta)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🛡️ Evento de báscula ignorado - Ventana de peso abierta (peso: {peso})");
+                    return;
+                }
+
                 if (LstProductosPOS.SelectedItem is RawMaterial producto)
                 {
                     await AgregarProductoAlCarrito(producto, peso);
@@ -3802,23 +3980,133 @@ namespace costbenefi
         {
             try
             {
-                // TODO: Crear ventana de configuración del sistema
-                MessageBox.Show("🔧 Configuración del Sistema\n\n" +
-                              "Esta funcionalidad estará disponible en una próxima versión.\n\n" +
-                              "Incluirá:\n" +
-                              "• Configuración de empresa\n" +
-                              "• Parámetros de sistema\n" +
-                              "• Configuración de dispositivos\n" +
-                              "• Backup y restauración",
-                              "Próximamente", MessageBoxButton.OK, MessageBoxImage.Information);
+                System.Diagnostics.Debug.WriteLine("🔧 Abriendo configuración de red y sincronización");
 
-                TxtStatus.Text = "🔧 Configuración del sistema (próximamente)";
+                var configWindow = new Views.ConfiguracionRedWindow()
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                var resultado = configWindow.ShowDialog();
+
+                if (resultado == true && configWindow.ConfiguracionGuardada)
+                {
+                    TxtStatus.Text = "✅ Configuración de red guardada exitosamente";
+
+                    // Mostrar información sobre los cambios
+                    var config = ConfiguracionSistema.Instance;
+                    string mensaje = $"✅ Configuración aplicada:\n\n";
+
+                    switch (config.Tipo)
+                    {
+                        case TipoInstalacion.Servidor:
+                            mensaje += $"🖥️ MODO SERVIDOR\n";
+                            mensaje += $"• Puerto: {config.ServidorPuerto}\n";
+                            mensaje += $"• URL: {config.UrlServidor}\n";
+                            mensaje += $"• Recibirá datos de terminales";
+                            break;
+
+                        case TipoInstalacion.Terminal:
+                            mensaje += $"💻 MODO TERMINAL\n";
+                            mensaje += $"• Servidor: {config.ServidorIP}:{config.ServidorPuerto}\n";
+                            mensaje += $"• Nombre: {config.NombreTerminal}\n";
+                            mensaje += $"• Sincronización: {(config.SincronizacionActiva ? "Activa" : "Inactiva")}";
+                            break;
+
+                        case TipoInstalacion.Standalone:
+                            mensaje += $"🔒 MODO STANDALONE\n";
+                            mensaje += $"• Sin sincronización de red\n";
+                            mensaje += $"• Funcionamiento independiente";
+                            break;
+                    }
+
+                    mensaje += $"\n\n⚠️ Reinicie la aplicación para aplicar los cambios completamente.";
+
+                    MessageBox.Show(mensaje, "Configuración Aplicada",
+                                  MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // Preguntar si desea reiniciar ahora
+                    if (config.Tipo != TipoInstalacion.Standalone)
+                    {
+                        var reiniciar = MessageBox.Show(
+                            "¿Desea reiniciar la aplicación ahora para activar la sincronización?",
+                            "Reiniciar Aplicación",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+
+                        if (reiniciar == MessageBoxResult.Yes)
+                        {
+                            // Reiniciar aplicación (usamos tu SessionManager existente)
+                            _ = SessionManager.CerrarSesionYReiniciar(
+                                razon: "Aplicar configuración de red",
+                                mostrarConfirmacion: false);
+                        }
+                    }
+                }
+                else
+                {
+                    TxtStatus.Text = "🔧 Configuración de red cancelada";
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al abrir configuración: {ex.Message}",
+                System.Diagnostics.Debug.WriteLine($"❌ Error en configuración: {ex.Message}");
+                MessageBox.Show($"Error al abrir configuración de red:\n\n{ex.Message}",
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                TxtStatus.Text = "❌ Error al abrir configuración";
+                TxtStatus.Text = "❌ Error al abrir configuración de red";
+            }
+        }
+
+       
+
+
+        private void MostrarInfoSincronizacion()
+        {
+            try
+            {
+                var config = ConfiguracionSistema.Instance;
+
+                string mensaje = "📊 ESTADO DE SINCRONIZACIÓN\n\n";
+
+                switch (config.Tipo)
+                {
+                    case TipoInstalacion.Servidor:
+                        mensaje += $"🖥️ CONFIGURADO COMO SERVIDOR\n\n";
+                        mensaje += $"• IP: {config.ServidorIP}\n";
+                        mensaje += $"• Puerto: {config.ServidorPuerto}\n";
+                        mensaje += $"• URL completa: {config.UrlServidor}\n";
+                        mensaje += $"• Sincronización: {(config.SincronizacionActiva ? "✅ Activa" : "❌ Inactiva")}\n";
+                        mensaje += $"• Intervalo: {config.IntervaloSincronizacionMinutos} minutos\n\n";
+                        mensaje += $"💡 Este equipo recibe datos de terminales";
+                        break;
+
+                    case TipoInstalacion.Terminal:
+                        mensaje += $"💻 CONFIGURADO COMO TERMINAL\n\n";
+                        mensaje += $"• Servidor: {config.ServidorIP}:{config.ServidorPuerto}\n";
+                        mensaje += $"• Nombre: {config.NombreTerminal}\n";
+                        mensaje += $"• Sincronización: {(config.SincronizacionActiva ? "✅ Activa" : "❌ Inactiva")}\n";
+                        mensaje += $"• Intervalo: {config.IntervaloSincronizacionMinutos} minutos\n\n";
+                        mensaje += $"💡 Este equipo envía datos al servidor";
+                        break;
+
+                    case TipoInstalacion.Standalone:
+                    default:
+                        mensaje += $"🔒 MODO STANDALONE\n\n";
+                        mensaje += $"• Sin conexión de red\n";
+                        mensaje += $"• Funcionamiento independiente\n";
+                        mensaje += $"• No sincroniza datos\n\n";
+                        mensaje += $"💡 Para habilitar red, vaya a Configuración";
+                        break;
+                }
+
+                MessageBox.Show(mensaje, "Estado de Sincronización",
+                              MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al mostrar información: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -4265,6 +4553,7 @@ namespace costbenefi
                 TxtStatus.Text = "❌ Error al abrir información";
             }
         }
+       
     }
 
    

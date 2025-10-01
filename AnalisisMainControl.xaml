@@ -3,26 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:local="clr-namespace:costbenefi.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="1200">
+             d:DesignHeight="700" d:DesignWidth="1400">
 
     <UserControl.Resources>
-        <!-- Estilos para el módulo de análisis -->
-        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="16"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Margin" Value="0,0,0,10"/>
-            <Setter Property="Foreground" Value="#2E3B4E"/>
-        </Style>
-
-        <Style x:Key="SubHeaderTextStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,5,0,5"/>
-            <Setter Property="Foreground" Value="#666"/>
-        </Style>
-
+        <!-- Mantener tus estilos actuales -->
         <Style x:Key="AnalisisButtonStyle" TargetType="Button">
             <Setter Property="Height" Value="40"/>
             <Setter Property="FontWeight" Value="Bold"/>
@@ -59,15 +45,14 @@
     </UserControl.Resources>
 
     <Grid Background="White">
-        <!-- Layout principal del módulo de análisis -->
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Header -->
             <RowDefinition Height="Auto"/>  <!-- Toolbar -->
-            <RowDefinition Height="*"/>     <!-- Contenido principal -->
+            <RowDefinition Height="*"/>     <!-- CONTENIDO DINÁMICO -->
             <RowDefinition Height="Auto"/>  <!-- Status bar -->
         </Grid.RowDefinitions>
 
-        <!-- Header del módulo -->
+        <!-- Header del módulo (MANTENER IGUAL) -->
         <Border Grid.Row="0" Background="#8B5CF6" Padding="20,15">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -93,7 +78,7 @@
             </Grid>
         </Border>
 
-        <!-- Toolbar con filtros y opciones -->
+        <!-- Toolbar con filtros y opciones (MANTENER IGUAL) -->
         <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
             <Grid Margin="20,10">
                 <Grid.ColumnDefinitions>
@@ -102,7 +87,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Botones de navegación entre análisis -->
+                <!-- Botones de navegación (MANTENER IGUAL) -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
                     <Button x:Name="BtnRentabilidad" Content="💰 Rentabilidad" Width="120"
                             Background="#10B981" Foreground="White" 
@@ -135,7 +120,7 @@
                             Click="BtnComparativasTempo_Click"/>
                 </StackPanel>
 
-                <!-- Filtros centrales -->
+                <!-- Filtros centrales (MANTENER IGUAL) -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
                     <TextBlock Text="📅 Período:" VerticalAlignment="Center" 
                                FontSize="12" Foreground="#374151" Margin="0,0,10,0"/>
@@ -159,7 +144,7 @@
                     </ComboBox>
                 </StackPanel>
 
-                <!-- Botones de acción -->
+                <!-- Botones de acción (MANTENER IGUAL) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button x:Name="BtnExportarAnalisis" Content="📊 Exportar" Width="90"
                             Background="#6366F1" Foreground="White"
@@ -174,143 +159,55 @@
             </Grid>
         </Border>
 
-        <!-- Contenido principal con TabControl -->
-        <TabControl x:Name="AnalisisTabControl" Grid.Row="2" 
-                    Background="Transparent" BorderThickness="0"
-                    Margin="10" SelectionChanged="AnalisisTabControl_SelectionChanged">
-            
-            <!-- Tab: Análisis de Rentabilidad - ACTUALIZADO A FUNCIONAL -->
-            <TabItem Header="💰 Rentabilidad" x:Name="TabRentabilidad">
-                <Border Background="#F8FAFC" CornerRadius="8" Padding="20">
+        <!-- 🎯 AQUÍ ESTÁ EL CAMBIO: CONTENIDO DINÁMICO EN LUGAR DE TABCONTROL -->
+        <Border Grid.Row="2" Background="#F8FAFC" Margin="15" CornerRadius="10" 
+                BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <!-- ContentPresenter para cargar UserControls dinámicamente -->
+                <ContentPresenter x:Name="ContentPresenterModulos" 
+                                Content="{Binding ModuloActual}" 
+                                Margin="0"/>
+
+                <!-- Pantalla de bienvenida por defecto -->
+                <Border x:Name="PantallaBienvenida" Background="White" CornerRadius="10" Padding="40">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="💰" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,15"/>
-                        <TextBlock Text="Análisis de Rentabilidad" FontSize="20" FontWeight="Bold" 
-                                   HorizontalAlignment="Center" Foreground="#374151" Margin="0,0,0,10"/>
-                        <TextBlock Text="Márgenes brutos y netos, ROI, costo-beneficio y optimización de precios" 
-                                   FontSize="14" HorizontalAlignment="Center" Foreground="#6B7280" 
-                                   Margin="0,0,0,20" TextWrapping="Wrap"/>
+                        <TextBlock Text="📈" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                        <TextBlock Text="Bienvenido al Dashboard de Análisis" FontSize="24" FontWeight="Bold" 
+                                   HorizontalAlignment="Center" Foreground="#374151" Margin="0,0,0,15"/>
+                        <TextBlock Text="Selecciona un módulo de análisis para comenzar" 
+                                   FontSize="16" HorizontalAlignment="Center" Foreground="#6B7280" 
+                                   Margin="0,0,0,30"/>
                         
-                        <!-- ACTUALIZADO: Estado funcional -->
-                        <Border Background="#10B981" CornerRadius="6" Padding="20,12" Margin="0,0,0,15">
+                        <Border Background="#F0FDF4" CornerRadius="10" Padding="25,15" Margin="0,0,0,20">
                             <StackPanel>
-                                <TextBlock Text="✅ MÓDULO COMPLETAMENTE FUNCIONAL" 
-                                           FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                                <TextBlock Text="• Análisis por productos, categorías, proveedores y clientes" 
-                                           FontSize="11" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Text="• Métricas: Margen bruto/neto, ROI, ganancia total, costo-beneficio" 
-                                           FontSize="11" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Text="• Gráficos interactivos y insights automáticos" 
-                                           FontSize="11" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Text="• Filtros por período y categorías" 
-                                           FontSize="11" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Text="🎯 Módulos Disponibles:" FontSize="16" FontWeight="Bold" 
+                                           HorizontalAlignment="Center" Foreground="#166534" Margin="0,0,0,15"/>
+
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <StackPanel Margin="0,0,30,0">
+                                        <TextBlock Text="✅ Rentabilidad" FontSize="12" Foreground="#166534" FontWeight="Bold"/>
+                                        <TextBlock Text="✅ Análisis ABC" FontSize="12" Foreground="#166534" FontWeight="Bold"/>
+                                        <TextBlock Text="✅ Financiero Avanzado" FontSize="12" Foreground="#166534" FontWeight="Bold"/>
+                                        <TextBlock Text="✅ Punto Equilibrio" FontSize="12" Foreground="#166534" FontWeight="Bold"/>
+                                    </StackPanel>
+
+                                    <StackPanel>
+                                        <TextBlock Text="🚧 Métricas Avanzadas" FontSize="12" Foreground="#92400E" FontWeight="Bold"/>
+                                        <TextBlock Text="🚧 Tendencias" FontSize="12" Foreground="#92400E" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                         
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Button Content="💰 Abrir Análisis de Rentabilidad" 
-                                    Background="#10B981" Foreground="White" FontWeight="Bold"
-                                    Padding="15,8" FontSize="12" Cursor="Hand"
-                                    Click="BtnRentabilidad_Click"/>
-                        </StackPanel>
+                        <TextBlock Text="👆 Haz clic en cualquier botón superior para empezar" 
+                                   FontSize="14" HorizontalAlignment="Center" Foreground="#8B5CF6" 
+                                   FontStyle="Italic"/>
                     </StackPanel>
                 </Border>
-            </TabItem>
+            </Grid>
+        </Border>
 
-            <!-- Tab: Punto de Equilibrio -->
-            <TabItem Header="⚖️ Break-Even" x:Name="TabPuntoEquilibrio">
-                <Border Background="#F8FAFC" CornerRadius="8" Padding="20">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="⚖️" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,15"/>
-                        <TextBlock Text="Punto de Equilibrio" FontSize="20" FontWeight="Bold" 
-                                   HorizontalAlignment="Center" Foreground="#374151" Margin="0,0,0,10"/>
-                        <TextBlock Text="Análisis de break-even por producto y simulación de escenarios" 
-                                   FontSize="14" HorizontalAlignment="Center" Foreground="#6B7280" 
-                                   Margin="0,0,0,20"/>
-                        <Border Background="#3B82F6" CornerRadius="6" Padding="15,8">
-                            <TextBlock Text="🚧 Módulo en desarrollo - Próximamente disponible" 
-                                       FontSize="12" FontWeight="Bold" Foreground="White"/>
-                        </Border>
-                    </StackPanel>
-                </Border>
-            </TabItem>
-
-            <!-- Tab: Métricas Avanzadas -->
-            <TabItem Header="📊 Métricas" x:Name="TabMetricas">
-                <Border Background="#F8FAFC" CornerRadius="8" Padding="20">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="📊" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,15"/>
-                        <TextBlock Text="Métricas Avanzadas" FontSize="20" FontWeight="Bold" 
-                                   HorizontalAlignment="Center" Foreground="#374151" Margin="0,0,0,10"/>
-                        <TextBlock Text="KPIs, rotación de inventario, análisis por cliente y proveedor" 
-                                   FontSize="14" HorizontalAlignment="Center" Foreground="#6B7280" 
-                                   Margin="0,0,0,20"/>
-                        <Border Background="#F59E0B" CornerRadius="6" Padding="15,8">
-                            <TextBlock Text="🚧 Módulo en desarrollo - Próximamente disponible" 
-                                       FontSize="12" FontWeight="Bold" Foreground="White"/>
-                        </Border>
-                    </StackPanel>
-                </Border>
-            </TabItem>
-            <!-- Agregar en la sección de botones -->
-
-
-            <!-- Tab: Análisis ABC - ACTUALIZADO A FUNCIONAL -->
-            <TabItem Header="🔤 ABC" x:Name="TabAnalisisABC">
-                <Border Background="#F8FAFC" CornerRadius="8" Padding="20">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="🔤" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,15"/>
-                        <TextBlock Text="Análisis ABC" FontSize="20" FontWeight="Bold" 
-                                   HorizontalAlignment="Center" Foreground="#374151" Margin="0,0,0,10"/>
-                        <TextBlock Text="Clasificación de productos por rentabilidad, volumen y rotación" 
-                                   FontSize="14" HorizontalAlignment="Center" Foreground="#6B7280" 
-                                   Margin="0,0,0,20"/>
-                        
-                        <!-- ACTUALIZADO: Estado funcional -->
-                        <Border Background="#8B5CF6" CornerRadius="6" Padding="20,12" Margin="0,0,0,15">
-                            <StackPanel>
-                                <TextBlock Text="✅ MÓDULO COMPLETAMENTE FUNCIONAL" 
-                                           FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                                <TextBlock Text="• Clasificación ABC automática por regla de Pareto 80/20" 
-                                           FontSize="11" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Text="• 4 tipos: Productos, Proveedores, Clientes, Categorías" 
-                                           FontSize="11" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Text="• 4 criterios: Rentabilidad, Volumen, Rotación, Score Mixto" 
-                                           FontSize="11" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Text="• Gráficos Pareto interactivos e insights automáticos" 
-                                           FontSize="11" Foreground="White" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-                        
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Button Content="🔤 Abrir Análisis ABC" 
-                                    Background="#8B5CF6" Foreground="White" FontWeight="Bold"
-                                    Padding="15,8" FontSize="12" Cursor="Hand"
-                                    Click="BtnAnalisisABC_Click"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-            </TabItem>
-
-            <!-- Tab: Comparativas Temporales -->
-            <TabItem Header="📅 Tendencias" x:Name="TabComparativas">
-                <Border Background="#F8FAFC" CornerRadius="8" Padding="20">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="📅" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,15"/>
-                        <TextBlock Text="Análisis de Tendencias" FontSize="20" FontWeight="Bold" 
-                                   HorizontalAlignment="Center" Foreground="#374151" Margin="0,0,0,10"/>
-                        <TextBlock Text="Evolución temporal de costos, márgenes y proyecciones" 
-                                   FontSize="14" HorizontalAlignment="Center" Foreground="#6B7280" 
-                                   Margin="0,0,0,20"/>
-                        <Border Background="#EF4444" CornerRadius="6" Padding="15,8">
-                            <TextBlock Text="🚧 Módulo en desarrollo - Próximamente disponible" 
-                                       FontSize="12" FontWeight="Bold" Foreground="White"/>
-                        </Border>
-                    </StackPanel>
-                </Border>
-            </TabItem>
-        </TabControl>
-
-        <!-- Status Bar -->
+        <!-- Status Bar (MANTENER IGUAL) -->
         <Border Grid.Row="3" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
             <Grid Margin="20,8">
                 <Grid.ColumnDefinitions>

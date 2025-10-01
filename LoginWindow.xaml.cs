@@ -110,7 +110,6 @@ namespace costbenefi.Views
                     {
                         System.Diagnostics.Debug.WriteLine("🔧 ACCESO DE SOPORTE DETECTADO");
 
-                        // Mostrar mensaje discreto para soporte
                         MessageBox.Show($"🔧 ACCESO DE SOPORTE CONCEDIDO\n\n" +
                                        $"Usuario: {usuarioAutenticado.NombreCompleto}\n" +
                                        $"Nivel: {SoporteSystem.ObtenerUsuarioSoporteActual()?.Nivel ?? NivelSoporte.Basico}\n" +
@@ -123,8 +122,25 @@ namespace costbenefi.Views
                     }
                     else
                     {
-                        // Mensaje normal para usuarios regulares
-                        System.Diagnostics.Debug.WriteLine($"✅ Bienvenido: {usuarioAutenticado.NombreCompleto} ({usuarioAutenticado.Rol})");
+                        // ✅ NUEVO: Mostrar mensaje según rol del usuario normal
+                        string mensajeRol = usuarioAutenticado.Rol switch
+                        {
+                            "Dueño" => "👑 Control total del sistema",
+                            "Encargado" => "👔 Gestión operativa completa",
+                            "Cajero" => "🏪 Operación de punto de venta",
+                            _ => "Usuario del sistema"
+                        };
+
+                        System.Diagnostics.Debug.WriteLine($"✅ Usuario normal: {usuarioAutenticado.NombreCompleto} ({usuarioAutenticado.Rol})");
+
+                        // Mostrar mensaje informativo opcional (puedes quitarlo si no lo quieres)
+                        MessageBox.Show($"✅ ¡Bienvenido al Sistema!\n\n" +
+                                       $"Usuario: {usuarioAutenticado.NombreCompleto}\n" +
+                                       $"Rol: {usuarioAutenticado.Rol}\n" +
+                                       $"Acceso: {mensajeRol}\n\n" +
+                                       $"La interfaz se configurará según sus permisos.",
+                            "Acceso Concedido - CostBenefi",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
                     }
 
                     // Breve pausa para mostrar el mensaje de bienvenida
@@ -141,7 +157,8 @@ namespace costbenefi.Views
                 }
                 else
                 {
-                    // ===== LOGIN FALLIDO =====
+                    // ===== LOGIN FALLIDO ===== 
+                    // ✅ ESTA ERA LA SECCIÓN QUE FALTABA
                     System.Diagnostics.Debug.WriteLine($"❌ Login fallido: {mensaje}");
                     MostrarError(mensaje);
 
