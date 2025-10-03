@@ -23,6 +23,7 @@ namespace costbenefi.Data
 
         // ========== ✅ DbSets PARA POS ==========
         public DbSet<CorteCaja> CortesCaja { get; set; }
+        public DbSet<ConfiguracionComisiones> ConfiguracionesComisiones { get; set; }
         public DbSet<Venta> Ventas { get; set; }
         public DbSet<DetalleVenta> DetalleVentas { get; set; }
 
@@ -1070,6 +1071,43 @@ namespace costbenefi.Data
                 entity.HasIndex(e => e.Estado);
                 entity.HasIndex(e => e.FechaHoraCorte);
             });
+
+            modelBuilder.Entity<ConfiguracionComisiones>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.PorcentajeComisionTarjeta)
+                    .HasColumnType("decimal(5,2)")
+                    .HasDefaultValue(3.5m);
+
+                entity.Property(e => e.TerminalCobraIVA)
+                    .HasDefaultValue(true);
+
+                entity.Property(e => e.PorcentajeIVA)
+                    .HasColumnType("decimal(5,2)")
+                    .HasDefaultValue(16.0m);
+
+                entity.Property(e => e.Descripcion)
+                    .HasMaxLength(500)
+                    .HasDefaultValue("Configuración por defecto");
+
+                entity.Property(e => e.Activa)
+                    .HasDefaultValue(true);
+
+                entity.Property(e => e.FechaCreacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.FechaActualizacion)
+                    .HasDefaultValueSql("datetime('now')");
+
+                entity.Property(e => e.UsuarioModificacion)
+                    .HasMaxLength(100)
+                    .HasDefaultValue("");
+
+                // Índices para ConfiguracionComisiones
+                entity.HasIndex(e => e.Activa);
+                entity.HasIndex(e => e.FechaCreacion);
+            });
             // ========== ✅ CONFIGURACIÓN PARA User ==========
             modelBuilder.Entity<User>(entity =>
             {
@@ -1842,7 +1880,133 @@ namespace costbenefi.Data
             return await CortesCaja
                 .AnyAsync(c => c.FechaCorte == fechaSolo);
         }
+        // ========== ✅ MÉTODOS PARA GESTIÓN DE CONFIGURACIÓN DE COMISIONES ==========
 
+        /// <summary>
+        /// Obtiene la configuración de comisiones activa
+        /// </summary>
+        public async Task<ConfiguracionComisiones?> GetConfiguracionComisionesActivaAsync()
+        {
+            return await ConfiguracionesComisiones
+                .FirstOrDefaultAsync(c => c.Activa);
+        }
+
+        /// <summary>
+        /// Obtiene o crea la configuración de comisiones por defecto
+        /// </summary>
+        public async Task<ConfiguracionComisiones> GetOrCreateConfiguracionComisionesAsync()
+        {
+            var configuracion = await GetConfiguracionComisionesActivaAsync();
+
+            if (configuracion == null)
+            {
+                configuracion = new ConfiguracionComisiones
+                {
+                    PorcentajeComisionTarjeta = 3.5m,
+                    TerminalCobraIVA = true,
+                    PorcentajeIVA = 16.0m,
+                    Descripcion = "Configuración inicial del sistema",
+                    Activa = true,
+                    UsuarioModificacion = "Sistema"
+                };
+
+                ConfiguracionesComisiones.Add(configuracion);
+                await SaveChangesAsync();
+            }
+
+            return configuracion;
+        }
+
+        /// <summary>
+        /// Establece una configuración como activa (desactiva las demás)
+        /// </summary>
+        public async Task<bool> EstablecerConfiguracionComisionesActivaAsync(int configuracionId)
+        {
+            try
+            {
+                // Desactivar todas las configuraciones
+                var configuraciones = await ConfiguracionesComisiones.ToListAsync();
+                foreach (var config in configuraciones)
+                {
+                    config.Activa = false;
+                }
+
+                // Activar la configuración seleccionada
+                var nuevaActiva = configuraciones.FirstOrDefault(c => c.Id == configuracionId);
+                if (nuevaActiva != null)
+                {
+                    nuevaActiva.Activa = true;
+                    nuevaActiva.FechaActualizacion = DateTime.Now;
+                    await SaveChangesAsync();
+                    return true;
+                }
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Calcula la comisión para una venta con tarjeta usando la configuración activa
+        /// </summary>
+        public async Task<(decimal comisionBase, decimal iva, decimal total)> CalcularComisionTarjetaAsync(decimal montoTarjeta)
+        {
+            if (montoTarjeta <= 0)
+                return (0, 0, 0);
+
+            var config = await GetOrCreateConfiguracionComisionesAsync();
+            return config.CalcularComisionDesglosada(montoTarjeta);
+        }
+
+        /// <summary>
+        /// Obtiene todas las configuraciones de comisiones
+        /// </summary>
+        public async Task<List<ConfiguracionComisiones>> GetHistorialConfiguracionesComisionesAsync()
+        {
+            return await ConfiguracionesComisiones
+                .OrderByDescending(c => c.Activa)
+                .ThenByDescending(c => c.FechaActualizacion)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Obtiene estadísticas de uso de comisiones
+        /// </summary>
+        public async Task<dynamic> GetEstadisticasComisionesAsync(DateTime desde, DateTime hasta)
+        {
+            var ventasConTarjeta = await Ventas
+                .Where(v => v.FechaVenta >= desde &&
+                            v.FechaVenta <= hasta &&
+                            v.Estado == "Completada" &&
+                            v.MontoTarjeta > 0)
+                .ToListAsync();
+
+            if (!ventasConTarjeta.Any())
+            {
+                return new
+                {
+                    TotalVentasConTarjeta = 0,
+                    MontoTotalTarjeta = 0m,
+                    ComisionesGeneradas = 0m,
+                    IVAComisiones = 0m,
+                    ComisionesTotales = 0m,
+                    PromedioComision = 0m
+                };
+            }
+
+            return new
+            {
+                TotalVentasConTarjeta = ventasConTarjeta.Count,
+                MontoTotalTarjeta = ventasConTarjeta.Sum(v => v.MontoTarjeta),
+                ComisionesGeneradas = ventasConTarjeta.Sum(v => v.ComisionTarjeta),
+                IVAComisiones = ventasConTarjeta.Sum(v => v.IVAComision),
+                ComisionesTotales = ventasConTarjeta.Sum(v => v.ComisionTotal),
+                PromedioComision = ventasConTarjeta.Average(v => v.ComisionTotal)
+            };
+        }
         /// <summary>
         /// Obtiene cortes de caja en un rango de fechas
         /// </summary>

@@ -47,7 +47,10 @@ namespace costbenefi.Services
         /// <summary>
         /// Inicia un nuevo corte de caja calculando automáticamente los totales
         /// </summary>
-        public async Task<CorteCaja> IniciarCorteDelDiaAsync(DateTime fecha, string usuario)
+        /// <summary>
+        /// Inicia un nuevo corte de caja calculando automáticamente los totales
+        /// </summary>
+        public async Task<CorteCaja> IniciarCorteDelDiaAsync(DateTime fecha, string usuario = null)
         {
             var fechaSolo = fecha.Date;
 
@@ -62,12 +65,18 @@ namespace costbenefi.Services
                 .Include(v => v.DetallesVenta)
                 .ToListAsync();
 
+            // ✅ OBTENER USUARIO AUTENTICADO CON ROL Y NOMBRE
+            var usuarioActual = UserService.UsuarioActual;
+            var usuarioCorte = usuarioActual != null
+                ? $"{usuarioActual.Rol} - {usuarioActual.NombreCompleto}"
+                : usuario ?? Environment.UserName;
+
             // Crear nuevo corte
             var nuevoCorte = new CorteCaja
             {
                 FechaCorte = fechaSolo,
                 FechaHoraCorte = DateTime.Now,
-                UsuarioCorte = usuario,
+                UsuarioCorte = usuarioCorte, // ✅ Ejemplo: "Cajero - Juan Pérez"
                 Estado = "Pendiente"
             };
 
@@ -80,7 +89,6 @@ namespace costbenefi.Services
 
             return nuevoCorte;
         }
-
         /// <summary>
         /// Procesa y completa un corte de caja
         /// </summary>

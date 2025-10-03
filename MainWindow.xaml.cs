@@ -2565,7 +2565,7 @@ namespace costbenefi
         // ========== AGREGAR ESTE MÉTODO PARA TESTING ==========
 
 
-        private void BtnConfigComisiones_Click(object sender, RoutedEventArgs e)
+        private async void BtnConfigComisiones_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -2574,13 +2574,18 @@ namespace costbenefi
                 {
                     TxtStatusPOS.Text = "✅ Configuración de comisiones actualizada";
 
+                    // Leer la configuración guardada desde la base de datos
+                    using var context = new Data.AppDbContext();
+                    var config = await context.GetOrCreateConfiguracionComisionesAsync();
+
                     string mensaje = "✅ Configuración de comisiones guardada!\n\n" +
+                                   $"📊 {config.ResumenConfiguracion}\n\n" +
                                    "Los nuevos valores se aplicarán en las próximas ventas.";
 
                     // Agregar información sobre IVA si está configurado
-                    if (configWindow.TerminalCobraIVA)
+                    if (config.TerminalCobraIVA)
                     {
-                        mensaje += "\n\n🧮 Nota: El terminal cobrará IVA adicional del 16% sobre las comisiones.";
+                        mensaje += $"\n\n🧮 Nota: El terminal cobrará IVA adicional del {config.PorcentajeIVA:F2}% sobre las comisiones.";
                     }
 
                     MessageBox.Show(mensaje, "Configuración Actualizada",
@@ -2591,7 +2596,6 @@ namespace costbenefi
             {
                 MessageBox.Show($"Error al configurar comisiones: {ex.Message}",
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                TxtStatusPOS.Text = "❌ Error al configurar comisiones";
             }
         }
         public async Task RefrescarProductosAutomatico(string motivo = "")

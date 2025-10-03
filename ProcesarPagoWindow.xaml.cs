@@ -6,7 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using costbenefi.Models;
 using System.Text.RegularExpressions;
-
+using costbenefi.Data;
 namespace costbenefi.Views
 {
     public partial class ProcesarPagoWindow : Window
@@ -59,6 +59,10 @@ namespace costbenefi.Views
         {
             InitializeComponent();
 
+            _totalVenta = Math.Round(totalVenta, 2);
+            NombreCliente = cliente?.Trim() ?? "";
+
+            // Validar controles después de InitializeComponent
             if (TxtCliente == null || TxtTotalVenta == null || TxtEfectivoRecibido == null ||
                 BtnPagoCompleto == null || TxtPagoEfectivo == null || TxtPagoTarjeta == null ||
                 TxtPagoTransferencia == null || TxtTotalPagado == null || TxtTotalPendiente == null ||
@@ -68,16 +72,20 @@ namespace costbenefi.Views
                 throw new InvalidOperationException("No se inicializaron correctamente todos los controles de la interfaz.");
             }
 
-            _totalVenta = Math.Round(totalVenta, 2);
-            NombreCliente = cliente?.Trim() ?? "";
-
             TxtCliente.Text = NombreCliente;
             TxtTotalVenta.Text = _totalVenta.ToString("C2");
             TxtTotalPendiente.Text = _totalVenta.ToString("C2");
 
-            CargarConfiguracionComisiones();
+            // ✅ CARGAR CONFIGURACIÓN DE FORMA ASYNC CUANDO LA VENTANA ESTÉ LISTA
+            Loaded += async (s, e) =>
+            {
+                await CargarConfiguracionComisionesAsync();
+                UpdateCalculos(); // Actualizar cálculos después de cargar config
+            };
+
             TxtEfectivoRecibido.Focus();
 
+            // Suscribir eventos
             TxtEfectivoRecibido.TextChanged += OnPagoChanged;
             TxtEfectivoRecibido.PreviewTextInput += NumericTextBox_PreviewTextInput;
             TxtEfectivoRecibido.LostFocus += FormatMontoTextBox;
@@ -86,29 +94,33 @@ namespace costbenefi.Views
             TxtPagoTransferencia.TextChanged += OnPagoChanged;
             ChkComisionTarjeta.Checked += OnComisionChanged;
             ChkComisionTarjeta.Unchecked += OnComisionChanged;
-
-            UpdateCalculos();
         }
 
-        private void CargarConfiguracionComisiones()
+        private async System.Threading.Tasks.Task CargarConfiguracionComisionesAsync()
         {
             try
             {
-                var config = ComisionConfig.Cargar();
-                ChkComisionTarjeta.IsChecked = config.ComisionActivaPorDefecto;
-                _porcentajeComisionTarjeta = config.PorcentajeComisionPredeterminado;
+                using var context = new AppDbContext();
+                var config = await context.GetOrCreateConfiguracionComisionesAsync();
+
+                ChkComisionTarjeta.IsChecked = true; // Activada por defecto
+                _porcentajeComisionTarjeta = config.PorcentajeComisionTarjeta;
                 _terminalCobraIVA = config.TerminalCobraIVA;
                 _porcentajeIVA = config.PorcentajeIVA;
+
+                System.Diagnostics.Debug.WriteLine($"✅ Comisiones cargadas: {config.ResumenConfiguracion}");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Error cargando comisiones: {ex.Message}");
+
+                // Valores por defecto si falla
                 ChkComisionTarjeta.IsChecked = false;
                 _porcentajeComisionTarjeta = 3.50m;
-                _terminalCobraIVA = false;
+                _terminalCobraIVA = true;
                 _porcentajeIVA = 16m;
             }
         }
-
         private void InitializeComponent()
         {
             Title = "💰 Procesar Pago";

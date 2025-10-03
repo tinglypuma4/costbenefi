@@ -143,7 +143,13 @@ namespace costbenefi.Views
         {
             // Información del header
             TxtFechaCorte.Text = $"📅 Fecha: {_fechaCorte:dddd, dd/MM/yyyy}";
-            TxtUsuarioCorte.Text = $"👤 Usuario: {_corteActual.UsuarioCorte}";
+
+            // Usuario de la app y usuario de Windows (solo nombre, sin máquina)
+            var usuarioApp = _corteActual.UsuarioCorte;
+            var usuarioPC = Environment.UserName;
+
+            TxtUsuarioCorte.Text = $"👤 Usuario: {usuarioApp} (PC: {usuarioPC})";
+
             TxtHoraCorte.Text = $"🕐 Hora: {_corteActual.FechaHoraCorte:HH:mm:ss}";
 
             // Estado del corte
@@ -162,7 +168,6 @@ namespace costbenefi.Views
                 BtnCompletarCorte.Content = _corteActual.Estado == "Completado" ? "💾 Actualizar" : "✅ Completar Corte";
             }
         }
-
         private void MostrarTotalesCalculados()
         {
             // Totales generales
