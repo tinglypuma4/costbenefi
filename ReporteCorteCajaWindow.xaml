@@ -1,0 +1,649 @@
+﻿<Window x:Class="costbenefi.Views.ReporteCorteCajaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        xmlns:local="clr-namespace:costbenefi.Views"
+        xmlns:converters="clr-namespace:costbenefi.Converters"
+        Title="📊 Reporte de Cortes de Caja" Height="800" Width="1400"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        MinHeight="700" MinWidth="1200"
+        Background="#F8FAFC">
+
+    <Window.Resources>
+        <!-- Estilos modernos para cortes -->
+        <Style x:Key="ModernCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#000000" Opacity="0.06" ShadowDepth="1" BlurRadius="6"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CompactButton" TargetType="Button">
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="4,2"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#E2E8F0"/>
+                                <Setter Property="BorderBrush" Value="#94A3B8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#CBD5E1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#059669"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#047857"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#065F46"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#64748B"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#475569"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#334155"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CompactTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ScrollViewer Name="PART_ContentHost" 
+                                          Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="#059669"/>
+                                <Setter Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header Principal -->
+        <Border Grid.Row="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid Margin="20,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Orientation="Horizontal">
+                    <TextBlock Text="💰" FontSize="24" Margin="0,0,8,0"/>
+                    <StackPanel>
+                        <TextBlock Text="Reporte de Cortes de Caja" 
+                                   FontSize="20" FontWeight="Bold" 
+                                   Foreground="#1E293B"/>
+                        <TextBlock x:Name="TxtSubtitulo" Text="Análisis de cortes, conciliación y diferencias" 
+                                   FontSize="12" Foreground="#64748B"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Estadísticas en Header -->
+                <Border Grid.Column="1" Background="#F0FDF4" Padding="12,6" CornerRadius="6" Margin="0,0,12,0">
+                    <TextBlock x:Name="TxtEstadisticas" Text="💰 Cortes: 0 | Total: $0.00" 
+                              FontSize="12" FontWeight="Medium" Foreground="#059669"/>
+                </Border>
+
+                <Border Grid.Column="2" Background="#F1F5F9" Padding="8,6" CornerRadius="6">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📅" FontSize="12" Margin="0,0,6,0"/>
+                        <TextBlock x:Name="TxtFechaReporte" 
+                                  Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='dd/MM/yyyy HH:mm'}" 
+                                  FontSize="11" Foreground="#64748B"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Panel de Filtros -->
+        <Border Grid.Row="1" Background="#FAFBFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <StackPanel Margin="20,8">
+                <!-- Cabecera de Filtros -->
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0" x:Name="BtnToggleFiltros" Content="🔍 Filtros" 
+                           Style="{StaticResource CompactButton}" Click="BtnToggleFiltros_Click"
+                           FontWeight="SemiBold"/>
+
+                    <!-- Filtros Rápidos -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="12,0">
+                        <TextBlock Text="Filtros rápidos:" FontSize="11" Foreground="#64748B" 
+                                  VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                        <Button x:Name="BtnFiltroTodos" Content="📊 Todos" Style="{StaticResource CompactButton}"
+                               Click="BtnFiltroTodos_Click"/>
+
+                        <Button x:Name="BtnFiltroHoy" Content="📅 Hoy" Style="{StaticResource CompactButton}"
+                               Click="BtnFiltroHoy_Click"/>
+
+                        <Button x:Name="BtnFiltroSemana" Content="📆 Semana" Style="{StaticResource CompactButton}"
+                               Click="BtnFiltroSemana_Click"/>
+
+                        <Button x:Name="BtnFiltroMes" Content="🗓️ Mes" Style="{StaticResource CompactButton}"
+                               Click="BtnFiltroMes_Click"/>
+
+                        <Button x:Name="BtnFiltroConDiferencias" Content="⚠️ Con Diferencias" Style="{StaticResource CompactButton}"
+                               Click="BtnFiltroConDiferencias_Click"/>
+
+                        <Border x:Name="BorderAlertaDiferencias" Background="#FEF3C7" Padding="8,4" CornerRadius="4" 
+                               Visibility="Collapsed" Margin="12,0,0,0">
+                            <TextBlock x:Name="TxtAlertaDiferencias" Text="⚠️ Diferencias: $0.00" 
+                                      FontSize="11" FontWeight="Medium" Foreground="#D97706"/>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button x:Name="BtnLimpiarFiltros" Content="🗑️ Limpiar" 
+                               Style="{StaticResource CompactButton}" Click="BtnLimpiarFiltros_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Panel de Filtros Detallados (Colapsable) -->
+                <Border x:Name="PanelFiltrosDetallados" Style="{StaticResource ModernCard}" 
+                       Visibility="Collapsed" Margin="0,4">
+                    <Grid Margin="16,12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Primera fila - Fechas y filtros principales -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Rango de Fechas -->
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <CheckBox x:Name="ChkFiltrarPorFecha" Content="📅 Filtrar por Fecha" 
+                                         FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"
+                                         Checked="FiltroCheckbox_Changed" Unchecked="FiltroCheckbox_Changed"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Desde:" FontSize="10" 
+                                              Foreground="#64748B" Margin="0,0,0,2"/>
+                                    <DatePicker Grid.Row="1" Grid.Column="0" x:Name="DpFechaInicio" FontSize="10"
+                                               IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorFecha}"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="—" Margin="4,0" VerticalAlignment="Center" Foreground="#9CA3AF"/>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Hasta:" FontSize="10" 
+                                              Foreground="#64748B" Margin="0,0,0,2"/>
+                                    <DatePicker Grid.Row="1" Grid.Column="2" x:Name="DpFechaFin" FontSize="10"
+                                               IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorFecha}"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Usuarios -->
+                            <StackPanel Grid.Column="1" Margin="8,0">
+                                <TextBlock Text="👤 Usuarios" FontSize="12" FontWeight="SemiBold" 
+                                          Foreground="#374151" Margin="0,0,0,6"/>
+                                <Button x:Name="BtnUsuarios" Content="Seleccionar..." 
+                                       Style="{StaticResource CompactButton}" Click="BtnUsuarios_Click"/>
+
+                                <Popup x:Name="PopupUsuarios" Placement="Bottom" 
+                                      PlacementTarget="{Binding ElementName=BtnUsuarios}">
+                                    <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1" 
+                                           CornerRadius="6" Padding="12" MaxHeight="150" MinWidth="200">
+                                        <StackPanel>
+                                            <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto">
+                                                <StackPanel x:Name="PanelUsuarios"/>
+                                            </ScrollViewer>
+                                            <Button Content="Aplicar" Style="{StaticResource PrimaryButton}" 
+                                                   Margin="0,8,0,0" Click="BtnAplicarUsuarios_Click"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
+                            </StackPanel>
+
+                            <!-- Estados -->
+                            <StackPanel Grid.Column="2" Margin="8,0">
+                                <TextBlock Text="📊 Estados" FontSize="12" FontWeight="SemiBold" 
+                                          Foreground="#374151" Margin="0,0,0,6"/>
+                                <Button x:Name="BtnEstados" Content="Seleccionar..." 
+                                       Style="{StaticResource CompactButton}" Click="BtnEstados_Click"/>
+
+                                <Popup x:Name="PopupEstados" Placement="Bottom" 
+                                      PlacementTarget="{Binding ElementName=BtnEstados}">
+                                    <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1" 
+                                           CornerRadius="6" Padding="12" MaxHeight="150" MinWidth="180">
+                                        <StackPanel>
+                                            <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto">
+                                                <StackPanel x:Name="PanelEstados"/>
+                                            </ScrollViewer>
+                                            <Button Content="Aplicar" Style="{StaticResource PrimaryButton}" 
+                                                   Margin="0,8,0,0" Click="BtnAplicarEstados_Click"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
+                            </StackPanel>
+
+                            <!-- Rango de Monto -->
+                            <StackPanel Grid.Column="3" Margin="8,0,0,0">
+                                <CheckBox x:Name="ChkFiltrarPorMonto" Content="💰 Filtrar por Monto" 
+                                         FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"
+                                         Checked="FiltroCheckbox_Changed" Unchecked="FiltroCheckbox_Changed"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Mínimo:" FontSize="10" 
+                                              Foreground="#64748B" Margin="0,0,0,2"/>
+                                    <TextBox Grid.Row="1" Grid.Column="0" x:Name="TxtMontoMin" Style="{StaticResource CompactTextBox}"
+                                            IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorMonto}"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="—" Margin="4,0" VerticalAlignment="Center" Foreground="#9CA3AF"/>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Máximo:" FontSize="10" 
+                                              Foreground="#64748B" Margin="0,0,0,2"/>
+                                    <TextBox Grid.Row="1" Grid.Column="2" x:Name="TxtMontoMax" Style="{StaticResource CompactTextBox}"
+                                            IsEnabled="{Binding IsChecked, ElementName=ChkFiltrarPorMonto}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Segunda fila - Opciones especiales -->
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <CheckBox Grid.Column="0" x:Name="ChkSoloConDiferencias" Content="⚠️ Solo con diferencias" 
+                                     FontSize="11" Foreground="#F59E0B" FontWeight="Medium"
+                                     Checked="FiltroCheckbox_Changed" Unchecked="FiltroCheckbox_Changed"/>
+
+                            <CheckBox Grid.Column="1" x:Name="ChkSoloConComisiones" Content="🏦 Solo con comisiones" 
+                                     FontSize="11" Foreground="#EF4444" FontWeight="Medium"
+                                     Checked="FiltroCheckbox_Changed" Unchecked="FiltroCheckbox_Changed"/>
+
+                            <CheckBox Grid.Column="2" x:Name="ChkSoloCompletados" Content="✅ Solo completados" 
+                                     FontSize="11" Foreground="#10B981" FontWeight="Medium"
+                                     Checked="FiltroCheckbox_Changed" Unchecked="FiltroCheckbox_Changed"/>
+
+                            <Button Grid.Column="3" x:Name="BtnAplicarFiltros" Content="🔍 Aplicar Filtros" 
+                                   Style="{StaticResource PrimaryButton}"
+                                   Click="BtnAplicarFiltros_Click" Margin="16,0,0,0"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- DataGrid de Cortes -->
+        <Border Grid.Row="2" Style="{StaticResource ModernCard}" Margin="20,8,20,8">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                  VerticalScrollBarVisibility="Disabled"
+                  CanContentScroll="True">
+                <DataGrid x:Name="DgCortes" AutoGenerateColumns="False" 
+                 GridLinesVisibility="Horizontal" HeadersVisibility="Column"
+                 RowBackground="White" AlternatingRowBackground="#FAFBFC"
+                 BorderThickness="0" FontSize="13" RowHeight="32"
+                 HorizontalScrollBarVisibility="Visible"
+                 VerticalScrollBarVisibility="Auto"
+                 CanUserSortColumns="True"
+                 CanUserReorderColumns="True"
+                 CanUserResizeColumns="True">
+
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#F0FDF4"/>
+                            <Setter Property="Foreground" Value="#1E293B"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="FontSize" Value="12"/>
+                            <Setter Property="Padding" Value="12,8"/>
+                            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#F0FDF4"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+
+                    <DataGrid.Columns>
+                        <!-- Columnas Básicas -->
+                        <DataGridTextColumn Header="📅 Fecha" Binding="{Binding Fecha}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#1E293B"/>
+                                    <Setter Property="FontWeight" Value="Medium"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="🕐 Hora" Binding="{Binding Hora}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#64748B"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="👤 Usuario" Binding="{Binding Usuario}" Width="*" MinWidth="200">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#1E293B"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="📊 Estado" Binding="{Binding Estado}" Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="🎫 Tickets" Binding="{Binding Tickets}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#64748B"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- Columnas de Montos -->
+                        <DataGridTextColumn Header="💰 Ventas" Binding="{Binding TotalVentas, StringFormat=C2}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="Foreground" Value="#059669"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="💵 Efectivo Esp." Binding="{Binding EfectivoEsperado, StringFormat=C2}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#3B82F6"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="💰 Efectivo Cont." Binding="{Binding EfectivoContado, StringFormat=C2}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#3B82F6"/>
+                                    <Setter Property="FontWeight" Value="Medium"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="📊 Diferencia" Binding="{Binding Diferencia, StringFormat=C2}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="FontSize" Value="12"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="💳 Tarjeta" Binding="{Binding Tarjeta, StringFormat=C2}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#8B5CF6"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="📱 Transfer." Binding="{Binding Transferencia, StringFormat=C2}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#F59E0B"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="🏦 Comisiones" Binding="{Binding Comisiones, StringFormat=C2}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#EF4444"/>
+                                    <Setter Property="FontWeight" Value="Medium"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="📈 Ganancia" Binding="{Binding Ganancia, StringFormat=C2}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#10B981"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="📊 Margen %" Binding="{Binding Margen, StringFormat=F1}" Width="90">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="12,6"/>
+                                    <Setter Property="Foreground" Value="#F59E0B"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                    </DataGrid.Columns>
+                </DataGrid>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Panel de Acciones Inferior -->
+        <Border Grid.Row="3" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <Grid Margin="20,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Info adicional -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="📊 Resumen:" FontSize="12" FontWeight="Medium" 
+                              Foreground="#475569" Margin="0,0,8,0"/>
+
+                    <TextBlock x:Name="TxtResumenDetalle" 
+                              Text="Cortes mostrados vs total filtrado" 
+                              FontSize="11" Foreground="#64748B"/>
+                </StackPanel>
+
+                <!-- Acciones -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+
+                    <!-- Selector de Período -->
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="📅 Período:" FontSize="11" FontWeight="Medium" 
+                                  Foreground="#475569" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="CmbPeriodo" Width="120" Height="32" FontSize="12" 
+                                 VerticalContentAlignment="Center" SelectedIndex="2">
+                            <ComboBoxItem Content="📆 Día"/>
+                            <ComboBoxItem Content="📅 Semana"/>
+                            <ComboBoxItem Content="🗓️ Mes"/>
+                            <ComboBoxItem Content="📋 Año"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Selector de Formato -->
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="📊 Formato:" FontSize="11" FontWeight="Medium" 
+                                  Foreground="#475569" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="CmbTipoReporte" Width="160" Height="32" FontSize="12" 
+                                 VerticalContentAlignment="Center" SelectedIndex="0">
+                            <ComboBoxItem Content="📋 Estándar"/>
+                            <ComboBoxItem Content="📊 Ejecutivo"/>
+                            <ComboBoxItem Content="📈 Detallado"/>
+                            <ComboBoxItem Content="👤 Por Usuarios"/>
+                            <ComboBoxItem Content="💰 Financiero"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Botones de exportación -->
+                    <Button x:Name="BtnExportarPDF" Content="📄 Exportar PDF" 
+                           Style="{StaticResource PrimaryButton}" Click="BtnExportarPDF_Click"/>
+
+                    <Button x:Name="BtnExportarExcel" Content="📊 Exportar Excel" 
+                           Style="{StaticResource PrimaryButton}" Click="BtnExportarExcel_Click"
+                           Background="#10B981" Margin="4"/>
+
+                    <Button x:Name="BtnRegresar" Content="← Regresar" 
+                           Style="{StaticResource SecondaryButton}" Click="BtnRegresar_Click" Cursor="Hand"/>
+
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

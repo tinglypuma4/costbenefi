@@ -1156,6 +1156,9 @@ namespace costbenefi
         /// <summary>
         /// Abre la ventana de reportes de cortes históricos
         /// </summary>
+        /// <summary>
+        /// Abre la ventana de reportes de cortes de caja
+        /// </summary>
         private async void BtnReporteCortes_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1165,7 +1168,6 @@ namespace costbenefi
                     Owner = this,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner
                 };
-
                 reporteWindow.Show();
                 TxtStatusPOS.Text = "📊 Reporte de cortes de caja abierto";
             }
@@ -3069,39 +3071,27 @@ namespace costbenefi
                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        private async void BtnVerVentas_Click(object sender, RoutedEventArgs e)
+        private void BtnVerVentas_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                var ventasHoy = await _context.GetVentasDelDia(DateTime.Today).ToListAsync();
-
-                if (!ventasHoy.Any())
+                var ventasWindow = new VentasDelDiaWindow(_context)
                 {
-                    MessageBox.Show("No hay ventas registradas hoy.", "Sin Ventas",
-                                  MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
 
-                string reporte = $"📊 VENTAS DEL DÍA - {DateTime.Today:dd/MM/yyyy}\n\n";
-                reporte += $"Total de ventas: {ventasHoy.Count}\n";
-                reporte += $"Monto total: {ventasHoy.Sum(v => v.Total):C2}\n";
-                reporte += $"Ganancia total: {ventasHoy.Sum(v => v.GananciaBruta):C2}\n\n";
-                reporte += "ÚLTIMAS VENTAS:\n";
+                ventasWindow.Show();
 
-                foreach (var venta in ventasHoy.OrderByDescending(v => v.FechaVenta).Take(10))
-                {
-                    reporte += $"#{venta.NumeroTicket} - {venta.FechaVenta:HH:mm} - {venta.Total:C2} - {venta.Cliente}\n";
-                }
-
-                MessageBox.Show(reporte, "Ventas del Día", MessageBoxButton.OK, MessageBoxImage.Information);
+                TxtStatusPOS.Text = "📊 Ventana de ventas del día abierta";
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al consultar ventas: {ex.Message}",
+                MessageBox.Show($"Error al abrir ventas del día: {ex.Message}",
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatusPOS.Text = "❌ Error al abrir ventas del día";
             }
         }
-    
         protected override async void OnClosing(CancelEventArgs e)
 {
     try
@@ -4398,6 +4388,7 @@ namespace costbenefi
                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
 
         private async Task AplicarDescuentoAlCarrito(AplicarDescuentoWindow descuentoInfo)
         {

@@ -98,28 +98,96 @@ namespace costbenefi.Views
 
         private async System.Threading.Tasks.Task CargarConfiguracionComisionesAsync()
         {
-            try
+            const int MAX_REINTENTOS = 3;
+            const int DELAY_MS = 200;
+
+            for (int intento = 1; intento <= MAX_REINTENTOS; intento++)
             {
-                using var context = new AppDbContext();
-                var config = await context.GetOrCreateConfiguracionComisionesAsync();
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"🔄 Intento {intento}/{MAX_REINTENTOS} de cargar comisiones...");
 
-                ChkComisionTarjeta.IsChecked = true; // Activada por defecto
-                _porcentajeComisionTarjeta = config.PorcentajeComisionTarjeta;
-                _terminalCobraIVA = config.TerminalCobraIVA;
-                _porcentajeIVA = config.PorcentajeIVA;
+                    ConfiguracionComisiones config = null;
 
-                System.Diagnostics.Debug.WriteLine($"✅ Comisiones cargadas: {config.ResumenConfiguracion}");
+                    // Ejecutar en tarea separada con timeout
+                    var taskCargar = System.Threading.Tasks.Task.Run(async () =>
+                    {
+                        using var context = new AppDbContext();
+                        return await context.GetOrCreateConfiguracionComisionesAsync();
+                    });
+
+                    // Esperar máximo 2 segundos
+                    if (await System.Threading.Tasks.Task.WhenAny(taskCargar,
+                        System.Threading.Tasks.Task.Delay(2000)) == taskCargar)
+                    {
+                        config = await taskCargar;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("⏱️ Timeout al cargar comisiones");
+                        throw new TimeoutException("Timeout cargando configuración");
+                    }
+
+                    // ✅ Configuración cargada exitosamente
+                    if (config != null)
+                    {
+                        ChkComisionTarjeta.IsChecked = true;
+                        _porcentajeComisionTarjeta = config.PorcentajeComisionTarjeta;
+                        _terminalCobraIVA = config.TerminalCobraIVA;
+                        _porcentajeIVA = config.PorcentajeIVA;
+
+                        System.Diagnostics.Debug.WriteLine($"✅ Comisiones cargadas: {config.ResumenConfiguracion}");
+                        return; // Salir exitosamente
+                    }
+                }
+                catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.SqliteErrorCode == 6) // Database locked
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ BD bloqueada en intento {intento}, esperando {DELAY_MS}ms...");
+
+                    if (intento < MAX_REINTENTOS)
+                    {
+                        await System.Threading.Tasks.Task.Delay(DELAY_MS * intento); // Backoff exponencial
+                        continue;
+                    }
+                }
+                catch (TimeoutException)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⏱️ Timeout en intento {intento}");
+
+                    if (intento < MAX_REINTENTOS)
+                    {
+                        await System.Threading.Tasks.Task.Delay(DELAY_MS);
+                        continue;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Error en intento {intento}: {ex.Message}");
+
+                    if (intento < MAX_REINTENTOS)
+                    {
+                        await System.Threading.Tasks.Task.Delay(DELAY_MS);
+                        continue;
+                    }
+                }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"⚠️ Error cargando comisiones: {ex.Message}");
 
-                // Valores por defecto si falla
-                ChkComisionTarjeta.IsChecked = false;
-                _porcentajeComisionTarjeta = 3.50m;
-                _terminalCobraIVA = true;
-                _porcentajeIVA = 16m;
-            }
+            // ⚠️ Todos los intentos fallaron - usar valores por defecto
+            System.Diagnostics.Debug.WriteLine("⚠️ Todos los intentos fallaron, usando valores por defecto");
+            AplicarValoresPorDefecto();
+        }
+
+        /// <summary>
+        /// Aplica valores por defecto cuando falla la carga
+        /// </summary>
+        private void AplicarValoresPorDefecto()
+        {
+            ChkComisionTarjeta.IsChecked = false;
+            _porcentajeComisionTarjeta = 3.50m;
+            _terminalCobraIVA = true;
+            _porcentajeIVA = 16m;
+
+            System.Diagnostics.Debug.WriteLine("📋 Valores por defecto aplicados: 3.50% comisión, IVA 16%");
         }
         private void InitializeComponent()
         {

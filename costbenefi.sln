@@ -8,12 +8,14 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Data", "Data", "{B10AEDB1-219F-4B3E-88E6-2D9FB5C4BD33}"
 	ProjectSection(SolutionItems) = preProject
 		AppDbContext.cs = AppDbContext.cs
+		AppDbContextExtensions.cs = AppDbContextExtensions.cs
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{4669A151-9FDC-4236-88BB-FBBFCCDB57D7}"
 	ProjectSection(SolutionItems) = preProject
 		BasculaService.cs = BasculaService.cs
 		ConfiguracionSistema.cs = ConfiguracionSistema.cs
+		CorteCajaExcelService.cs = CorteCajaExcelService.cs
 		CorteCajaPDFService.cs = CorteCajaPDFService.cs
 		CorteCajaService.cs = CorteCajaService.cs
 		CorteRobustoService.cs = CorteRobustoService.cs
@@ -43,6 +45,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9
 		ConfigurarBasculaWindow.xaml.cs = ConfigurarBasculaWindow.xaml.cs
 		PuntoEquilibrioModuloControl.xaml = PuntoEquilibrioModuloControl.xaml
 		PuntoEquilibrioModuloControl.xaml.cs = PuntoEquilibrioModuloControl.xaml.cs
+		ReporteCorteCajaWindow.xaml = ReporteCorteCajaWindow.xaml
+		ReporteCorteCajaWindow.xaml.cs = ReporteCorteCajaWindow.xaml.cs
 		VentanaConfiguracionABC.xaml = VentanaConfiguracionABC.xaml
 		VentanaConfiguracionABC.xaml.cs = VentanaConfiguracionABC.xaml.cs
 		VentanaConfiguracionRentabilidad.xaml = VentanaConfiguracionRentabilidad.xaml
@@ -55,6 +59,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9
 		VentanaGraficoAmpliadoPuntoEquilibrio.xaml.cs = VentanaGraficoAmpliadoPuntoEquilibrio.xaml.cs
 		VentanaGraficoAmpliadoRentabilidad.xaml = VentanaGraficoAmpliadoRentabilidad.xaml
 		VentanaGraficoAmpliadoRentabilidad.xaml.cs = VentanaGraficoAmpliadoRentabilidad.xaml.cs
+		VentasDelDiaWindow.xaml = VentasDelDiaWindow.xaml
+		VentasDelDiaWindow.xaml.cs = VentasDelDiaWindow.xaml.cs
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{CB0EA23B-7609-429B-AE5F-878D7E0ED6A5}"
@@ -86,6 +92,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{CB0EA2
 		User.cs = User.cs
 		UserSession.cs = UserSession.cs
 		Venta.cs = Venta.cs
+		VentaDelDiaDTO.cs = VentaDelDiaDTO.cs
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Converters", "Converters", "{FB82A8DF-6051-40BC-9502-FB455A94671E}"
@@ -130,7 +137,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "informacion", "informacion"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reporte_auditoria", "Reporte_auditoria", "{75990FAE-022C-4114-9B92-508FAA8A3989}"
 	ProjectSection(SolutionItems) = preProject
-		ReporteCorteCajaWindow.cs = ReporteCorteCajaWindow.cs
 		ReporteMovimientosWindow.xaml = ReporteMovimientosWindow.xaml
 		ReporteMovimientosWindow.xaml.cs = ReporteMovimientosWindow.xaml.cs
 		ReporteSelectorWindow.xaml = ReporteSelectorWindow.xaml

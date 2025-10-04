@@ -1,0 +1,277 @@
+﻿<Window x:Class="costbenefi.Views.VentasDelDiaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Title="📊 Ventas" 
+        Height="700" Width="900"
+        WindowStartupLocation="CenterScreen"
+        Background="#F8FAFC">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header con filtros -->
+        <Border Grid.Row="0" Background="#059669" Padding="16">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Título -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="📊 VENTAS" 
+                                  FontSize="20" FontWeight="Bold" 
+                                  Foreground="White"/>
+                        <TextBlock x:Name="TxtFechaVentas" 
+                                  FontSize="13" Foreground="White" Opacity="0.9"/>
+                    </StackPanel>
+
+                    <Button Grid.Column="1" Content="🔄 Actualizar"
+                           x:Name="BtnActualizarVentas"
+                           Background="White" Foreground="#059669"
+                           Padding="12,6" FontSize="12" FontWeight="Bold"
+                           BorderThickness="0" Cursor="Hand"
+                           Click="BtnActualizarVentas_Click"/>
+                </Grid>
+
+                <!-- Filtros de período -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,12,0,0">
+                    <TextBlock Text="Período:" Foreground="White" 
+                              VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                    <Button x:Name="BtnFiltroHoy" Content="📅 Hoy" 
+                           Background="#047857" Foreground="White"
+                           Padding="10,5" Margin="0,0,4,0" FontSize="11"
+                           BorderThickness="0" Cursor="Hand"
+                           Click="BtnFiltroHoy_Click"/>
+
+                    <Button x:Name="BtnFiltroSemana" Content="📆 Semana" 
+                           Background="Transparent" Foreground="White"
+                           BorderBrush="White" BorderThickness="1"
+                           Padding="10,5" Margin="0,0,4,0" FontSize="11"
+                           Cursor="Hand" Click="BtnFiltroSemana_Click"/>
+
+                    <Button x:Name="BtnFiltroMes" Content="🗓️ Mes" 
+                           Background="Transparent" Foreground="White"
+                           BorderBrush="White" BorderThickness="1"
+                           Padding="10,5" Margin="0,0,4,0" FontSize="11"
+                           Cursor="Hand" Click="BtnFiltroMes_Click"/>
+
+                    <Button x:Name="BtnFiltroTodas" Content="📋 Todas" 
+                           Background="Transparent" Foreground="White"
+                           BorderBrush="White" BorderThickness="1"
+                           Padding="10,5" Margin="0,0,12,0" FontSize="11"
+                           Cursor="Hand" Click="BtnFiltroTodas_Click"/>
+
+                    <!-- Selector de fecha personalizada -->
+                    <TextBlock Text="Desde:" Foreground="White" 
+                              VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <DatePicker x:Name="DpFechaDesde" Width="110" Height="26"
+                               SelectedDateChanged="FechaPersonalizada_Changed"/>
+
+                    <TextBlock Text="Hasta:" Foreground="White" 
+                              VerticalAlignment="Center" Margin="8,0,4,0"/>
+                    <DatePicker x:Name="DpFechaHasta" Width="110" Height="26"
+                               SelectedDateChanged="FechaPersonalizada_Changed"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Resumen -->
+        <Border Grid.Row="1" Background="White" 
+               BorderBrush="#E2E8F0" BorderThickness="0,1"
+               Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Total Ventas -->
+                <Border Grid.Column="0" Background="#F0FDF4" 
+                       Padding="12" CornerRadius="6" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="Total Ventas" 
+                                  FontSize="11" Foreground="#64748B"/>
+                        <TextBlock x:Name="TxtTotalVentas" Text="0"
+                                  FontSize="24" FontWeight="Bold" 
+                                  Foreground="#059669"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Monto Total -->
+                <Border Grid.Column="1" Background="#ECFDF5" 
+                       Padding="12" CornerRadius="6" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="💰 Monto Total" 
+                                  FontSize="11" Foreground="#64748B"/>
+                        <TextBlock x:Name="TxtMontoTotal" Text="$0.00"
+                                  FontSize="24" FontWeight="Bold" 
+                                  Foreground="#059669"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Ganancia Real -->
+                <Border Grid.Column="2" Background="#FEF3C7" 
+                       Padding="12" CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock Text="📈 Ganancia Real" 
+                                  FontSize="11" Foreground="#64748B"/>
+                        <TextBlock x:Name="TxtGananciaTotal" Text="$0.00"
+                                  FontSize="24" FontWeight="Bold" 
+                                  Foreground="#F59E0B"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Lista de Ventas -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="16">
+            <ItemsControl x:Name="ListaVentas">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="White" 
+                               BorderBrush="#E2E8F0" BorderThickness="1"
+                               CornerRadius="8" Margin="0,0,0,12"
+                               Padding="16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Icono -->
+                                <Border Grid.Column="0" 
+                                       Background="#F0FDF4" 
+                                       Width="50" Height="50"
+                                       CornerRadius="25"
+                                       Margin="0,0,16,0">
+                                    <TextBlock Text="{Binding IconoFormaPago}" 
+                                              FontSize="24"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                                </Border>
+
+                                <!-- Información -->
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock FontSize="14" FontWeight="Bold" Foreground="#1E293B">
+                                        <Run Text="Ticket #"/>
+                                        <Run Text="{Binding NumeroTicket, Mode=OneWay}"/>
+                                        <Run Text=" - "/>
+                                        <Run Text="{Binding Hora, Mode=OneWay}"/>
+                                    </TextBlock>
+
+                                    <TextBlock Text="{Binding Cliente, Mode=OneWay}" 
+                                              FontSize="12" Foreground="#64748B"
+                                              Margin="0,2,0,4"/>
+
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="💰 Total: " FontSize="11" Foreground="#64748B"/>
+                                        <TextBlock Text="{Binding Total, StringFormat=C2, Mode=OneWay}" 
+                                                  FontSize="12" FontWeight="Bold" Foreground="#059669"/>
+
+                                        <TextBlock Text="  |  📈 Ganancia: " 
+                                                  FontSize="11" Foreground="#64748B" Margin="8,0,0,0"/>
+                                        <TextBlock Text="{Binding GananciaReal, StringFormat=C2, Mode=OneWay}" 
+                                                  FontSize="12" FontWeight="Bold" Foreground="#F59E0B"/>
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <TextBlock FontSize="10" Foreground="#94A3B8">
+                                            <Run Text="🛒"/>
+                                            <Run Text="{Binding CantidadProductos, Mode=OneWay}"/>
+                                            <Run Text="productos"/>
+                                        </TextBlock>
+                                        <TextBlock Text=" • " FontSize="10" Foreground="#94A3B8" Margin="4,0"/>
+                                        <TextBlock Text="{Binding FormaPago, Mode=OneWay}" 
+                                                  FontSize="10" Foreground="#94A3B8"/>
+                                        <TextBlock Text=" • " FontSize="10" Foreground="#94A3B8" Margin="4,0"/>
+                                        <TextBlock Text="{Binding Usuario, Mode=OneWay}" 
+                                                  FontSize="10" Foreground="#94A3B8"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Botón Ver Ticket -->
+                                <Button Grid.Column="2" Content="📄 Ver Ticket"
+                                       Background="#F1F5F9" Foreground="#475569"
+                                       Padding="12,8" FontSize="11" FontWeight="Medium"
+                                       BorderThickness="1" BorderBrush="#CBD5E1"
+                                       Cursor="Hand"
+                                       Tag="{Binding VentaID}"
+                                       Click="BtnVerTicket_Click">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                               BorderBrush="{TemplateBinding BorderBrush}"
+                                                               BorderThickness="{TemplateBinding BorderThickness}"
+                                                               CornerRadius="6"
+                                                               Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center"
+                                                                            VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Border Grid.Row="3" Background="White" 
+               BorderBrush="#E2E8F0" BorderThickness="0,1,0,0"
+               Padding="16,12">
+            <Grid>
+                <TextBlock x:Name="TxtInfoAdicional" 
+                          FontSize="11" Foreground="#64748B"
+                          VerticalAlignment="Center"/>
+
+                <Button Content="✕ Cerrar" 
+                       HorizontalAlignment="Right"
+                       Background="#EF4444" Foreground="White"
+                       Padding="16,8" FontSize="12" FontWeight="Bold"
+                       BorderThickness="0" Cursor="Hand"
+                       Click="BtnCerrar_Click">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                               CornerRadius="6"
+                                               Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
