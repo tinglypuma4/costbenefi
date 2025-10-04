@@ -40,6 +40,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{46
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Views", "Views", "{8B1021B9-E21E-492B-83DD-6A5046CA4BA3}"
 	ProjectSection(SolutionItems) = preProject
+		ActivationWindow.xaml = ActivationWindow.xaml
+		ActivationWindow.xaml.cs = ActivationWindow.xaml.cs
 		ConfiguracionRedWindow.xaml = ConfiguracionRedWindow.xaml
 		ConfiguracionRedWindow.xaml.cs = ConfiguracionRedWindow.xaml.cs
 		ConfigurarBasculaWindow.xaml.cs = ConfigurarBasculaWindow.xaml.cs
@@ -74,6 +76,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{CB0EA2
 		DetalleVenta.cs = DetalleVenta.cs
 		EstadoLote.cs = EstadoLote.cs
 		ItemPuntoEquilibrio.cs = ItemPuntoEquilibrio.cs
+		LicenseManager.cs = LicenseManager.cs
 		LoteFabricacion.cs = LoteFabricacion.cs
 		MaterialCalculator.cs = MaterialCalculator.cs
 		MaterialServicio.cs = MaterialServicio.cs

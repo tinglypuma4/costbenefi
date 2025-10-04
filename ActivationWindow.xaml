@@ -1,0 +1,258 @@
+﻿<Window x:Class="costbenefi.Views.ActivationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Activación de Licencia - Sistema POS"
+        Height="700" Width="700"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow"
+        Background="#F5F5F5">
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="30">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Encabezado -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                <TextBlock Text="🔐 Activación de Sistema POS" 
+                           FontSize="28" 
+                           FontWeight="Bold" 
+                           Foreground="#059669"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="Costo-Beneficio v1.0" 
+                           FontSize="14" 
+                           Foreground="#666"
+                           HorizontalAlignment="Center"
+                           Margin="0,5,0,0"/>
+            </StackPanel>
+
+            <!-- Selección de Tipo de Licencia -->
+            <Border Grid.Row="1" 
+                    Background="White" 
+                    CornerRadius="8" 
+                    Padding="20"
+                    BorderBrush="#E0E0E0"
+                    BorderThickness="1"
+                    Margin="0,0,0,15">
+                <StackPanel>
+                    <TextBlock Text="📋 Seleccione el tipo de licencia que adquirió:" 
+                               FontSize="14" 
+                               FontWeight="Bold"
+                               Margin="0,0,0,15"/>
+
+                    <StackPanel>
+                        <!-- Licencia BÁSICA -->
+                        <Border Background="#FFF9F5" 
+                                BorderBrush="#FFE4CC"
+                                BorderThickness="2"
+                                CornerRadius="6"
+                                Padding="12"
+                                Margin="0,0,0,8">
+                            <RadioButton x:Name="rbBasica" 
+                                         GroupName="LicenseType"
+                                         VerticalContentAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🥉" FontSize="20" Margin="0,0,10,0"/>
+                                    <TextBlock Text="LICENCIA BÁSICA - 1 año" 
+                                               FontSize="13" 
+                                               FontWeight="Bold"
+                                               Foreground="#D97706"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </Border>
+
+                        <!-- Licencia MEDIA -->
+                        <Border Background="#F0F9FF" 
+                                BorderBrush="#BFDBFE"
+                                BorderThickness="2"
+                                CornerRadius="6"
+                                Padding="12"
+                                Margin="0,0,0,8">
+                            <RadioButton x:Name="rbMedia" 
+                                         GroupName="LicenseType"
+                                         VerticalContentAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🥈" FontSize="20" Margin="0,0,10,0"/>
+                                    <TextBlock Text="LICENCIA MEDIA - 2 años" 
+                                               FontSize="13" 
+                                               FontWeight="Bold"
+                                               Foreground="#2563EB"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </Border>
+
+                        <!-- Licencia AVANZADA -->
+                        <Border Background="#FEF3C7" 
+                                BorderBrush="#FDE68A"
+                                BorderThickness="2"
+                                CornerRadius="6"
+                                Padding="12"
+                                Margin="0,0,0,8">
+                            <RadioButton x:Name="rbAvanzada" 
+                                         GroupName="LicenseType"
+                                         VerticalContentAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🥇" FontSize="20" Margin="0,0,10,0"/>
+                                    <TextBlock Text="LICENCIA AVANZADA - 3 años" 
+                                               FontSize="13" 
+                                               FontWeight="Bold"
+                                               Foreground="#D97706"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </Border>
+
+                        <!-- Licencia POR VIDA -->
+                        <Border Background="#ECFDF5" 
+                                BorderBrush="#6EE7B7"
+                                BorderThickness="3"
+                                CornerRadius="6"
+                                Padding="12">
+                            <RadioButton x:Name="rbPorVida" 
+                                         GroupName="LicenseType"
+                                         VerticalContentAlignment="Center"
+                                         IsChecked="True">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="💎" FontSize="20" Margin="0,0,10,0"/>
+                                    <TextBlock Text="LICENCIA DE POR VIDA - Ilimitada" 
+                                               FontSize="13" 
+                                               FontWeight="Bold"
+                                               Foreground="#059669"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Ingreso de Código -->
+            <Border Grid.Row="2" 
+                    Background="White" 
+                    CornerRadius="8" 
+                    Padding="20"
+                    BorderBrush="#E0E0E0"
+                    BorderThickness="1"
+                    Margin="0,0,0,15">
+                <StackPanel>
+                    <TextBlock Text="🔑 Ingrese su código de licencia:" 
+                               FontSize="14" 
+                               FontWeight="Bold"
+                               Margin="0,0,0,10"/>
+                    
+                    <TextBox x:Name="txtLicenseKey"
+                             MinHeight="100"
+                             MaxHeight="120"
+                             FontSize="11"
+                             FontFamily="Consolas"
+                             Padding="10"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             BorderBrush="#059669"
+                             BorderThickness="2"
+                             Margin="0,0,0,10"
+                             VerticalAlignment="Stretch"/>
+
+                    <TextBlock x:Name="txtHint"
+                               Text="💡 Pegue aquí el código completo proporcionado por su proveedor" 
+                               FontSize="11" 
+                               Foreground="#999"
+                               FontStyle="Italic"
+                               Margin="0,0,0,15"
+                               TextWrapping="Wrap"/>
+
+                    <Separator Margin="0,0,0,10"/>
+
+                    <TextBlock TextWrapping="Wrap" 
+                               FontSize="11" 
+                               Foreground="#666"
+                               LineHeight="16">
+                        • Copie y pegue el código completo sin modificarlo<LineBreak/>
+                        • Si no tiene un código, contacte a: soporte@tuempresa.com
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Botones -->
+            <StackPanel Grid.Row="3" 
+                        Orientation="Horizontal" 
+                        HorizontalAlignment="Right">
+                <Button x:Name="btnCancelar"
+                        Content="✕ Cancelar" 
+                        Width="130" 
+                        Height="45"
+                        Margin="0,0,10,0"
+                        Background="#E5E7EB"
+                        Foreground="#374151"
+                        FontSize="14"
+                        BorderThickness="0"
+                        Cursor="Hand"
+                        Click="BtnCancelar_Click">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="8"
+                                                Padding="15,10">
+                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                             VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#D1D5DB"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <Button x:Name="btnActivar"
+                        Content="✓ Activar Licencia" 
+                        Width="180" 
+                        Height="45"
+                        Background="#059669"
+                        Foreground="White"
+                        FontWeight="Bold"
+                        FontSize="14"
+                        BorderThickness="0"
+                        Cursor="Hand"
+                        Click="BtnActivar_Click">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="8"
+                                                Padding="15,10">
+                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                             VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#047857"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Window>
