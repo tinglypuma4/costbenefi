@@ -18,7 +18,7 @@ namespace costbenefi.Views
         private readonly RawMaterial _producto;
         private readonly BasculaService _basculaService;
 
-        // ✅ NUEVO: Timer para lectura continua
+        // ✅ Timer para lectura continua
         private DispatcherTimer _timerLecturaContinua;
         private DateTime _ultimaLectura = DateTime.MinValue;
         private decimal _ultimoPesoEstable = 0;
@@ -36,7 +36,7 @@ namespace costbenefi.Views
             ConfigurarVentana();
             ConfigurarEventos();
 
-            // ✅ NUEVO: Iniciar lectura automática
+            // ✅ Iniciar lectura automática
             IniciarLecturaAutomatica();
         }
 
@@ -56,7 +56,7 @@ namespace costbenefi.Views
             TxtPesoManual.SelectAll();
             if (RbPorCantidad != null)
             {
-                RbPorCantidad.IsChecked = true; // Empezar en modo cantidad
+                RbPorCantidad.IsChecked = true;
             }
 
             // Configurar visibilidad inicial
@@ -72,7 +72,7 @@ namespace costbenefi.Views
                 LabelDinamico.Text = ObtenerEtiquetaUnidad();
             }
 
-            // ✅ NUEVO: Configurar vista previa inicial
+            // ✅ Configurar vista previa inicial
             if (TxtVistaPrevia != null)
             {
                 TxtVistaPrevia.Text = "🔄 Esperando lectura de báscula...";
@@ -89,8 +89,9 @@ namespace costbenefi.Views
 
         private void ConfigurarEventos()
         {
-            // ✅ EVENTOS DE BÁSCULA
-            _basculaService.PesoRecibido += BasculaService_PesoRecibido;
+            // ✅ CRÍTICO: COMENTAR PesoRecibido PARA EVITAR DUPLICACIÓN
+            // _basculaService.PesoRecibido += BasculaService_PesoRecibido;
+
             _basculaService.ErrorOcurrido += BasculaService_ErrorOcurrido;
             _basculaService.DatosRecibidos += BasculaService_DatosRecibidos;
 
@@ -103,10 +104,10 @@ namespace costbenefi.Views
             {
                 RbPorDinero.Checked += RbPorDinero_Checked;
             }
-            System.Diagnostics.Debug.WriteLine("✅ Eventos configurados correctamente");
+            System.Diagnostics.Debug.WriteLine("✅ Eventos configurados (SIN PesoRecibido para evitar duplicación)");
         }
 
-        // ✅ NUEVO: Método para iniciar lectura automática
+        // ✅ Método para iniciar lectura automática
         private void IniciarLecturaAutomatica()
         {
             try
@@ -118,9 +119,9 @@ namespace costbenefi.Views
                     return;
                 }
 
-                // ✅ Configurar timer para lectura continua cada 500ms
+                // ✅ Configurar timer para lectura continua cada 1 segundo (ajustado de 500ms)
                 _timerLecturaContinua = new DispatcherTimer();
-                _timerLecturaContinua.Interval = TimeSpan.FromMilliseconds(500);
+                _timerLecturaContinua.Interval = TimeSpan.FromMilliseconds(1000);
                 _timerLecturaContinua.Tick += async (s, e) => await LeerPesoAutomatico();
 
                 _lecturaAutomaticaActiva = true;
@@ -132,7 +133,7 @@ namespace costbenefi.Views
 
                 TxtStatus.Text = "📡 Lectura automática activada - Vista previa en tiempo real";
 
-                System.Diagnostics.Debug.WriteLine("✅ Lectura automática iniciada");
+                System.Diagnostics.Debug.WriteLine("✅ Lectura automática iniciada (cada 1 segundo)");
             }
             catch (Exception ex)
             {
@@ -141,7 +142,7 @@ namespace costbenefi.Views
             }
         }
 
-        // ✅ NUEVO: Método para lectura automática
+        // ✅ Método para lectura automática
         private async Task LeerPesoAutomatico()
         {
             try
@@ -149,40 +150,76 @@ namespace costbenefi.Views
                 if (!_lecturaAutomaticaActiva || !_basculaService.EstaConectada)
                     return;
 
+                System.Diagnostics.Debug.WriteLine($"📡 === LECTURA AUTOMÁTICA {DateTime.Now:HH:mm:ss.fff} ===");
+
                 var peso = await _basculaService.LeerPesoAsync();
 
-                // ✅ Solo actualizar si el peso cambió significativamente (evitar ruido)
-                if (Math.Abs(peso - _ultimoPesoEstable) >= 0.001m)
+                System.Diagnostics.Debug.WriteLine($"   📊 Peso recibido: {peso:F3} kg");
+
+                // ✅ VALIDACIÓN ROBUSTA
+                if (peso <= 0)
                 {
+                    System.Diagnostics.Debug.WriteLine("   ⚠️ Peso cero o inválido - ignorando");
+                    return;
+                }
+
+                if (peso > _producto.StockTotal * 10)
+                {
+                    System.Diagnostics.Debug.WriteLine($"   ⚠️ Peso muy alto ignorado: {peso:F3}");
+
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        TxtStatus.Text = $"⚠️ Lectura anormal: {peso:F3} (verificar báscula)";
+                    }));
+                    return;
+                }
+
+                // ✅ Solo actualizar si cambió significativamente (10g mínimo)
+                if (Math.Abs(peso - _ultimoPesoEstable) >= 0.010m)
+                {
+                    System.Diagnostics.Debug.WriteLine($"   ✅ Cambio significativo: {_ultimoPesoEstable:F3} → {peso:F3}");
+
                     _ultimoPesoEstable = peso;
                     _ultimaLectura = DateTime.Now;
 
-                    // ✅ Actualizar vista previa automáticamente
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
                         ActualizarVistaPreviaBascula(peso);
                     }));
                 }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"   ⏭️ Cambio insignificante - ignorando");
+                }
+
+                System.Diagnostics.Debug.WriteLine($"📡 === FIN LECTURA AUTOMÁTICA ===\n");
             }
             catch (Exception ex)
             {
-                // No mostrar errores continuos, solo log
-                System.Diagnostics.Debug.WriteLine($"⚠️ Error en lectura automática: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error en lectura automática: {ex.Message}");
             }
         }
 
-        // ✅ NUEVO: Actualizar vista previa con datos de báscula
+        // ✅ Actualizar vista previa con datos de báscula
         private void ActualizarVistaPreviaBascula(decimal peso)
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"🖼️ === ACTUALIZANDO VISTA PREVIA ===");
+                System.Diagnostics.Debug.WriteLine($"   ⚖️ Peso a mostrar: {peso:F3} kg");
+
                 // ✅ Actualizar peso en display
                 TxtPesoBascula.Text = $"{peso:F3}";
 
                 // ✅ Solo actualizar campo manual si no está siendo editado por el usuario
-                if (!TxtPesoManual.IsFocused)
+                if (!TxtPesoManual.IsFocused && !TxtPesoManual.IsKeyboardFocused)
                 {
                     TxtPesoManual.Text = $"{peso:F3}";
+                    System.Diagnostics.Debug.WriteLine($"   ✅ Campo manual actualizado: {peso:F3}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"   ⏭️ Campo manual tiene foco - no actualizar");
                 }
 
                 // ✅ Calcular y mostrar vista previa
@@ -212,6 +249,9 @@ namespace costbenefi.Views
 
                     // ✅ Mostrar timestamp de última lectura
                     TxtUltimaLectura.Text = $"🕐 {DateTime.Now:HH:mm:ss}";
+
+                    System.Diagnostics.Debug.WriteLine($"   💰 Dinero calculado: {total:C2}");
+                    System.Diagnostics.Debug.WriteLine($"   💵 Ganancia: {ganancia:C2}");
                 }
                 else
                 {
@@ -219,6 +259,8 @@ namespace costbenefi.Views
                     TxtVistaPrevia.Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128));
                     BtnConfirmar.IsEnabled = false;
                 }
+
+                System.Diagnostics.Debug.WriteLine($"🖼️ === FIN ACTUALIZACIÓN ===\n");
             }
             catch (Exception ex)
             {
@@ -226,7 +268,7 @@ namespace costbenefi.Views
             }
         }
 
-        // ✅ NUEVO: Botón de Ingreso Rápido Manual
+        // ✅ Botón de Ingreso Rápido Manual
         private void BtnIngresoRapido_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -236,10 +278,8 @@ namespace costbenefi.Views
 
                 if (dialog.ShowDialog() == true)
                 {
-                    // Obtener el peso ingresado del dialog
                     var pesoIngresado = dialog.PesoIngresado;
 
-                    // Validar stock
                     if (pesoIngresado > _producto.StockTotal)
                     {
                         MessageBox.Show($"La cantidad ingresada ({pesoIngresado:F3}) excede el stock disponible ({_producto.StockTotal:F3}).",
@@ -247,7 +287,6 @@ namespace costbenefi.Views
                         return;
                     }
 
-                    // Confirmar y agregar directamente al carrito
                     var total = pesoIngresado * _producto.PrecioVentaFinal;
                     var tipoUnidad = ObtenerTipoUnidad(_producto.UnidadMedida);
 
@@ -262,7 +301,6 @@ namespace costbenefi.Views
 
                     if (resultado == MessageBoxResult.Yes)
                     {
-                        // ✅ Detener lectura automática
                         _lecturaAutomaticaActiva = false;
                         _timerLecturaContinua?.Stop();
 
@@ -279,14 +317,13 @@ namespace costbenefi.Views
             }
         }
 
-        // ✅ MODIFICADO: Botón para controlar lectura automática
+        // ✅ Botón para controlar lectura automática
         private void BtnLecturaAutomatica_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 if (_lecturaAutomaticaActiva)
                 {
-                    // ✅ Detener lectura automática
                     _lecturaAutomaticaActiva = false;
                     _timerLecturaContinua?.Stop();
 
@@ -299,7 +336,6 @@ namespace costbenefi.Views
                 }
                 else
                 {
-                    // ✅ Activar lectura automática
                     IniciarLecturaAutomatica();
                 }
             }
@@ -318,7 +354,7 @@ namespace costbenefi.Views
                 TxtEstadoBascula.Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94));
                 BtnLeerBascula.IsEnabled = true;
                 BtnTarar.IsEnabled = true;
-                BtnLecturaAutomatica.IsEnabled = true; // ✅ NUEVO
+                BtnLecturaAutomatica.IsEnabled = true;
             }
             else
             {
@@ -326,7 +362,7 @@ namespace costbenefi.Views
                 TxtEstadoBascula.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68));
                 BtnLeerBascula.IsEnabled = false;
                 BtnTarar.IsEnabled = false;
-                BtnLecturaAutomatica.IsEnabled = false; // ✅ NUEVO
+                BtnLecturaAutomatica.IsEnabled = false;
             }
 
             if (_basculaService.ConfiguracionActual != null)
@@ -353,7 +389,6 @@ namespace costbenefi.Views
 
                 if (peso > 0)
                 {
-                    // ✅ Actualizar vista previa manualmente
                     ActualizarVistaPreviaBascula(peso);
                     TxtStatus.Text = $"✅ Peso leído manualmente: {peso:F3} {_producto.UnidadMedida}";
                 }
@@ -410,7 +445,6 @@ namespace costbenefi.Views
 
         private void TxtPesoManual_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // ✅ Solo actualizar si el usuario está editando manualmente
             if (TxtPesoManual.IsFocused)
             {
                 ActualizarCalculos();
@@ -427,25 +461,21 @@ namespace costbenefi.Views
 
                 if (esModoDinero)
                 {
-                    // 💰 MODO POR DINERO
                     if (decimal.TryParse(TxtDineroIngresado?.Text.Replace(",", "."),
                      NumberStyles.Number,
                      CultureInfo.InvariantCulture,
                      out decimal dineroIngresado) && dineroIngresado > 0)
                     {
-                        // Calcular cantidad basada en dinero
                         if (_producto.PrecioVentaFinal > 0)
                         {
                             cantidadFinal = dineroIngresado / _producto.PrecioVentaFinal;
                             dineroFinal = dineroIngresado;
 
-                            // Actualizar campo de cantidad automáticamente
                             if (TxtPesoManual != null && !TxtPesoManual.IsFocused)
                             {
                                 TxtPesoManual.Text = cantidadFinal.ToString("F3");
                             }
 
-                            // Mostrar conversión
                             if (TxtConversionInfo != null)
                             {
                                 TxtConversionInfo.Text = $"💰 ${dineroIngresado:F2} = {cantidadFinal:F3} {_producto.UnidadMedida}";
@@ -467,7 +497,6 @@ namespace costbenefi.Views
                 }
                 else
                 {
-                    // ⚖️ MODO POR CANTIDAD (original)
                     if (decimal.TryParse(TxtPesoManual?.Text.Replace(",", "."),
                      NumberStyles.Number,
                      CultureInfo.InvariantCulture,
@@ -476,13 +505,11 @@ namespace costbenefi.Views
                         cantidadFinal = cantidad;
                         dineroFinal = cantidad * _producto.PrecioVentaFinal;
 
-                        // Actualizar campo de dinero automáticamente
                         if (TxtDineroIngresado != null && !TxtDineroIngresado.IsFocused)
                         {
                             TxtDineroIngresado.Text = dineroFinal.ToString("F2");
                         }
 
-                        // Mostrar conversión
                         if (TxtConversionInfo != null)
                         {
                             TxtConversionInfo.Text = $"⚖️ {cantidadFinal:F3} {_producto.UnidadMedida} = ${dineroFinal:F2}";
@@ -496,7 +523,6 @@ namespace costbenefi.Views
                     }
                 }
 
-                // ✅ VALIDACIONES COMUNES
                 if (cantidadFinal > _producto.StockTotal)
                 {
                     TxtStatus.Text = $"⚠️ Cantidad excede el stock disponible ({_producto.StockTotal:F3})";
@@ -506,26 +532,21 @@ namespace costbenefi.Views
                     return;
                 }
 
-                // ✅ CALCULAR TOTALES
                 var subtotal = cantidadFinal * _producto.PrecioVentaFinal;
                 TxtSubtotal.Text = subtotal.ToString("C2");
                 TxtSubtotal.Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94));
 
-                // Calcular ganancia
                 var ganancia = cantidadFinal * (_producto.PrecioVentaFinal - _producto.PrecioConIVA);
                 TxtGanancia.Text = $"Ganancia: {ganancia:C2}";
 
-                // Habilitar confirmar solo si no estamos en lectura automática sin confirmar
                 BtnConfirmar.IsEnabled = true;
 
                 var tipoUnidad = ObtenerTipoUnidad(_producto.UnidadMedida);
 
-                // ✅ No sobrescribir status si está en lectura automática
                 if (!_lecturaAutomaticaActiva)
                 {
                     TxtStatus.Text = $"✅ {tipoUnidad} válido: {cantidadFinal:F3} {_producto.UnidadMedida} = ${subtotal:F2}";
                 }
-
             }
             catch (Exception ex)
             {
@@ -560,17 +581,14 @@ namespace costbenefi.Views
             {
                 if (PanelCantidad != null && PanelDinero != null)
                 {
-                    // Mostrar panel cantidad, ocultar panel dinero
                     PanelCantidad.Visibility = Visibility.Visible;
                     PanelDinero.Visibility = Visibility.Collapsed;
 
-                    // Cambiar etiqueta
                     if (LabelDinamico != null)
                     {
                         LabelDinamico.Text = ObtenerEtiquetaUnidad();
                     }
 
-                    // Enfocar campo cantidad
                     TxtPesoManual?.Focus();
 
                     if (!_lecturaAutomaticaActiva)
@@ -592,17 +610,14 @@ namespace costbenefi.Views
             {
                 if (PanelCantidad != null && PanelDinero != null)
                 {
-                    // Ocultar panel cantidad, mostrar panel dinero
                     PanelCantidad.Visibility = Visibility.Collapsed;
                     PanelDinero.Visibility = Visibility.Visible;
 
-                    // Cambiar etiqueta  
                     if (LabelDinamico != null)
                     {
                         LabelDinamico.Text = "Dinero:";
                     }
 
-                    // Enfocar campo dinero
                     TxtDineroIngresado?.Focus();
 
                     if (!_lecturaAutomaticaActiva)
@@ -620,7 +635,6 @@ namespace costbenefi.Views
 
         private void TxtDineroIngresado_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // Actualización en tiempo real para modo dinero
             if (RbPorDinero?.IsChecked == true && TxtDineroIngresado.IsFocused)
             {
                 ActualizarCalculos();
@@ -629,21 +643,18 @@ namespace costbenefi.Views
 
         private void TxtDineroIngresado_KeyDown(object sender, KeyEventArgs e)
         {
-            // Permitir Enter para confirmar
             if (e.Key == Key.Enter && BtnConfirmar.IsEnabled)
             {
                 BtnConfirmar_Click(sender, new RoutedEventArgs());
                 return;
             }
 
-            // Permitir solo números, punto decimal y teclas de control
             if (!IsValidKey(e.Key))
             {
                 e.Handled = true;
             }
         }
 
-        // ✅ MODIFICADO: Confirmar solo agrega al carrito, no automático
         private void BtnConfirmar_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -653,7 +664,6 @@ namespace costbenefi.Views
 
                 if (esModoDinero)
                 {
-                    // 💰 MODO DINERO - Calcular cantidad desde dinero
                     if (decimal.TryParse(TxtDineroIngresado?.Text.Replace(",", "."),
                      NumberStyles.Number,
                      CultureInfo.InvariantCulture,
@@ -680,7 +690,6 @@ namespace costbenefi.Views
                 }
                 else
                 {
-                    // ⚖️ MODO CANTIDAD - Usar cantidad directamente
                     if (decimal.TryParse(TxtPesoManual?.Text.Replace(",", "."),
                      NumberStyles.Number,
                      CultureInfo.InvariantCulture,
@@ -698,7 +707,6 @@ namespace costbenefi.Views
                     }
                 }
 
-                // ✅ VALIDACIÓN DE STOCK COMÚN
                 if (cantidadFinal > _producto.StockTotal)
                 {
                     MessageBox.Show($"La cantidad ingresada ({cantidadFinal:F3}) excede el stock disponible ({_producto.StockTotal:F3}).",
@@ -706,7 +714,6 @@ namespace costbenefi.Views
                     return;
                 }
 
-                // ✅ CONFIRMAR CON INFORMACIÓN COMPLETA
                 var tipoConfirmacion = ObtenerTipoUnidad(_producto.UnidadMedida);
                 var dineroTotal = cantidadFinal * _producto.PrecioVentaFinal;
                 var modoUsado = esModoDinero ? "💰 por dinero" : "⚖️ por cantidad";
@@ -724,7 +731,6 @@ namespace costbenefi.Views
 
                 if (resultado == MessageBoxResult.Yes)
                 {
-                    // ✅ Detener lectura automática
                     _lecturaAutomaticaActiva = false;
                     _timerLecturaContinua?.Stop();
 
@@ -743,7 +749,6 @@ namespace costbenefi.Views
 
         private void BtnCancelar_Click(object sender, RoutedEventArgs e)
         {
-            // ✅ Detener lectura automática al cancelar
             _lecturaAutomaticaActiva = false;
             _timerLecturaContinua?.Stop();
 
@@ -753,14 +758,12 @@ namespace costbenefi.Views
 
         private void TxtPesoManual_KeyDown(object sender, KeyEventArgs e)
         {
-            // Permitir Enter para confirmar
             if (e.Key == Key.Enter && BtnConfirmar.IsEnabled)
             {
                 BtnConfirmar_Click(sender, new RoutedEventArgs());
                 return;
             }
 
-            // Permitir solo números, punto decimal y teclas de control
             if (!IsValidKey(e.Key))
             {
                 e.Handled = true;
@@ -777,16 +780,17 @@ namespace costbenefi.Views
                    key == Key.Tab || key == Key.Enter;
         }
 
-        // ✅ EVENTOS DE BÁSCULA - Ahora solo actualizan vista previa
+        // ❌ MÉTODO COMENTADO PARA EVITAR DUPLICACIÓN
+        /*
         private void BasculaService_PesoRecibido(object sender, PesoRecibidoEventArgs e)
         {
-            // ✅ NO agregar automáticamente al carrito, solo vista previa
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 ActualizarVistaPreviaBascula(e.Peso);
                 System.Diagnostics.Debug.WriteLine($"📡 Peso recibido automáticamente: {e.Peso:F3}");
             }));
         }
+        */
 
         private void BasculaService_ErrorOcurrido(object sender, string error)
         {
@@ -805,20 +809,19 @@ namespace costbenefi.Views
 
         protected override void OnClosed(EventArgs e)
         {
-            // ✅ Limpiar recursos
             _lecturaAutomaticaActiva = false;
             _timerLecturaContinua?.Stop();
             _timerLecturaContinua = null;
 
-            // Desuscribir eventos
-            _basculaService.PesoRecibido -= BasculaService_PesoRecibido;
+            // ✅ Desuscribir SOLO los eventos que fueron suscritos
+            // _basculaService.PesoRecibido -= BasculaService_PesoRecibido; // ❌ Ya comentado arriba
             _basculaService.ErrorOcurrido -= BasculaService_ErrorOcurrido;
             _basculaService.DatosRecibidos -= BasculaService_DatosRecibidos;
 
             base.OnClosed(e);
         }
 
-        // ===== RESTO DE MÉTODOS SIN CAMBIOS =====
+        // ===== INICIALIZACIÓN DE UI =====
         private void InitializeComponent()
         {
             var tipoUnidad = ObtenerTipoUnidad(_producto.UnidadMedida);
@@ -832,11 +835,10 @@ namespace costbenefi.Views
             var mainGrid = new Grid();
             mainGrid.Margin = new Thickness(20);
 
-            // Definir filas
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 0 - Header
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 1 - Info producto
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 2 - Estado báscula
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 3 - Controles báscula + AGREGAR CARRITO
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 3 - Controles báscula
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 4 - Vista previa
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 5 - Selector modo
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 6 - Panel dinero
@@ -847,7 +849,7 @@ namespace costbenefi.Views
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 11 - Status
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 12 - Botón cancelar
 
-            // Header dinámico
+            // Header
             var header = new TextBlock
             {
                 Text = $"⚖️ {tipoUnidad} con Vista Previa en Tiempo Real",
@@ -892,13 +894,12 @@ namespace costbenefi.Views
             basculaBorder.Child = basculaGrid;
             mainGrid.Children.Add(basculaBorder);
 
-            // ✅ NUEVO: Controles báscula + Botón Agregar al Carrito (TODO EN UNA SECCIÓN)
+            // Controles báscula + Botón Agregar
             var controlesCompletosGrid = new Grid();
-            controlesCompletosGrid.RowDefinitions.Add(new RowDefinition()); // Fila 0: Controles de báscula
-            controlesCompletosGrid.RowDefinitions.Add(new RowDefinition()); // Fila 1: Botón principal
+            controlesCompletosGrid.RowDefinitions.Add(new RowDefinition());
+            controlesCompletosGrid.RowDefinitions.Add(new RowDefinition());
             controlesCompletosGrid.Margin = new Thickness(0, 10, 0, 20);
 
-            // Fila 0: Controles de báscula
             var controlesBasculaPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -912,12 +913,10 @@ namespace costbenefi.Views
             BtnTarar = CreateButton("⚖️ Tarar", Color.FromRgb(249, 115, 22));
             BtnTarar.Click += BtnTarar_Click;
 
-            // Botón para controlar lectura automática
             BtnLecturaAutomatica = CreateButton("▶️ ACTIVAR LECTURA", Color.FromRgb(34, 197, 94));
             BtnLecturaAutomatica.Click += BtnLecturaAutomatica_Click;
             BtnLecturaAutomatica.Width = 150;
 
-            // ✅ NUEVO: Botón de Ingreso Rápido
             BtnIngresoRapido = CreateButton("📝 INGRESO RÁPIDO", Color.FromRgb(138, 43, 226));
             BtnIngresoRapido.Click += BtnIngresoRapido_Click;
             BtnIngresoRapido.Width = 150;
@@ -930,7 +929,6 @@ namespace costbenefi.Views
             Grid.SetRow(controlesBasculaPanel, 0);
             controlesCompletosGrid.Children.Add(controlesBasculaPanel);
 
-            // ✅ Fila 1: Botón principal (Agregar al Carrito) - MÁS PROMINENTE
             var accionPrincipalPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -943,7 +941,7 @@ namespace costbenefi.Views
                 Content = "🛒 AGREGAR AL CARRITO",
                 Width = 200,
                 Height = 45,
-                Background = new SolidColorBrush(Color.FromRgb(0, 123, 255)), // Azul prominente
+                Background = new SolidColorBrush(Color.FromRgb(0, 123, 255)),
                 Foreground = Brushes.White,
                 BorderThickness = new Thickness(0),
                 FontSize = 14,
@@ -961,7 +959,7 @@ namespace costbenefi.Views
             Grid.SetRow(controlesCompletosGrid, 3);
             mainGrid.Children.Add(controlesCompletosGrid);
 
-            // ✅ Sección de vista previa prominente (fila 4)
+            // Vista previa
             var vistaPreviaBorder = CreateInfoSection("📊 Vista Previa en Tiempo Real", 4);
             var vistaGrid = new Grid();
             vistaGrid.RowDefinitions.Add(new RowDefinition());
@@ -996,7 +994,7 @@ namespace costbenefi.Views
             vistaPreviaBorder.Child = vistaGrid;
             mainGrid.Children.Add(vistaPreviaBorder);
 
-            // Selector de modo (fila 5)
+            // Selector modo
             var selectorBorder = CreateInfoSection("🎯 Modo de Ingreso", 5);
             var selectorGrid = new Grid();
             selectorGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -1032,7 +1030,7 @@ namespace costbenefi.Views
             selectorBorder.Child = selectorGrid;
             mainGrid.Children.Add(selectorBorder);
 
-            // Panel dinero (fila 6)
+            // Panel dinero
             var dineroPanel = CreateInfoSection("💰 Ingreso por Dinero", 6);
             var dineroGrid = new Grid();
             dineroGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -1082,7 +1080,7 @@ namespace costbenefi.Views
             dineroPanel.Child = PanelDinero;
             mainGrid.Children.Add(dineroPanel);
 
-            // Peso manual (fila 7)
+            // Peso manual
             var pesoPanel = CreateInfoSection($"✏️ {tipoUnidad} Manual", 7);
             var pesoGrid = new Grid();
             pesoGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -1131,7 +1129,7 @@ namespace costbenefi.Views
             pesoPanel.Child = PanelCantidad;
             mainGrid.Children.Add(pesoPanel);
 
-            // Info conversión (fila 8)
+            // Conversión
             var conversionBorder = CreateInfoSection("🔄 Conversión Automática", 8);
             TxtConversionInfo = new TextBlock
             {
@@ -1148,7 +1146,7 @@ namespace costbenefi.Views
             conversionBorder.Child = TxtConversionInfo;
             mainGrid.Children.Add(conversionBorder);
 
-            // Cálculos (fila 9)
+            // Cálculos
             var calculosPanel = CreateInfoSection("💰 Cálculos", 9);
             var calculosGrid = new Grid();
             calculosGrid.RowDefinitions.Add(new RowDefinition());
@@ -1183,7 +1181,7 @@ namespace costbenefi.Views
             calculosPanel.Child = calculosGrid;
             mainGrid.Children.Add(calculosPanel);
 
-            // Status (fila 11)
+            // Status
             TxtStatus = new TextBlock
             {
                 Text = $"💡 Activando lectura automática...",
@@ -1196,7 +1194,7 @@ namespace costbenefi.Views
             Grid.SetRow(TxtStatus, 11);
             mainGrid.Children.Add(TxtStatus);
 
-            // ✅ Botones inferiores (fila 12) - SOLO CANCELAR
+            // Botones
             var botonesPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -1215,13 +1213,11 @@ namespace costbenefi.Views
             Content = mainGrid;
         }
 
-        // ✅ NUEVOS CAMPOS DE CONTROLES
-        private TextBlock TxtVistaPrevia; // Vista previa prominente
-        private TextBlock TxtUltimaLectura; // Timestamp de última lectura
-        private Button BtnLecturaAutomatica; // Control de lectura automática
-        private Button BtnIngresoRapido; // ✅ NUEVO: Botón de ingreso rápido
-
-        // Campos existentes
+        // ===== CAMPOS DE CONTROLES =====
+        private TextBlock TxtVistaPrevia;
+        private TextBlock TxtUltimaLectura;
+        private Button BtnLecturaAutomatica;
+        private Button BtnIngresoRapido;
         private TextBlock TxtNombreProducto;
         private TextBlock TxtUnidadMedida;
         private TextBlock TxtStockDisponible;
@@ -1245,7 +1241,7 @@ namespace costbenefi.Views
         private StackPanel PanelDinero;
         private TextBlock LabelDinamico;
 
-        // ===== MÉTODOS DE APOYO (MANTENER IGUALES) =====
+        // ===== MÉTODOS DE APOYO =====
 
         private Border CreateInfoSection(string titulo, int row)
         {
@@ -1356,7 +1352,7 @@ namespace costbenefi.Views
         }
     }
 
-    // ✅ NUEVA CLASE: Dialog para Ingreso Rápido
+    // ===== DIALOG INGRESO RÁPIDO =====
     public class IngresoRapidoDialog : Window
     {
         private readonly RawMaterial _producto;
@@ -1377,14 +1373,14 @@ namespace costbenefi.Views
             var tipoUnidad = ObtenerTipoUnidad(_producto.UnidadMedida);
 
             Title = $"📝 Ingreso Rápido - {_producto.NombreArticulo}";
-            Width = 500;  // ✅ Más ancho
-            Height = 380; // ✅ Más alto
+            Width = 500;
+            Height = 380;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             ResizeMode = ResizeMode.NoResize;
             Background = new SolidColorBrush(Color.FromRgb(248, 249, 250));
 
             var mainGrid = new Grid();
-            mainGrid.Margin = new Thickness(40);  // ✅ Más margen para mejor espaciado
+            mainGrid.Margin = new Thickness(40);
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Info producto
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Input peso
@@ -1396,10 +1392,10 @@ namespace costbenefi.Views
             var header = new TextBlock
             {
                 Text = $"⚡ Ingreso Rápido de {tipoUnidad}",
-                FontSize = 18,  // ✅ Fuente más grande
+                FontSize = 18,
                 FontWeight = FontWeights.Bold,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 25),  // ✅ Más espacio
+                Margin = new Thickness(0, 0, 0, 25),
                 Foreground = new SolidColorBrush(Color.FromRgb(138, 43, 226))
             };
             Grid.SetRow(header, 0);
@@ -1408,13 +1404,13 @@ namespace costbenefi.Views
             // Info producto
             var infoStack = new StackPanel
             {
-                Margin = new Thickness(0, 0, 0, 25)  // ✅ Más espacio
+                Margin = new Thickness(0, 0, 0, 25)
             };
 
             var nombreProducto = new TextBlock
             {
                 Text = _producto.NombreArticulo,
-                FontSize = 15,  // ✅ Fuente más grande
+                FontSize = 15,
                 FontWeight = FontWeights.Bold,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = new SolidColorBrush(Color.FromRgb(17, 24, 39))
@@ -1423,7 +1419,7 @@ namespace costbenefi.Views
             var stockDisponible = new TextBlock
             {
                 Text = $"Stock: {_producto.StockTotal:F3} {_producto.UnidadMedida}",
-                FontSize = 13,  // ✅ Fuente más grande
+                FontSize = 13,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128)),
                 Margin = new Thickness(0, 5, 0, 0)
@@ -1432,7 +1428,7 @@ namespace costbenefi.Views
             var precio = new TextBlock
             {
                 Text = $"Precio: {_producto.PrecioVentaFinal:C2} por {_producto.UnidadMedida}",
-                FontSize = 13,  // ✅ Fuente más grande
+                FontSize = 13,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128))
             };
@@ -1447,30 +1443,30 @@ namespace costbenefi.Views
             // Input peso
             var pesoPanel = new StackPanel
             {
-                Margin = new Thickness(0, 0, 0, 25)  // ✅ Más espacio
+                Margin = new Thickness(0, 0, 0, 25)
             };
 
             var pesoLabel = new TextBlock
             {
                 Text = $"Ingrese {tipoUnidad.ToLower()} ({_producto.UnidadMedida}):",
-                FontSize = 14,  // ✅ Fuente más grande
+                FontSize = 14,
                 FontWeight = FontWeights.Bold,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 15),  // ✅ Más espacio
+                Margin = new Thickness(0, 0, 0, 15),
                 Foreground = new SolidColorBrush(Color.FromRgb(55, 65, 81))
             };
 
             TxtPesoRapido = new TextBox
             {
-                FontSize = 26,  // ✅ Fuente mucho más grande
+                FontSize = 26,
                 FontWeight = FontWeights.Bold,
-                Padding = new Thickness(20),  // ✅ Más padding
+                Padding = new Thickness(20),
                 Text = "",
                 TextAlignment = TextAlignment.Center,
                 Background = new SolidColorBrush(Color.FromRgb(255, 255, 255)),
                 BorderBrush = new SolidColorBrush(Color.FromRgb(138, 43, 226)),
                 BorderThickness = new Thickness(3),
-                Height = 70  // ✅ Mucho más alto
+                Height = 70
             };
             TxtPesoRapido.TextChanged += TxtPesoRapido_TextChanged;
             TxtPesoRapido.KeyDown += TxtPesoRapido_KeyDown;
@@ -1485,11 +1481,11 @@ namespace costbenefi.Views
             TxtTotalRapido = new TextBlock
             {
                 Text = "Total: $0.00",
-                FontSize = 18,  // ✅ Fuente más grande
+                FontSize = 18,
                 FontWeight = FontWeights.Bold,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94)),
-                Margin = new Thickness(0, 0, 0, 25)  // ✅ Más espacio
+                Margin = new Thickness(0, 0, 0, 25)
             };
             Grid.SetRow(TxtTotalRapido, 3);
             mainGrid.Children.Add(TxtTotalRapido);
@@ -1504,13 +1500,13 @@ namespace costbenefi.Views
             var btnCancelar = new Button
             {
                 Content = "❌ Cancelar",
-                Width = 120,  // ✅ Más ancho
-                Height = 40,  // ✅ Más alto
-                Margin = new Thickness(0, 0, 20, 0),  // ✅ Más espacio entre botones
+                Width = 120,
+                Height = 40,
+                Margin = new Thickness(0, 0, 20, 0),
                 Background = new SolidColorBrush(Color.FromRgb(108, 117, 125)),
                 Foreground = Brushes.White,
                 BorderThickness = new Thickness(0),
-                FontSize = 13,  // ✅ Fuente un poco más grande
+                FontSize = 13,
                 FontWeight = FontWeights.Bold,
                 Cursor = Cursors.Hand
             };
@@ -1519,12 +1515,12 @@ namespace costbenefi.Views
             BtnConfirmarRapido = new Button
             {
                 Content = "✅ Agregar",
-                Width = 120,  // ✅ Más ancho
-                Height = 40,  // ✅ Más alto
+                Width = 120,
+                Height = 40,
                 Background = new SolidColorBrush(Color.FromRgb(138, 43, 226)),
                 Foreground = Brushes.White,
                 BorderThickness = new Thickness(0),
-                FontSize = 13,  // ✅ Fuente un poco más grande
+                FontSize = 13,
                 FontWeight = FontWeights.Bold,
                 Cursor = Cursors.Hand,
                 IsEnabled = false
@@ -1539,7 +1535,6 @@ namespace costbenefi.Views
 
             Content = mainGrid;
 
-            // Enfocar textbox al abrir
             TxtPesoRapido.Focus();
         }
 
@@ -1583,14 +1578,12 @@ namespace costbenefi.Views
 
         private void TxtPesoRapido_KeyDown(object sender, KeyEventArgs e)
         {
-            // Permitir Enter para confirmar
             if (e.Key == Key.Enter && BtnConfirmarRapido.IsEnabled)
             {
                 BtnConfirmarRapido_Click(sender, new RoutedEventArgs());
                 return;
             }
 
-            // Permitir solo números, punto decimal y teclas de control
             if (!IsValidKey(e.Key))
             {
                 e.Handled = true;

@@ -19,6 +19,8 @@ namespace costbenefi.Services
         private SerialPort _serialPort;
         private ConfiguracionBascula _configuracion;
         private bool _conectado = false;
+        private DateTime _ultimoEventoDataReceived = DateTime.MinValue;
+        private readonly object _lockDataReceived = new object();
         private readonly object _lockObject = new object();
 
         // Eventos
@@ -647,6 +649,9 @@ namespace costbenefi.Services
         /// <summary>
         /// Lee el peso de la báscula
         /// </summary>
+        /// <summary>
+        /// ✅ MÉTODO MEJORADO: Lee el peso con validación robusta
+        /// </summary>
         public async Task<decimal> LeerPesoAsync()
         {
             try
@@ -654,8 +659,12 @@ namespace costbenefi.Services
                 if (!_conectado || _serialPort == null || !_serialPort.IsOpen)
                 {
                     Debug.WriteLine("❌ Báscula no conectada");
-                    return -1;
+                    return 0; // ✅ CAMBIO: Devolver 0 en lugar de -1
                 }
+
+                // ✅ LIMPIAR BUFFERS ANTES DE LEER
+                _serialPort.DiscardInBuffer();
+                _serialPort.DiscardOutBuffer();
 
                 if (_configuracion.RequiereSolicitudPeso)
                 {
@@ -667,27 +676,223 @@ namespace costbenefi.Services
                     Debug.WriteLine($"📤 Comando enviado: '{_configuracion.ComandoSolicitarPeso}'");
                 }
 
-                // Esperar respuesta
-                await Task.Delay(_configuracion.IntervaloLectura);
+                // Esperar respuesta (ajustar según tu báscula)
+                await Task.Delay(Math.Max(_configuracion.IntervaloLectura, 200));
 
                 if (_serialPort.BytesToRead > 0)
                 {
                     string respuesta = _serialPort.ReadExisting();
-                    Debug.WriteLine($"📥 Respuesta: '{respuesta}'");
 
-                    return ExtraerPeso(respuesta);
+                    // ✅ TOMAR SOLO LA ÚLTIMA LÍNEA (en caso de múltiples respuestas)
+                    if (respuesta.Contains('\n'))
+                    {
+                        var lineas = respuesta.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                        respuesta = lineas.LastOrDefault() ?? respuesta;
+                        Debug.WriteLine($"📥 Múltiples líneas detectadas, usando última: '{respuesta}'");
+                    }
+
+                    // ✅ LOG DETALLADO
+                    Debug.WriteLine($"📥 === RESPUESTA DE BÁSCULA ===");
+                    Debug.WriteLine($"   📄 Texto: '{respuesta}'");
+                    Debug.WriteLine($"   📊 Longitud: {respuesta.Length} caracteres");
+                    Debug.WriteLine($"   🔢 Hex: {string.Join(" ", respuesta.Select(c => ((int)c).ToString("X2")))}");
+
+                    decimal peso = ExtraerPesoMejorado(respuesta);
+
+                    Debug.WriteLine($"   ⚖️ Peso extraído: {peso:F3} kg");
+                    Debug.WriteLine($"📥 === FIN RESPUESTA ===\n");
+
+                    // ✅ LIMPIAR BUFFER DESPUÉS DE LEER
+                    _serialPort.DiscardInBuffer();
+
+                    return peso;
                 }
 
-                return -1;
+                Debug.WriteLine("⚠️ No hay datos disponibles para leer");
+                return 0; // ✅ CAMBIO: Devolver 0 en lugar de -1
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"❌ Error leyendo peso: {ex.Message}");
+                Debug.WriteLine($"Stack: {ex.StackTrace}");
                 ErrorOcurrido?.Invoke(this, ex.Message);
-                return -1;
+                return 0; // ✅ CAMBIO: Devolver 0 en lugar de -1
             }
         }
 
+        /// <summary>
+        /// ✅ NUEVO MÉTODO: Extracción de peso con limpieza robusta
+        /// </summary>
+        private decimal ExtraerPesoMejorado(string respuesta)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(respuesta) || _configuracion == null)
+                {
+                    Debug.WriteLine("⚠️ Respuesta vacía o sin configuración");
+                    return 0;
+                }
+
+                Debug.WriteLine($"🔍 === INICIANDO EXTRACCIÓN DE PESO ===");
+                Debug.WriteLine($"   📄 Respuesta original: '{respuesta}'");
+                Debug.WriteLine($"   🎯 Patrón regex: '{_configuracion.PatronExtraccion}'");
+
+                // ✅ PASO 1: Intentar con el patrón configurado
+                var regex = new Regex(_configuracion.PatronExtraccion);
+                var match = regex.Match(respuesta);
+
+                if (match.Success && match.Groups.Count > 1)
+                {
+                    string pesoTexto = match.Groups[1].Value.Trim();
+                    Debug.WriteLine($"   ✅ Match exitoso: '{pesoTexto}'");
+
+                    // ✅ PASO 2: Limpiar el texto extraído
+                    string pesoLimpio = LimpiarTextoNumerico(pesoTexto);
+                    Debug.WriteLine($"   🧹 Texto limpio: '{pesoLimpio}'");
+
+                    // ✅ PASO 3: Parsear a decimal
+                    if (decimal.TryParse(pesoLimpio,
+                        System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out decimal peso))
+                    {
+                        // ✅ PASO 4: VALIDACIONES CRÍTICAS
+                        peso = Math.Abs(peso); // Siempre positivo
+
+                        // ✅ DETECTAR SI ESTÁ EN GRAMOS (valor muy alto)
+                        if (peso > 1000)
+                        {
+                            Debug.WriteLine($"   ⚠️ Peso sospechoso ({peso}), probablemente en gramos");
+                            Debug.WriteLine($"   🔄 Convirtiendo a kilogramos: {peso} / 1000 = {peso / 1000m}");
+                            peso = peso / 1000m;
+                        }
+
+                        // ✅ VALIDAR RANGO RAZONABLE
+                        if (peso > 500) // Máximo 500 kg (ajustar según tu báscula)
+                        {
+                            Debug.WriteLine($"   ❌ Peso excede límite razonable (500 kg): {peso}");
+                            return 0;
+                        }
+
+                        // ✅ VALIDAR MÍNIMO RAZONABLE
+                        if (peso < 0.001m) // Menor a 1 gramo
+                        {
+                            Debug.WriteLine($"   ⚠️ Peso muy pequeño: {peso}");
+                            return 0;
+                        }
+
+                        Debug.WriteLine($"   ✅ PESO VÁLIDO: {peso:F3} {_configuracion.UnidadPeso}");
+                        Debug.WriteLine($"🔍 === FIN EXTRACCIÓN (EXITOSA) ===");
+                        return peso;
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"   ❌ No se pudo parsear: '{pesoLimpio}'");
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine($"   ⚠️ Patrón no coincidió");
+                    Debug.WriteLine($"   🔄 Intentando extracción alternativa...");
+
+                    // ✅ PASO ALTERNATIVO: Buscar cualquier número en el string
+                    return ExtraerPesoAlternativo(respuesta);
+                }
+
+                Debug.WriteLine($"🔍 === FIN EXTRACCIÓN (SIN ÉXITO) ===");
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"❌ Error extrayendo peso: {ex.Message}");
+                Debug.WriteLine($"Stack: {ex.StackTrace}");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// ✅ NUEVO: Limpia texto numérico de caracteres no deseados
+        /// </summary>
+        private string LimpiarTextoNumerico(string texto)
+        {
+            if (string.IsNullOrEmpty(texto))
+                return "0";
+
+            // Limpiar caracteres comunes
+            texto = texto
+                .Replace("kg", "", StringComparison.OrdinalIgnoreCase)
+                .Replace("g", "", StringComparison.OrdinalIgnoreCase)
+                .Replace("lb", "", StringComparison.OrdinalIgnoreCase)
+                .Replace("oz", "", StringComparison.OrdinalIgnoreCase)
+                .Replace("ST", "", StringComparison.OrdinalIgnoreCase)  // Stable
+                .Replace("US", "", StringComparison.OrdinalIgnoreCase)  // Unstable
+                .Replace("NET", "", StringComparison.OrdinalIgnoreCase)
+                .Replace("GS", "", StringComparison.OrdinalIgnoreCase)
+                .Replace("NT", "", StringComparison.OrdinalIgnoreCase)
+                .Replace("+", "")
+                .Replace(" ", "")
+                .Replace("\r", "")
+                .Replace("\n", "")
+                .Replace("\t", "")
+                .Replace(",", ".") // ✅ CRÍTICO: Reemplazar coma por punto
+                .Trim();
+
+            return texto;
+        }
+
+        /// <summary>
+        /// ✅ NUEVO: Método alternativo si el patrón principal falla
+        /// </summary>
+        private decimal ExtraerPesoAlternativo(string respuesta)
+        {
+            try
+            {
+                Debug.WriteLine($"   🔄 Extracción alternativa iniciada");
+
+                // Limpiar todo el texto
+                string limpio = LimpiarTextoNumerico(respuesta);
+                Debug.WriteLine($"   🧹 Texto limpio completo: '{limpio}'");
+
+                // Buscar cualquier patrón numérico
+                var regexNumero = new Regex(@"[-+]?\d+\.?\d*");
+                var matchNumero = regexNumero.Match(limpio);
+
+                if (matchNumero.Success)
+                {
+                    string numeroStr = matchNumero.Value;
+                    Debug.WriteLine($"   🔢 Número encontrado: '{numeroStr}'");
+
+                    if (decimal.TryParse(numeroStr,
+                        System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out decimal peso))
+                    {
+                        peso = Math.Abs(peso);
+
+                        // Validar si está en gramos
+                        if (peso > 1000)
+                        {
+                            Debug.WriteLine($"   🔄 Convirtiendo de gramos: {peso} / 1000");
+                            peso = peso / 1000m;
+                        }
+
+                        if (peso > 0 && peso <= 500)
+                        {
+                            Debug.WriteLine($"   ✅ Peso alternativo válido: {peso:F3}");
+                            return peso;
+                        }
+                    }
+                }
+
+                Debug.WriteLine($"   ❌ Extracción alternativa sin éxito");
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"   ❌ Error en extracción alternativa: {ex.Message}");
+                return 0;
+            }
+        }
         /// <summary>
         /// ✅ MÉTODO AGREGADO: Tarar la báscula
         /// </summary>
@@ -747,33 +952,7 @@ namespace costbenefi.Services
         /// </summary>
         private decimal ExtraerPeso(string respuesta)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(respuesta) || _configuracion == null)
-                    return -1;
-
-                var regex = new Regex(_configuracion.PatronExtraccion);
-                var match = regex.Match(respuesta);
-
-                if (match.Success && match.Groups.Count > 1)
-                {
-                    string pesoTexto = match.Groups[1].Value;
-
-                    if (decimal.TryParse(pesoTexto, out decimal peso))
-                    {
-                        Debug.WriteLine($"⚖️ Peso extraído: {peso:F3} {_configuracion.UnidadPeso}");
-                        return peso;
-                    }
-                }
-
-                Debug.WriteLine($"⚠️ No se pudo extraer peso de: '{respuesta}'");
-                return -1;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"❌ Error extrayendo peso: {ex.Message}");
-                return -1;
-            }
+            return ExtraerPesoMejorado(respuesta);
         }
 
         #endregion
@@ -782,30 +961,64 @@ namespace costbenefi.Services
 
         private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            try
+            lock (_lockDataReceived)
             {
-                if (_serialPort?.IsOpen == true && _serialPort.BytesToRead > 0)
+                try
                 {
-                    string datos = _serialPort.ReadExisting();
-                    Debug.WriteLine($"📥 Datos recibidos: '{datos}'");
-
-                    DatosRecibidos?.Invoke(this, datos);
-
-                    // Intentar extraer peso
-                    decimal peso = ExtraerPeso(datos);
-                    if (peso >= 0)
+                    // ✅ EVITAR PROCESAMIENTO MÚLTIPLE EN CORTO TIEMPO
+                    var ahora = DateTime.Now;
+                    if ((ahora - _ultimoEventoDataReceived).TotalMilliseconds < 300)
                     {
+                        Debug.WriteLine($"⏭️ Evento DataReceived ignorado (muy rápido)");
+                        return;
+                    }
+                    _ultimoEventoDataReceived = ahora;
+
+                    if (_serialPort?.IsOpen != true || _serialPort.BytesToRead <= 0)
+                        return;
+
+                    // ✅ LEER TODO EL BUFFER DISPONIBLE
+                    string datos = _serialPort.ReadExisting();
+
+                    // ✅ TOMAR SOLO LA ÚLTIMA LÍNEA (dato más reciente)
+                    string datoActual = datos;
+                    if (datos.Contains('\n'))
+                    {
+                        var lineas = datos.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                        datoActual = lineas.LastOrDefault() ?? datos;
+                        Debug.WriteLine($"📥 Múltiples líneas recibidas, usando última: '{datoActual}'");
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"📥 Datos recibidos: '{datoActual}'");
+                    }
+
+                    // ✅ LIMPIAR BUFFER DESPUÉS DE LEER
+                    _serialPort.DiscardInBuffer();
+
+                    // Notificar datos crudos
+                    DatosRecibidos?.Invoke(this, datoActual);
+
+                    // ✅ Extraer peso actual (NO acumulado)
+                    decimal peso = ExtraerPeso(datoActual);
+
+                    if (peso > 0) // ✅ CAMBIO: Solo emitir si es mayor a 0
+                    {
+                        Debug.WriteLine($"⚖️ Peso actual emitido: {peso:F3} kg");
                         PesoRecibido?.Invoke(this, new PesoRecibidoEventArgs(peso));
                     }
+                    else
+                    {
+                        Debug.WriteLine($"⚠️ Peso inválido o cero: {peso}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"❌ Error procesando datos recibidos: {ex.Message}");
+                    ErrorOcurrido?.Invoke(this, ex.Message);
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"❌ Error procesando datos recibidos: {ex.Message}");
-                ErrorOcurrido?.Invoke(this, ex.Message);
-            }
         }
-
         private void SerialPort_ErrorReceived(object sender, SerialErrorReceivedEventArgs e)
         {
             Debug.WriteLine($"❌ Error en puerto serie: {e.EventType}");
