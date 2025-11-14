@@ -124,6 +124,9 @@ namespace costbenefi.Views
                 var ventasDelDia = await _context.GetVentasDelDia(_corteActual.FechaCorte).ToListAsync();
                 _corteActual.CalcularTotalesAutomaticos(ventasDelDia);
 
+                // ✅ RECALCULAR GASTOS AL CARGAR CORTE EXISTENTE
+                _corteActual.GastosTotalesCalculados = await _corteCajaService.CalcularGastosDelDiaAsync(_corteActual.FechaCorte);
+
                 MostrarTotalesCalculados();
                 CargarDatosExistentes();
 
@@ -188,6 +191,19 @@ namespace costbenefi.Views
                 TxtIVAComision.Text = _corteActual.IVAComisionesCalculado.ToString("C2");
                 TxtTotalRealRecibido.Text = (_corteActual.TotalVentasCalculado - _corteActual.ComisionesTotalesCalculadas).ToString("C2");
                 CardComisiones.Visibility = Visibility.Visible;
+            }
+
+            // ✅ GASTOS DEL DÍA
+            if (_corteActual.GastosTotalesCalculados > 0)
+            {
+                TxtGastosTotales.Text = _corteActual.GastosTotalesCalculados.ToString("C2");
+                TxtEfectivoSinGastos.Text = _corteActual.EfectivoRealDisponible.ToString("C2");
+                CardGastos.Visibility = Visibility.Visible;
+
+                // Mostrar ganancia neta final
+                TxtGananciaNetaFinal.Text = _corteActual.GananciaNetaFinal.ToString("C2");
+                TxtGananciaNetaFinal.Visibility = Visibility.Visible;
+                TxtLabelGananciaFinal.Visibility = Visibility.Visible;
             }
 
             // Efectivo esperado
@@ -407,6 +423,67 @@ namespace costbenefi.Views
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al generar reporte: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void BtnVerDetalleGastos_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var gastosDelDia = await _corteCajaService.ObtenerDetalleGastosDelDiaAsync(_fechaCorte);
+
+                if (!gastosDelDia.Any())
+                {
+                    MessageBox.Show("No hay gastos registrados para esta fecha.",
+                                  "Información", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // Generar reporte de gastos
+                var reporte = $"💸 DETALLE DE GASTOS - {_fechaCorte:dd/MM/yyyy}\n\n";
+                reporte += $"Total de gastos: {gastosDelDia.Count}\n\n";
+                reporte += "═══════════════════════════════════════════════\n\n";
+
+                foreach (var gasto in gastosDelDia.OrderBy(g => g.FechaMovimiento))
+                {
+                    reporte += $"{gasto.TipoMovimientoIcon} {gasto.TipoMovimiento}\n";
+                    reporte += $"   Hora: {gasto.FechaMovimiento:HH:mm:ss}\n";
+                    reporte += $"   Motivo: {gasto.Motivo}\n";
+                    if (gasto.RawMaterial != null)
+                        reporte += $"   Material: {gasto.RawMaterial.Name}\n";
+                    reporte += $"   Cantidad: {gasto.Cantidad:F2} {gasto.UnidadMedida}\n";
+                    reporte += $"   Valor: {gasto.ValorTotalConIVA:C2}\n";
+                    reporte += $"   Usuario: {gasto.Usuario}\n";
+                    reporte += "───────────────────────────────────────────\n";
+                }
+
+                reporte += $"\n💰 TOTAL GASTOS: {gastosDelDia.Sum(g => g.ValorTotalConIVA):C2}";
+
+                var ventanaDetalle = new Window
+                {
+                    Title = $"💸 Detalle de Gastos - {_fechaCorte:dd/MM/yyyy}",
+                    Width = 600,
+                    Height = 500,
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    Content = new ScrollViewer
+                    {
+                        Content = new TextBlock
+                        {
+                            Text = reporte,
+                            FontFamily = new FontFamily("Consolas"),
+                            FontSize = 12,
+                            Margin = new Thickness(15),
+                            TextWrapping = TextWrapping.Wrap
+                        }
+                    }
+                };
+                ventanaDetalle.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al generar reporte de gastos: {ex.Message}",
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
