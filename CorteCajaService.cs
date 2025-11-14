@@ -83,6 +83,9 @@ namespace costbenefi.Services
             // Calcular totales automáticamente
             nuevoCorte.CalcularTotalesAutomaticos(ventasDelDia);
 
+            // ✅ CALCULAR GASTOS DEL DÍA
+            nuevoCorte.GastosTotalesCalculados = await CalcularGastosDelDiaAsync(fechaSolo);
+
             // Obtener fondo de caja del día anterior
             var fondoAnterior = await ObtenerFondoCajaAnteriorAsync(fechaSolo);
             nuevoCorte.FondoCajaInicial = fondoAnterior;
@@ -279,6 +282,30 @@ namespace costbenefi.Services
         // ===== MÉTODOS DE APOYO =====
 
         /// <summary>
+        /// Calcula los gastos del día desde los movimientos registrados
+        /// </summary>
+        public async Task<decimal> CalcularGastosDelDiaAsync(DateTime fecha)
+        {
+            var fechaSolo = fecha.Date;
+            var fechaFin = fechaSolo.AddDays(1);
+
+            // Obtener movimientos del día que representen gastos
+            // Excluimos "Venta" porque esos ya están en las ventas
+            var gastosDelDia = await _context.Set<Movimiento>()
+                .Where(m => m.FechaMovimiento >= fechaSolo &&
+                           m.FechaMovimiento < fechaFin &&
+                           (m.TipoMovimiento == "Salida" ||
+                            m.TipoMovimiento == "Merma" ||
+                            m.TipoMovimiento == "Gasto"))
+                .ToListAsync();
+
+            // Calcular total de gastos
+            var totalGastos = gastosDelDia.Sum(m => m.ValorTotalConIVA);
+
+            return totalGastos;
+        }
+
+        /// <summary>
         /// Obtiene el fondo de caja del día anterior
         /// </summary>
         private async Task<decimal> ObtenerFondoCajaAnteriorAsync(DateTime fecha)
@@ -373,7 +400,39 @@ namespace costbenefi.Services
                 reporte += $"   • Total comisiones: {totalComisiones:C2}\n";
             }
 
+            // ✅ GASTOS DEL DÍA
+            var gastosDelDia = await ObtenerDetalleGastosDelDiaAsync(fecha);
+            if (gastosDelDia.Any())
+            {
+                var totalGastos = gastosDelDia.Sum(g => g.ValorTotalConIVA);
+                reporte += $"\n💸 GASTOS DEL DÍA:\n";
+                foreach (var gasto in gastosDelDia.OrderBy(g => g.FechaMovimiento))
+                {
+                    reporte += $"   • {gasto.TipoMovimiento}: {gasto.Motivo} - {gasto.ValorTotalConIVA:C2}\n";
+                }
+                reporte += $"   • TOTAL GASTOS: {totalGastos:C2}\n";
+            }
+
             return reporte;
+        }
+
+        /// <summary>
+        /// Obtiene el detalle de gastos del día para mostrar en reportes
+        /// </summary>
+        public async Task<List<Movimiento>> ObtenerDetalleGastosDelDiaAsync(DateTime fecha)
+        {
+            var fechaSolo = fecha.Date;
+            var fechaFin = fechaSolo.AddDays(1);
+
+            return await _context.Set<Movimiento>()
+                .Include(m => m.RawMaterial)
+                .Where(m => m.FechaMovimiento >= fechaSolo &&
+                           m.FechaMovimiento < fechaFin &&
+                           (m.TipoMovimiento == "Salida" ||
+                            m.TipoMovimiento == "Merma" ||
+                            m.TipoMovimiento == "Gasto"))
+                .OrderBy(m => m.FechaMovimiento)
+                .ToListAsync();
         }
 
         /// <summary>
@@ -392,6 +451,9 @@ namespace costbenefi.Services
 
             // Recalcular totales
             corte.CalcularTotalesAutomaticos(ventasDelDia);
+
+            // ✅ RECALCULAR GASTOS
+            corte.GastosTotalesCalculados = await CalcularGastosDelDiaAsync(corte.FechaCorte);
 
             // Actualizar timestamp
             corte.FechaActualizacion = DateTime.Now;

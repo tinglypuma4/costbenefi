@@ -72,6 +72,20 @@ namespace costbenefi.Models
         [Column(TypeName = "decimal(18,4)")]
         public decimal GananciaNetaCalculada { get; set; }
 
+        // ===== GASTOS DEL DÍA (Calculados desde Movimientos - No persistidos) =====
+
+        /// <summary>Total de gastos del día (calculado desde Movimientos)</summary>
+        [NotMapped]
+        public decimal GastosTotalesCalculados { get; set; }
+
+        /// <summary>Ganancia neta real después de gastos</summary>
+        [NotMapped]
+        public decimal GananciaNetaFinal => GananciaNetaCalculada - GastosTotalesCalculados;
+
+        /// <summary>Efectivo real disponible considerando gastos</summary>
+        [NotMapped]
+        public decimal EfectivoRealDisponible => EfectivoCalculado - GastosTotalesCalculados;
+
         // ===== CONTEO FÍSICO MANUAL (USUARIO) =====
 
         /// <summary>Efectivo contado físicamente en caja</summary>
@@ -284,6 +298,14 @@ namespace costbenefi.Models
                 resumen += $"   • Total comisiones: {ComisionesTotalesCalculadas:C2}\n\n";
             }
 
+            // Gastos del día
+            if (GastosTotalesCalculados > 0)
+            {
+                resumen += $"💸 GASTOS DEL DÍA:\n";
+                resumen += $"   • Total gastos: {GastosTotalesCalculados:C2}\n";
+                resumen += $"   • Efectivo después de gastos: {EfectivoRealDisponible:C2}\n\n";
+            }
+
             // Conciliación de efectivo
             resumen += $"💰 CONCILIACIÓN DE EFECTIVO:\n";
             resumen += $"   • Fondo inicial: {FondoCajaInicial:C2}\n";
@@ -304,7 +326,12 @@ namespace costbenefi.Models
             // Rentabilidad
             resumen += $"📈 RENTABILIDAD:\n";
             resumen += $"   • Ganancia bruta: {GananciaBrutaCalculada:C2}\n";
-            resumen += $"   • Ganancia neta: {GananciaNetaCalculada:C2}\n";
+            resumen += $"   • Ganancia neta (sin gastos): {GananciaNetaCalculada:C2}\n";
+            if (GastosTotalesCalculados > 0)
+            {
+                resumen += $"   • Gastos del día: -{GastosTotalesCalculados:C2}\n";
+                resumen += $"   • Ganancia neta final: {GananciaNetaFinal:C2}\n";
+            }
 
             // Información de depósito
             if (DepositoRealizado)
@@ -350,8 +377,10 @@ namespace costbenefi.Models
                 analisis += $"📉 FALTANTE DETECTADO: {Math.Abs(DiferenciaEfectivo):C2}\n";
                 analisis += $"Posibles causas:\n";
                 analisis += $"• Error en cambio calculado\n";
-                analisis += $"• Gasto no registrado\n";
-                analisis += $"• Diferencia en conteo\n";
+                analisis += $"• Gasto no registrado en sistema\n";
+                analisis += $"• Diferencia en conteo físico\n";
+                if (GastosTotalesCalculados > 0)
+                    analisis += $"• Gastos registrados del día: {GastosTotalesCalculados:C2}\n";
                 if (!string.IsNullOrEmpty(MotivoFaltante))
                     analisis += $"• Motivo registrado: {MotivoFaltante}\n";
             }
