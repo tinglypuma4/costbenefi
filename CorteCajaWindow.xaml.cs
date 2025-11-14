@@ -451,7 +451,7 @@ namespace costbenefi.Views
                     reporte += $"   Hora: {gasto.FechaMovimiento:HH:mm:ss}\n";
                     reporte += $"   Motivo: {gasto.Motivo}\n";
                     if (gasto.RawMaterial != null)
-                        reporte += $"   Material: {gasto.RawMaterial.Name}\n";
+                        reporte += $"   Material: {gasto.RawMaterial.NombreArticulo}\n";
                     reporte += $"   Cantidad: {gasto.Cantidad:F2} {gasto.UnidadMedida}\n";
                     reporte += $"   Valor: {gasto.ValorTotalConIVA:C2}\n";
                     reporte += $"   Usuario: {gasto.Usuario}\n";
