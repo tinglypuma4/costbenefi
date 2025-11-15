@@ -10,7 +10,6 @@
         ResizeMode="NoResize">
 
     <Window.Resources>
-        <!-- Estilos básicos -->
         <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="Bold"/>
@@ -25,7 +24,6 @@
             <Setter Property="Foreground" Value="#34495E"/>
         </Style>
 
-        <!-- Estilo para Cards (Borders) -->
         <Style x:Key="CardStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#E5E7EB"/>
@@ -40,7 +38,6 @@
             </Setter>
         </Style>
 
-        <!-- Estilo para TextBox -->
         <Style x:Key="ModernTextBox" TargetType="TextBox">
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="BorderBrush" Value="#D1D5DB"/>
@@ -50,7 +47,6 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
-        <!-- Estilo para Button -->
         <Style x:Key="PrimaryButton" TargetType="Button">
             <Setter Property="Background" Value="#3B82F6"/>
             <Setter Property="Foreground" Value="White"/>
@@ -65,7 +61,7 @@
                                 CornerRadius="4"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"/>
+                                              VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -85,6 +81,29 @@
 
         <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
             <Setter Property="Background" Value="#6B7280"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#4B5563"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#374151"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#9CA3AF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
@@ -95,70 +114,64 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- HEADER -->
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
             <TextBlock Text="💸 REGISTRAR GASTO" Style="{StaticResource HeaderTextStyle}" FontSize="20"/>
             <TextBlock x:Name="TxtFecha" Text="Fecha: [Fecha]" Foreground="#6B7280" FontSize="11"/>
         </StackPanel>
 
-        <!-- FORMULARIO -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
 
-                <!-- CONCEPTO DEL GASTO -->
                 <Border Style="{StaticResource CardStyle}">
                     <StackPanel>
                         <TextBlock Text="📝 Concepto del gasto" Style="{StaticResource LabelTextStyle}"/>
                         <TextBox x:Name="TxtConcepto"
-                                Style="{StaticResource ModernTextBox}"
-                                MaxLength="500"/>
+                                 Style="{StaticResource ModernTextBox}"
+                                 MaxLength="500"/>
                         <TextBlock Text="Ejemplo: Pago de luz, Compra de insumos, etc."
-                                  Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
+                                     Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
                     </StackPanel>
                 </Border>
 
-                <!-- MONTO TOTAL -->
                 <Border Style="{StaticResource CardStyle}">
                     <StackPanel>
                         <TextBlock Text="💰 Monto total del gasto" Style="{StaticResource LabelTextStyle}"/>
                         <TextBox x:Name="TxtMontoTotal"
-                                Style="{StaticResource ModernTextBox}"
-                                PreviewTextInput="NumericTextBox_PreviewTextInput"
-                                TextChanged="TxtMontoTotal_TextChanged"/>
+                                 Style="{StaticResource ModernTextBox}"
+                                 PreviewTextInput="NumericTextBox_PreviewTextInput"
+                                 TextChanged="TxtMontoTotal_TextChanged"/>
                         <TextBlock x:Name="TxtMontoFormateado" Text="$0.00"
-                                  Foreground="#10B981" FontSize="14" FontWeight="Bold" Margin="0,5,0,0"/>
+                                     Foreground="#10B981" FontSize="14" FontWeight="Bold" Margin="0,5,0,0"/>
                     </StackPanel>
                 </Border>
 
-                <!-- FORMA DE PAGO -->
                 <Border Style="{StaticResource CardStyle}">
                     <StackPanel>
                         <TextBlock Text="💳 Forma de pago" Style="{StaticResource LabelTextStyle}"/>
 
                         <StackPanel>
                             <RadioButton x:Name="RbEfectivo" Content="💵 Efectivo"
-                                       GroupName="FormaPago" IsChecked="True"
-                                       Margin="0,5" FontWeight="SemiBold"
-                                       Checked="FormaPago_Changed"/>
+                                         GroupName="FormaPago" IsChecked="True"
+                                         Margin="0,5" FontWeight="SemiBold"
+                                         Checked="FormaPago_Changed"/>
                             <RadioButton x:Name="RbTarjeta" Content="💳 Tarjeta"
-                                       GroupName="FormaPago"
-                                       Margin="0,5" FontWeight="SemiBold"
-                                       Checked="FormaPago_Changed"/>
+                                         GroupName="FormaPago"
+                                         Margin="0,5" FontWeight="SemiBold"
+                                         Checked="FormaPago_Changed"/>
                             <RadioButton x:Name="RbTransferencia" Content="🏦 Transferencia"
-                                       GroupName="FormaPago"
-                                       Margin="0,5" FontWeight="SemiBold"
-                                       Checked="FormaPago_Changed"/>
+                                         GroupName="FormaPago"
+                                         Margin="0,5" FontWeight="SemiBold"
+                                         Checked="FormaPago_Changed"/>
                             <RadioButton x:Name="RbCombinado" Content="🔀 Combinado (varios métodos)"
-                                       GroupName="FormaPago"
-                                       Margin="0,5" FontWeight="SemiBold"
-                                       Checked="FormaPago_Changed"/>
+                                         GroupName="FormaPago"
+                                         Margin="0,5" FontWeight="SemiBold"
+                                         Checked="FormaPago_Changed"/>
                         </StackPanel>
 
-                        <!-- PANEL PARA PAGO COMBINADO -->
                         <StackPanel x:Name="PanelPagoCombinado" Visibility="Collapsed" Margin="0,10,0,0">
                             <Border Background="#FEF3C7" Padding="10" CornerRadius="4" Margin="0,0,0,10">
                                 <TextBlock Text="⚠️ Especifica cuánto se pagó con cada método"
-                                          FontSize="11" Foreground="#92400E"/>
+                                             FontSize="11" Foreground="#92400E"/>
                             </Border>
 
                             <Grid>
@@ -170,41 +183,37 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Efectivo -->
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="💵 Efectivo:" FontSize="10" Margin="0,0,0,3"/>
                                     <TextBox x:Name="TxtEfectivoParcial"
-                                            Style="{StaticResource ModernTextBox}"
-                                            PreviewTextInput="NumericTextBox_PreviewTextInput"
-                                            TextChanged="MontosParciales_Changed"/>
+                                             Style="{StaticResource ModernTextBox}"
+                                             PreviewTextInput="NumericTextBox_PreviewTextInput"
+                                             TextChanged="MontosParciales_Changed"/>
                                 </StackPanel>
 
-                                <!-- Tarjeta -->
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="💳 Tarjeta:" FontSize="10" Margin="0,0,0,3"/>
                                     <TextBox x:Name="TxtTarjetaParcial"
-                                            Style="{StaticResource ModernTextBox}"
-                                            PreviewTextInput="NumericTextBox_PreviewTextInput"
-                                            TextChanged="MontosParciales_Changed"/>
+                                             Style="{StaticResource ModernTextBox}"
+                                             PreviewTextInput="NumericTextBox_PreviewTextInput"
+                                             TextChanged="MontosParciales_Changed"/>
                                 </StackPanel>
 
-                                <!-- Transferencia -->
                                 <StackPanel Grid.Column="4">
                                     <TextBlock Text="🏦 Transfer:" FontSize="10" Margin="0,0,0,3"/>
                                     <TextBox x:Name="TxtTransferenciaParcial"
-                                            Style="{StaticResource ModernTextBox}"
-                                            PreviewTextInput="NumericTextBox_PreviewTextInput"
-                                            TextChanged="MontosParciales_Changed"/>
+                                             Style="{StaticResource ModernTextBox}"
+                                             PreviewTextInput="NumericTextBox_PreviewTextInput"
+                                             TextChanged="MontosParciales_Changed"/>
                                 </StackPanel>
                             </Grid>
 
-                            <!-- Validación de suma -->
                             <Border x:Name="BorderValidacionSuma" Background="#DBEAFE" Padding="8" CornerRadius="4" Margin="0,10,0,0">
                                 <StackPanel>
                                     <TextBlock x:Name="TxtSumaParcial" Text="Suma parcial: $0.00"
-                                              FontSize="11" FontWeight="Bold"/>
+                                                 FontSize="11" FontWeight="Bold"/>
                                     <TextBlock x:Name="TxtDiferenciaSuma" Text=""
-                                              FontSize="10" Foreground="#DC2626"/>
+                                                 FontSize="10" Foreground="#DC2626"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -214,9 +223,10 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- BOTONES -->
         <Grid Grid.Row="2" Margin="0,20,0,0">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="10"/>
                 <ColumnDefinition Width="*"/>
@@ -226,7 +236,11 @@
                     Style="{StaticResource SecondaryButton}" Height="40"
                     Click="BtnCancelar_Click"/>
 
-            <Button Grid.Column="2" x:Name="BtnGuardar" Content="✅ Guardar Gasto"
+            <Button Grid.Column="2" Content="⚙️ Otros Detalles" 
+                    Style="{StaticResource SecondaryButton}" Height="40"
+                    Click="BtnOtrosDetalles_Click"/>
+
+            <Button Grid.Column="4" x:Name="BtnGuardar" Content="✅ Guardar Gasto"
                     Style="{StaticResource PrimaryButton}" Height="40"
                     Click="BtnGuardar_Click"/>
         </Grid>

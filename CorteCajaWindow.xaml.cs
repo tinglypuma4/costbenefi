@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using costbenefi.Data;
 using costbenefi.Models;
 using costbenefi.Services;
+using System.IO; // Necesario para la auditoría
 
 namespace costbenefi.Views
 {
@@ -48,13 +49,14 @@ namespace costbenefi.Views
             try
             {
                 await InicializarCorte();
+                if (_corteActual == null) return; // Si el usuario cerró la ventana
                 InicializarInterfaz();
                 ActualizarEstadoValidacion();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al cargar corte de caja: {ex.Message}",
-                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Close();
             }
         }
@@ -85,6 +87,8 @@ namespace costbenefi.Views
                     }
                     else
                     {
+                        // Si dice que no, cerramos esta ventana.
+                        _corteActual = null; // Marcar para que Loaded se detenga
                         Close();
                         return;
                     }
@@ -205,6 +209,12 @@ namespace costbenefi.Views
                 TxtGananciaNetaFinal.Visibility = Visibility.Visible;
                 TxtLabelGananciaFinal.Visibility = Visibility.Visible;
             }
+            else
+            {
+                // Ocultar si no hay gastos
+                TxtGananciaNetaFinal.Visibility = Visibility.Collapsed;
+                TxtLabelGananciaFinal.Visibility = Visibility.Collapsed;
+            }
 
             // Efectivo esperado
             ActualizarEfectivoEsperado();
@@ -243,8 +253,8 @@ namespace costbenefi.Views
                     break;
                 case "Completado":
                     var estado = _corteActual.TieneSobrante ? "✅ COMPLETADO (SOBRANTE)" :
-                                _corteActual.TieneFaltante ? "⚠️ COMPLETADO (FALTANTE)" :
-                                "✅ COMPLETADO (EXACTO)";
+                                 _corteActual.TieneFaltante ? "⚠️ COMPLETADO (FALTANTE)" :
+                                 "✅ COMPLETADO (EXACTO)";
                     TxtEstadoCorte.Text = estado;
                     TxtEstadoCorte.Background = new SolidColorBrush(Color.FromRgb(40, 167, 69)); // Verde
                     break;
@@ -273,13 +283,13 @@ namespace costbenefi.Views
 
         private void CalcularDiferencias(object sender = null, TextChangedEventArgs e = null)
         {
-            if (!_conteoCompleto) return;
+            if (!_conteoCompleto || _corteActual == null) return;
 
             try
             {
-                var fondoInicial = TryParseDecimal(TxtFondoInicial.Text, out decimal fondo) ? fondo : 1000;
+                var fondoInicial = TryParseDecimal(TxtFondoInicial.Text, out decimal fondo) ? fondo : 0;
                 var efectivoContado = TryParseDecimal(TxtEfectivoContado.Text, out decimal contado) ? contado : 0;
-                var fondoSiguiente = TryParseDecimal(TxtFondoSiguiente.Text, out decimal siguiente) ? siguiente : 1000;
+                var fondoSiguiente = TryParseDecimal(TxtFondoSiguiente.Text, out decimal siguiente) ? siguiente : 0;
 
                 // Actualizar modelo temporal
                 _corteActual.FondoCajaInicial = fondoInicial;
@@ -298,7 +308,10 @@ namespace costbenefi.Views
                 if (_corteActual.EfectivoParaDepositar > 100) // Mínimo para depósito
                 {
                     CardDeposito.Visibility = Visibility.Visible;
-                    TxtMontoDeposito.Text = _corteActual.EfectivoParaDepositar.ToString("F2");
+                    if (ChkRealizarDeposito.IsChecked != true)
+                    {
+                        TxtMontoDeposito.Text = _corteActual.EfectivoParaDepositar.ToString("F2");
+                    }
                 }
 
                 _diferenciasCalculadas = true;
@@ -312,9 +325,10 @@ namespace costbenefi.Views
 
         private void ActualizarEfectivoEsperado()
         {
-            var fondoInicial = TryParseDecimal(TxtFondoInicial.Text, out decimal fondo) ? fondo : 1000;
-            var esperado = _corteActual.EfectivoCalculado + fondoInicial;
-            TxtEfectivoEsperado.Text = esperado.ToString("C2");
+            if (_corteActual == null) return;
+            var fondoInicial = TryParseDecimal(TxtFondoInicial.Text, out decimal fondo) ? fondo : 0;
+            _corteActual.FondoCajaInicial = fondoInicial; // Actualizar el modelo
+            TxtEfectivoEsperado.Text = _corteActual.EfectivoEsperado.ToString("C2");
         }
 
         private void ActualizarEstadoDiferencia()
@@ -354,7 +368,6 @@ namespace costbenefi.Views
 
             if (puedeCompletar)
             {
-                // ✅ CORREGIDO: Solo cambiar texto y color, sin .Kind
                 IconEstado.Text = "✅";
                 IconEstado.Foreground = new SolidColorBrush(Color.FromRgb(40, 167, 69));
                 TxtEstadoValidacion.Text = "✅ Listo para completar";
@@ -362,7 +375,6 @@ namespace costbenefi.Views
             }
             else if (!_conteoCompleto)
             {
-                // ✅ CORREGIDO: Solo cambiar texto y color, sin .Kind  
                 IconEstado.Text = "🕐";
                 IconEstado.Foreground = new SolidColorBrush(Color.FromRgb(255, 193, 7));
                 TxtEstadoValidacion.Text = "⏳ Complete el conteo físico";
@@ -370,7 +382,6 @@ namespace costbenefi.Views
             }
             else
             {
-                // ✅ CORREGIDO: Solo cambiar texto y color, sin .Kind
                 IconEstado.Text = "🧮";
                 IconEstado.Foreground = new SolidColorBrush(Color.FromRgb(23, 162, 184));
                 TxtEstadoValidacion.Text = "🧮 Calculando diferencias...";
@@ -423,7 +434,7 @@ namespace costbenefi.Views
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al generar reporte: {ex.Message}",
-                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -441,78 +452,50 @@ namespace costbenefi.Views
 
                     // Actualizar interfaz
                     MostrarTotalesCalculados();
+                    CalcularDiferencias(); // Recalcular todo
 
                     MessageBox.Show("✅ Gastos actualizados en el corte de caja",
-                                  "Información", MessageBoxButton.OK, MessageBoxImage.Information);
+                                    "Información", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al agregar gasto:\n\n{ex.Message}",
-                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
+        // ===== ESTE ES EL MÉTODO MODIFICADO =====
         private async void BtnVerDetalleGastos_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                var gastosDelDia = await _corteCajaService.ObtenerDetalleGastosDelDiaAsync(_fechaCorte);
+                // Abrir la nueva ventana de gestión de gastos
+                var ventanaGastos = new GestionGastosWindow(_context, _fechaCorte);
+                ventanaGastos.Owner = this;
+                ventanaGastos.ShowDialog(); // Muestra la ventana y espera a que se cierre
 
-                if (!gastosDelDia.Any())
+                // Si se eliminó un gasto en esa ventana
+                if (ventanaGastos.GastoModificado)
                 {
-                    MessageBox.Show("No hay gastos registrados para esta fecha.",
-                                  "Información", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
+                    // Recalcular los gastos en esta ventana (CorteCajaWindow)
+                    _corteActual.GastosTotalesCalculados = await _corteCajaService.CalcularGastosDelDiaAsync(_fechaCorte);
+
+                    // Actualizar toda la interfaz de CorteCajaWindow
+                    MostrarTotalesCalculados();
+                    CalcularDiferencias(); // Recalcular diferencias con el nuevo total de gastos
+
+                    MessageBox.Show("✅ Los gastos del corte han sido actualizados.",
+                                    "Gastos Modificados", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-
-                // Generar reporte de gastos
-                var reporte = $"💸 DETALLE DE GASTOS - {_fechaCorte:dd/MM/yyyy}\n\n";
-                reporte += $"Total de gastos: {gastosDelDia.Count}\n\n";
-                reporte += "═══════════════════════════════════════════════\n\n";
-
-                foreach (var gasto in gastosDelDia.OrderBy(g => g.FechaMovimiento))
-                {
-                    reporte += $"{gasto.TipoMovimientoIcon} {gasto.TipoMovimiento}\n";
-                    reporte += $"   Hora: {gasto.FechaMovimiento:HH:mm:ss}\n";
-                    reporte += $"   Motivo: {gasto.Motivo}\n";
-                    if (gasto.RawMaterial != null)
-                        reporte += $"   Material: {gasto.RawMaterial.NombreArticulo}\n";
-                    reporte += $"   Cantidad: {gasto.Cantidad:F2} {gasto.UnidadMedida}\n";
-                    reporte += $"   Valor: {gasto.ValorTotalConIVA:C2}\n";
-                    reporte += $"   Usuario: {gasto.Usuario}\n";
-                    reporte += "───────────────────────────────────────────\n";
-                }
-
-                reporte += $"\n💰 TOTAL GASTOS: {gastosDelDia.Sum(g => g.ValorTotalConIVA):C2}";
-
-                var ventanaDetalle = new Window
-                {
-                    Title = $"💸 Detalle de Gastos - {_fechaCorte:dd/MM/yyyy}",
-                    Width = 600,
-                    Height = 500,
-                    Owner = this,
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                    Content = new ScrollViewer
-                    {
-                        Content = new TextBlock
-                        {
-                            Text = reporte,
-                            FontFamily = new FontFamily("Consolas"),
-                            FontSize = 12,
-                            Margin = new Thickness(15),
-                            TextWrapping = TextWrapping.Wrap
-                        }
-                    }
-                };
-                ventanaDetalle.ShowDialog();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al generar reporte de gastos: {ex.Message}",
-                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error al mostrar detalle de gastos: {ex.Message}",
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
 
         private void BtnCancelar_Click(object sender, RoutedEventArgs e)
         {
@@ -565,7 +548,7 @@ namespace costbenefi.Views
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al completar corte: {ex.Message}",
-                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 BtnCompletarCorte.IsEnabled = true;
                 BtnCompletarCorte.Content = "✅ Completar Corte";
             }
@@ -578,7 +561,7 @@ namespace costbenefi.Views
             if (!TryParseDecimal(TxtEfectivoContado.Text, out decimal efectivoContado) || efectivoContado < 0)
             {
                 MessageBox.Show("Ingrese un monto válido para el efectivo contado.",
-                              "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
                 TxtEfectivoContado.Focus();
                 return false;
             }
@@ -586,7 +569,7 @@ namespace costbenefi.Views
             if (!TryParseDecimal(TxtFondoSiguiente.Text, out decimal fondoSiguiente) || fondoSiguiente < 0)
             {
                 MessageBox.Show("Ingrese un monto válido para el fondo de caja del día siguiente.",
-                              "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
                 TxtFondoSiguiente.Focus();
                 return false;
             }
@@ -596,7 +579,7 @@ namespace costbenefi.Views
                 if (!TryParseDecimal(TxtMontoDeposito.Text, out decimal montoDeposito) || montoDeposito <= 0)
                 {
                     MessageBox.Show("Ingrese un monto válido para el depósito.",
-                                  "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
                     TxtMontoDeposito.Focus();
                     return false;
                 }
@@ -604,7 +587,7 @@ namespace costbenefi.Views
                 if (string.IsNullOrWhiteSpace(TxtReferenciaDeposito.Text))
                 {
                     MessageBox.Show("Ingrese la referencia del depósito bancario.",
-                                  "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
                     TxtReferenciaDeposito.Focus();
                     return false;
                 }

@@ -211,7 +211,7 @@ namespace costbenefi.Views
             );
         }
 
-        /// <summary>
+        /// <summar
         /// Formatear tipo de licencia para mostrar
         /// </summary>
         private string FormatearTipoLicencia(LicenseManager.LicenseType tipo)

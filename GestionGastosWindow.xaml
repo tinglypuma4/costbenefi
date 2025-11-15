@@ -1,0 +1,117 @@
+﻿<Window x:Class="costbenefi.Views.GestionGastosWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="💸 Listado de Gastos del Día"
+        Width="650" Height="450"
+        WindowStartupLocation="CenterOwner"
+        Background="#F8F9FA"
+        FontFamily="Segoe UI">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Título -->
+        <TextBlock Grid.Row="0" Text="💸 Gastos Registrados" 
+                   FontSize="18" FontWeight="Bold" 
+                   Foreground="#2C3E50" Margin="0,0,0,10"/>
+
+        <!-- DataGrid con los Gastos -->
+        <DataGrid Grid.Row="1" x:Name="DgGastos" 
+                  AutoGenerateColumns="False" 
+                  CanUserAddRows="False" 
+                  IsReadOnly="True"
+                  GridLinesVisibility="Horizontal" 
+                  HeadersVisibility="Column"
+                  ItemsSource="{Binding GastosDelDia}">
+            
+            <DataGrid.Resources>
+                <!-- Estilo para centrar el botón de eliminar -->
+                <Style TargetType="Button" x:Key="DeleteButtonCellStyle">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                </Style>
+            </DataGrid.Resources>
+            
+            <DataGrid.Columns>
+                <!-- Columna de Concepto -->
+                <DataGridTextColumn Header="Concepto" Binding="{Binding Motivo}" Width="*"/>
+
+                <!-- Columna de Fecha/Hora -->
+                <DataGridTextColumn Header="Hora" Binding="{Binding FechaMovimiento, StringFormat='{}{0:HH:mm}'}" Width="60"/>
+
+                <!-- Columna de Usuario -->
+                <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" Width="100"/>
+
+                <!-- Columna de Monto -->
+                <DataGridTextColumn Header="Monto" Binding="{Binding PrecioConIVA, StringFormat='{}{0:C2}'}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Right"/>
+                            <Setter Property="Foreground" Value="#DC2626"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- COLUMNA DE ELIMINAR -->
+                <DataGridTemplateColumn Header="" Width="40">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="🗑️" 
+                                    Width="30" 
+                                    Height="30"
+                                    Background="#FEE2E2"
+                                    BorderBrush="#FCA5A5"
+                                    BorderThickness="1"
+                                    ToolTip="Eliminar gasto (requiere autorización)"
+                                    Tag="{Binding}"
+                                    Click="BtnEliminarGasto_Click"
+                                    Cursor="Hand"
+                                    > <!-- ===== CORRECCIÓN AQUÍ: Faltaba este '>' ===== -->
+
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource DeleteButtonCellStyle}">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="4">
+                                                        <ContentPresenter HorizontalAlignment="Center"
+                                                                        VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#FCA5A5"/>
+                                                            <Setter Property="BorderBrush" Value="#EF4444"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Barra de Estado -->
+        <Border Grid.Row="2" Background="#EEE" Margin="0,10,0,10" CornerRadius="4" Padding="8">
+            <TextBlock x:Name="TxtStatus" Text="Lista de gastos cargada." Foreground="#444" FontSize="11"/>
+        </Border>
+        
+        <!-- Botón de Cerrar -->
+        <Button Grid.Row="3" Content="✓ Cerrar" 
+                Click="BtnCerrar_Click" 
+                HorizontalAlignment="Right"
+                Width="100" Padding="8,5"/>
+    </Grid>
+</Window>

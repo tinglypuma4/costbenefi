@@ -9,6 +9,7 @@ using System.Windows.Media;
 using Microsoft.EntityFrameworkCore;
 using costbenefi.Data;
 using costbenefi.Models;
+using System.Threading.Tasks; // Asegúrate de tener este using para Tareas Asíncronas
 
 namespace costbenefi.Views
 {
@@ -34,12 +35,14 @@ namespace costbenefi.Views
 
         private void NumericTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
+            // Permite números, punto decimal y comas (para miles, aunque TryParseDecimal las quita)
             Regex regex = new Regex(@"^[0-9.,]*$");
             e.Handled = !regex.IsMatch(e.Text);
         }
 
         private bool TryParseDecimal(string text, out decimal result)
         {
+            // Limpia comas de miles y usa InvariantCulture para aceptar el punto decimal
             return decimal.TryParse(text?.Replace(",", ""), NumberStyles.Any, CultureInfo.InvariantCulture, out result);
         }
 
@@ -59,6 +62,11 @@ namespace costbenefi.Views
             }
 
             ValidarFormulario();
+            // Validar sumas parciales si el panel combinado está visible
+            if (RbCombinado.IsChecked == true)
+            {
+                ValidarSumaParciales();
+            }
         }
 
         private void FormaPago_Changed(object sender, RoutedEventArgs e)
@@ -70,9 +78,11 @@ namespace costbenefi.Views
             if (RbCombinado.IsChecked == false)
             {
                 // Limpiar campos parciales
+                _actualizandoMontos = true; // Evitar que los eventos TextChanged se disparen en cadena
                 TxtEfectivoParcial.Text = "";
                 TxtTarjetaParcial.Text = "";
                 TxtTransferenciaParcial.Text = "";
+                _actualizandoMontos = false;
             }
 
             ValidarFormulario();
@@ -99,18 +109,19 @@ namespace costbenefi.Views
 
             TxtSumaParcial.Text = $"Suma parcial: {sumaParcial:C2}";
 
+            // Usar una tolerancia pequeña para comparar decimales
             if (Math.Abs(sumaParcial - montoTotal) < 0.01m)
             {
                 TxtDiferenciaSuma.Text = "✅ La suma coincide con el total";
                 TxtDiferenciaSuma.Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129));
-                BorderValidacionSuma.Background = new SolidColorBrush(Color.FromRgb(219, 234, 254));
+                BorderValidacionSuma.Background = new SolidColorBrush(Color.FromRgb(219, 234, 254)); // Azul claro
             }
             else
             {
                 var diferencia = montoTotal - sumaParcial;
-                TxtDiferenciaSuma.Text = $"❌ Falta agregar: {Math.Abs(diferencia):C2}";
-                TxtDiferenciaSuma.Foreground = new SolidColorBrush(Color.FromRgb(220, 38, 38));
-                BorderValidacionSuma.Background = new SolidColorBrush(Color.FromRgb(254, 226, 226));
+                TxtDiferenciaSuma.Text = $"❌ {(diferencia > 0 ? "Falta" : "Sobra")}: {Math.Abs(diferencia):C2}";
+                TxtDiferenciaSuma.Foreground = new SolidColorBrush(Color.FromRgb(220, 38, 38)); // Rojo
+                BorderValidacionSuma.Background = new SolidColorBrush(Color.FromRgb(254, 226, 226)); // Rojo claro
             }
         }
 
@@ -140,7 +151,8 @@ namespace costbenefi.Views
                 var transferencia = TryParseDecimal(TxtTransferenciaParcial.Text, out decimal tr) ? tr : 0;
                 var sumaParcial = efectivo + tarjeta + transferencia;
 
-                if (Math.Abs(sumaParcial - montoTotal) >= 0.01m)
+                // La suma debe ser mayor a cero y coincidir con el total
+                if (sumaParcial <= 0 || Math.Abs(sumaParcial - montoTotal) >= 0.01m)
                 {
                     esValido = false;
                 }
@@ -149,7 +161,7 @@ namespace costbenefi.Views
             BtnGuardar.IsEnabled = esValido;
         }
 
-        // ===== GUARDAR GASTO =====
+        // ===== ACCIONES DE BOTONES =====
 
         private async void BtnGuardar_Click(object sender, RoutedEventArgs e)
         {
@@ -166,8 +178,9 @@ namespace costbenefi.Views
 
                 // Obtener datos del formulario
                 var concepto = TxtConcepto.Text.Trim();
-                var montoTotal = decimal.Parse(TxtMontoTotal.Text);
-                var usuario = UserService.UsuarioActual?.NombreCompleto ?? Environment.UserName;
+                // Usar TryParseDecimal para seguridad, aunque ValidarDatos ya lo hizo
+                TryParseDecimal(TxtMontoTotal.Text, out decimal montoTotal);
+                var usuario = Environment.UserName; // O mejor, el usuario logueado si lo tienes
 
                 // Crear movimiento(s) según forma de pago
                 if (RbCombinado.IsChecked == true)
@@ -183,21 +196,21 @@ namespace costbenefi.Views
 
                 GastoGuardado = true;
                 MessageBox.Show($"✅ Gasto registrado exitosamente\n\nConcepto: {concepto}\nMonto: {montoTotal:C2}",
-                              "Éxito", MessageBoxButton.OK, MessageBoxImage.Information);
+                                "Éxito", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 DialogResult = true;
                 Close();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al guardar gasto:\n\n{ex.Message}",
-                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error al guardar gasto:\n\n{ex.Message}\n\n{ex.InnerException?.Message}",
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 BtnGuardar.IsEnabled = true;
                 BtnGuardar.Content = "✅ Guardar Gasto";
             }
         }
 
-        private async System.Threading.Tasks.Task<RawMaterial> ObtenerMaterialGastosGeneralesAsync()
+        private async Task<RawMaterial> ObtenerMaterialGastosGeneralesAsync()
         {
             // Buscar material especial para gastos
             var material = await _context.Set<RawMaterial>()
@@ -215,12 +228,20 @@ namespace costbenefi.Views
                     FactorConversion = 1,
                     StockAntiguo = 0,
                     StockNuevo = 0,
-                    PrecioCosto = 0,
                     PrecioVenta = 0,
-                    IVA = 0,
-                    FechaRegistro = DateTime.Now,
+                    PrecioVentaConIVA = 0,
+                    PrecioPorUnidad = 0,
+                    PrecioPorUnidadBase = 0,
+                    PrecioConIVA = 0,
+                    PrecioSinIVA = 0,
+                    PrecioBaseConIVA = 0,
+                    PrecioBaseSinIVA = 0,
+                    ActivoParaVenta = false, // No es para venta
                     FechaVencimiento = DateTime.Now.AddYears(100),
-                    TipoMaterial = "Servicio"
+                    Proveedor = "Sistema",
+                    Observaciones = "Material especial para registro de gastos generales",
+                    FechaCreacion = DateTime.Now,
+                    FechaActualizacion = DateTime.Now
                 };
 
                 _context.Set<RawMaterial>().Add(material);
@@ -230,21 +251,21 @@ namespace costbenefi.Views
             return material;
         }
 
-        private async System.Threading.Tasks.Task GuardarGastoSimple(RawMaterial material, string concepto, decimal monto, string usuario)
+        private async Task GuardarGastoSimple(RawMaterial material, string concepto, decimal monto, string usuario)
         {
             var formaPago = RbEfectivo.IsChecked == true ? "Efectivo" :
-                           RbTarjeta.IsChecked == true ? "Tarjeta" : "Transferencia";
+                            RbTarjeta.IsChecked == true ? "Tarjeta" : "Transferencia";
 
             var movimiento = new Movimiento
             {
                 RawMaterialId = material.Id,
                 TipoMovimiento = "Gasto",
-                Cantidad = 1,
+                Cantidad = 1, // Es un solo "gasto"
                 Motivo = $"{concepto} (Forma de pago: {formaPago})",
                 Usuario = usuario,
-                FechaMovimiento = _fecha.AddHours(DateTime.Now.Hour).AddMinutes(DateTime.Now.Minute),
+                FechaMovimiento = _fecha.Add(DateTime.Now.TimeOfDay), // Combina la fecha de caja con la hora actual
                 PrecioConIVA = monto,
-                PrecioSinIVA = monto / 1.16m,
+                PrecioSinIVA = monto / 1.16m, // Asumiendo IVA del 16%
                 UnidadMedida = "Unidad",
                 StockAnterior = 0,
                 StockPosterior = 0
@@ -254,11 +275,12 @@ namespace costbenefi.Views
             await _context.SaveChangesAsync();
         }
 
-        private async System.Threading.Tasks.Task GuardarGastoCombinado(RawMaterial material, string concepto, string usuario)
+        private async Task GuardarGastoCombinado(RawMaterial material, string concepto, string usuario)
         {
             var efectivo = TryParseDecimal(TxtEfectivoParcial.Text, out decimal ef) ? ef : 0;
             var tarjeta = TryParseDecimal(TxtTarjetaParcial.Text, out decimal tj) ? tj : 0;
             var transferencia = TryParseDecimal(TxtTransferenciaParcial.Text, out decimal tr) ? tr : 0;
+            var fechaHora = _fecha.Add(DateTime.Now.TimeOfDay);
 
             if (efectivo > 0)
             {
@@ -269,7 +291,7 @@ namespace costbenefi.Views
                     Cantidad = 1,
                     Motivo = $"{concepto} (Efectivo)",
                     Usuario = usuario,
-                    FechaMovimiento = _fecha.AddHours(DateTime.Now.Hour).AddMinutes(DateTime.Now.Minute),
+                    FechaMovimiento = fechaHora,
                     PrecioConIVA = efectivo,
                     PrecioSinIVA = efectivo / 1.16m,
                     UnidadMedida = "Unidad",
@@ -288,7 +310,7 @@ namespace costbenefi.Views
                     Cantidad = 1,
                     Motivo = $"{concepto} (Tarjeta)",
                     Usuario = usuario,
-                    FechaMovimiento = _fecha.AddHours(DateTime.Now.Hour).AddMinutes(DateTime.Now.Minute),
+                    FechaMovimiento = fechaHora,
                     PrecioConIVA = tarjeta,
                     PrecioSinIVA = tarjeta / 1.16m,
                     UnidadMedida = "Unidad",
@@ -307,7 +329,7 @@ namespace costbenefi.Views
                     Cantidad = 1,
                     Motivo = $"{concepto} (Transferencia)",
                     Usuario = usuario,
-                    FechaMovimiento = _fecha.AddHours(DateTime.Now.Hour).AddMinutes(DateTime.Now.Minute),
+                    FechaMovimiento = fechaHora,
                     PrecioConIVA = transferencia,
                     PrecioSinIVA = transferencia / 1.16m,
                     UnidadMedida = "Unidad",
@@ -325,7 +347,7 @@ namespace costbenefi.Views
             if (string.IsNullOrWhiteSpace(TxtConcepto.Text))
             {
                 MessageBox.Show("Ingrese el concepto del gasto.", "Validación",
-                              MessageBoxButton.OK, MessageBoxImage.Warning);
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
                 TxtConcepto.Focus();
                 return false;
             }
@@ -333,7 +355,7 @@ namespace costbenefi.Views
             if (!TryParseDecimal(TxtMontoTotal.Text, out decimal monto) || monto <= 0)
             {
                 MessageBox.Show("Ingrese un monto válido mayor a 0.", "Validación",
-                              MessageBoxButton.OK, MessageBoxImage.Warning);
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
                 TxtMontoTotal.Focus();
                 return false;
             }
@@ -348,7 +370,7 @@ namespace costbenefi.Views
                 if (Math.Abs(suma - monto) >= 0.01m)
                 {
                     MessageBox.Show("La suma de los montos parciales debe coincidir con el monto total.",
-                                  "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return false;
                 }
             }
@@ -360,6 +382,15 @@ namespace costbenefi.Views
         {
             DialogResult = false;
             Close();
+        }
+
+        // Método añadido para que coincida con el XAML
+        private void BtnOtrosDetalles_Click(object sender, RoutedEventArgs e)
+        {
+            // Aquí puedes agregar la lógica para este botón, por ejemplo:
+            MessageBox.Show("Aquí se podría abrir una ventana para agregar más detalles, " +
+                            "como número de factura, proveedor, etc.",
+                            "Otros Detalles", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }
