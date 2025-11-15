@@ -193,13 +193,13 @@ namespace costbenefi.Views
                 CardComisiones.Visibility = Visibility.Visible;
             }
 
-            // ✅ GASTOS DEL DÍA
+            // ✅ GASTOS DEL DÍA - Siempre visible
+            TxtGastosTotales.Text = _corteActual.GastosTotalesCalculados.ToString("C2");
+            TxtEfectivoSinGastos.Text = _corteActual.EfectivoRealDisponible.ToString("C2");
+            CardGastos.Visibility = Visibility.Visible;
+
             if (_corteActual.GastosTotalesCalculados > 0)
             {
-                TxtGastosTotales.Text = _corteActual.GastosTotalesCalculados.ToString("C2");
-                TxtEfectivoSinGastos.Text = _corteActual.EfectivoRealDisponible.ToString("C2");
-                CardGastos.Visibility = Visibility.Visible;
-
                 // Mostrar ganancia neta final
                 TxtGananciaNetaFinal.Text = _corteActual.GananciaNetaFinal.ToString("C2");
                 TxtGananciaNetaFinal.Visibility = Visibility.Visible;
@@ -423,6 +423,32 @@ namespace costbenefi.Views
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al generar reporte: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void BtnAgregarGasto_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var ventana = new AgregarGastoCajaWindow(_context, _fechaCorte);
+                ventana.Owner = this;
+
+                if (ventana.ShowDialog() == true && ventana.GastoGuardado)
+                {
+                    // Recalcular gastos del día
+                    _corteActual.GastosTotalesCalculados = await _corteCajaService.CalcularGastosDelDiaAsync(_fechaCorte);
+
+                    // Actualizar interfaz
+                    MostrarTotalesCalculados();
+
+                    MessageBox.Show("✅ Gastos actualizados en el corte de caja",
+                                  "Información", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al agregar gasto:\n\n{ex.Message}",
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

@@ -249,15 +249,20 @@
                     </Border>
 
                     <!-- GASTOS DEL DÍA -->
-                    <Border x:Name="CardGastos" Style="{StaticResource CardStyle}" Visibility="Collapsed">
+                    <Border x:Name="CardGastos" Style="{StaticResource CardStyle}">
                         <StackPanel>
                             <Grid>
                                 <TextBlock Text="💸 GASTOS DEL DÍA" Style="{StaticResource HeaderTextStyle}"/>
-                                <Button x:Name="BtnVerDetalleGastos" Content="📋 Ver Detalle"
-                                       HorizontalAlignment="Right" VerticalAlignment="Top"
-                                       Style="{StaticResource OutlineButton}"
-                                       Padding="8,4" FontSize="10" Height="28"
-                                       Click="BtnVerDetalleGastos_Click"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="BtnAgregarGasto" Content="➕ Agregar"
+                                           Style="{StaticResource PrimaryButton}"
+                                           Padding="8,4" FontSize="10" Height="28" Margin="0,0,5,0"
+                                           Click="BtnAgregarGasto_Click"/>
+                                    <Button x:Name="BtnVerDetalleGastos" Content="📋 Ver Detalle"
+                                           Style="{StaticResource OutlineButton}"
+                                           Padding="8,4" FontSize="10" Height="28"
+                                           Click="BtnVerDetalleGastos_Click"/>
+                                </StackPanel>
                             </Grid>
 
                             <Grid Margin="0,10,0,0">
